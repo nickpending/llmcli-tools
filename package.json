@@ -1,0 +1,24 @@
+{
+  "name": "llcli-tools",
+  "version": "1.0.0",
+  "description": "Collection of standalone CLI tools following the llcli pattern",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "install-all": "bun install",
+    "link": "bun link-all.sh"
+  },
+  "keywords": [
+    "cli",
+    "llcli",
+    "tools",
+    "bun",
+    "typescript"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

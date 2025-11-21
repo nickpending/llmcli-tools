@@ -1,0 +1,44 @@
+# Security - NEVER COMMIT THESE
+.env
+.env.*
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
+*_api_key*
+*_secret*
+credentials.json
+secrets/
+private/
+config/secrets.*
+
+# Workspace
+.workflow/
+.claude/
+.claudex/
+.mcp.json
+.playwright-mcp
+
+# Sensitive data
+*.sqlite
+*.db
+*.dump
+data/
+backups/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.eclipse/
+.settings/
+*.sublime-*
+
+# Generic build artifacts
+dist/
+build/
+out/
+*.log
+logs/

@@ -1,0 +1,20 @@
+{
+  "name": "argus-send",
+  "version": "1.0.0",
+  "description": "Send events to Argus observability platform",
+  "type": "module",
+  "bin": {
+    "argus-send": "./argus-send.ts"
+  },
+  "scripts": {
+    "dev": "bun run argus-send.ts"
+  },
+  "keywords": [
+    "argus",
+    "observability",
+    "events",
+    "llcli"
+  ],
+  "author": "",
+  "license": "MIT"
+}

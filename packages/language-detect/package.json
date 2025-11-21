@@ -1,0 +1,24 @@
+{
+  "name": "language-detect",
+  "version": "1.0.0",
+  "description": "Fast, evidence-based programming language detector for projects",
+  "type": "module",
+  "main": "language-detect.ts",
+  "bin": {
+    "language-detect": "./language-detect.ts"
+  },
+  "scripts": {
+    "detect": "bun run language-detect.ts"
+  },
+  "keywords": [
+    "language",
+    "detection",
+    "project",
+    "cli",
+    "llcli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

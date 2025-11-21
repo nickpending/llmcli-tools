@@ -1,0 +1,25 @@
+{
+  "name": "gitignore-check",
+  "version": "1.0.0",
+  "description": "Gitignore compliance checker - Ensures projects include essential security patterns",
+  "type": "module",
+  "main": "gitignore-check.ts",
+  "bin": {
+    "gitignore-check": "./gitignore-check.ts"
+  },
+  "scripts": {
+    "check": "bun run gitignore-check.ts",
+    "install-local": "../install.sh gitignore-check"
+  },
+  "keywords": [
+    "gitignore",
+    "security",
+    "compliance",
+    "cli",
+    "llcli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

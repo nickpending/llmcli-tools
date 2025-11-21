@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "llcli-tools",
+    },
+    "packages/gitignore-check": {
+      "name": "gitignore-check",
+      "version": "1.0.0",
+      "bin": {
+        "gitignore-check": "./gitignore-check.ts",
+      },
+    },
+  },
+  "packages": {
+    "gitignore-check": ["gitignore-check@workspace:packages/gitignore-check"],
+  }
+}

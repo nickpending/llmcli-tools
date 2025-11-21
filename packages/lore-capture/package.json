@@ -1,0 +1,25 @@
+{
+  "name": "lore-capture",
+  "version": "1.0.0",
+  "description": "Knowledge capture CLI - Type-safe event logging for tasks, insights, and notes",
+  "type": "module",
+  "main": "lore-capture.ts",
+  "bin": {
+    "lore-capture": "./lore-capture.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "keywords": [
+    "knowledge",
+    "capture",
+    "events",
+    "logging",
+    "cli",
+    "llcli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
