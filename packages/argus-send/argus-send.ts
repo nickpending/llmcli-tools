@@ -26,7 +26,7 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
-interface ArgusEvent {
+export interface ArgusEvent {
   source: string;
   event_type: string;
   message?: string;
@@ -35,36 +35,63 @@ interface ArgusEvent {
   data?: unknown;
 }
 
-interface SendResult {
+export interface SendResult {
   captured: boolean;
   event_id?: number;
   error?: string;
 }
 
+export interface ArgusConfig {
+  host: string;
+  apiKey: string | null;
+}
+
 /**
- * Read API key from Argus config file
+ * Load Argus configuration from config file
+ * Returns host URL and API key
  */
-function loadApiKey(): string | null {
+export function loadConfig(): ArgusConfig {
   const configPath = join(process.env.HOME!, ".config", "argus", "config.toml");
+  const defaultHost = "http://127.0.0.1:8765";
 
   if (!existsSync(configPath)) {
-    return null;
+    return { host: defaultHost, apiKey: null };
   }
 
   try {
     const content = readFileSync(configPath, "utf-8");
 
-    // Parse api_keys line: api_keys = ["key1", "key2"]
-    const match = content.match(/api_keys\s*=\s*\[([^\]]+)\]/);
-    if (!match) return null;
+    // Parse server.host (default: 127.0.0.1)
+    const hostMatch = content.match(/^\s*host\s*=\s*"([^"]+)"/m);
+    const host = hostMatch ? hostMatch[1] : "127.0.0.1";
 
-    // Extract first key from array
-    const keysStr = match[1];
-    const firstKey = keysStr.match(/"([^"]+)"/);
-    return firstKey ? firstKey[1] : null;
+    // Parse server.port (default: 8765)
+    const portMatch = content.match(/^\s*port\s*=\s*(\d+)/m);
+    const port = portMatch ? portMatch[1] : "8765";
+
+    // Parse api_keys array, extract first key
+    const keysMatch = content.match(/api_keys\s*=\s*\[([^\]]+)\]/);
+    let apiKey: string | null = null;
+    if (keysMatch) {
+      const firstKey = keysMatch[1].match(/"([^"]+)"/);
+      apiKey = firstKey ? firstKey[1] : null;
+    }
+
+    return {
+      host: `http://${host}:${port}`,
+      apiKey,
+    };
   } catch {
-    return null;
+    return { host: defaultHost, apiKey: null };
   }
+}
+
+/**
+ * Read API key from Argus config file
+ * @deprecated Use loadConfig() instead
+ */
+export function loadApiKey(): string | null {
+  return loadConfig().apiKey;
 }
 
 /**
@@ -94,7 +121,7 @@ async function readStdin(): Promise<unknown | null> {
 /**
  * Send event to Argus
  */
-async function sendEvent(
+export async function sendEvent(
   event: ArgusEvent,
   apiKey: string,
   host: string = "http://127.0.0.1:8765",
@@ -198,6 +225,9 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // Load config from file
+  const config = loadConfig();
+
   // Parse arguments
   let source: string | null = null;
   let eventType: string | null = null;
@@ -205,8 +235,8 @@ async function main(): Promise<void> {
   let level: "debug" | "info" | "warn" | "error" | null = null;
   let dataStr: string | null = null;
   let useStdin = false;
-  let host = process.env.ARGUS_HOST || "http://127.0.0.1:8765";
-  let apiKey: string | null = process.env.ARGUS_API_KEY || null;
+  let host = process.env.ARGUS_HOST || config.host;
+  let apiKey: string | null = process.env.ARGUS_API_KEY || config.apiKey;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -237,23 +267,20 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  // Load API key if not provided
+  // Validate API key
   if (!apiKey) {
-    apiKey = loadApiKey();
-    if (!apiKey) {
-      console.log(
-        JSON.stringify(
-          {
-            captured: false,
-            error: "API key not found (check ~/.config/argus/config.toml)",
-          },
-          null,
-          2,
-        ),
-      );
-      console.error("❌ API key not found in config");
-      process.exit(2);
-    }
+    console.log(
+      JSON.stringify(
+        {
+          captured: false,
+          error: "API key not found (check ~/.config/argus/config.toml)",
+        },
+        null,
+        2,
+      ),
+    );
+    console.error("❌ API key not found in config");
+    process.exit(2);
   }
 
   // Build event
