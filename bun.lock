@@ -25,6 +25,13 @@
         "language-detect": "./language-detect.ts",
       },
     },
+    "packages/llm-summarize": {
+      "name": "llm-summarize",
+      "version": "1.0.0",
+      "bin": {
+        "llm-summarize": "./llm-summarize.ts",
+      },
+    },
     "packages/lore-capture": {
       "name": "lore-capture",
       "version": "1.0.0",
@@ -53,6 +60,8 @@
     "gitignore-check": ["gitignore-check@workspace:packages/gitignore-check"],
 
     "language-detect": ["language-detect@workspace:packages/language-detect"],
+
+    "llm-summarize": ["llm-summarize@workspace:packages/llm-summarize"],
 
     "lore-capture": ["lore-capture@workspace:packages/lore-capture"],
 

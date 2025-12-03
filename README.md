@@ -112,24 +112,25 @@ lore-capture note --text="Quick note" --tags=reminder,testing
 
 ## Installation
 
-### Quick Setup
+### Step 1: Clone and install dependencies
 
 ```bash
-# Clone repo
 git clone https://github.com/yourusername/llcli-tools.git
 cd llcli-tools
-
-# Install all workspace packages
 bun install
-
-# Make tools globally available
-cd packages/gitignore-check && bun link
-cd ../language-detect && bun link
-cd ../argus-send && bun link
-cd ../lore-capture && bun link
 ```
 
-Now all tools are available globally:
+### Step 2: Link tools globally
+
+```bash
+# Link all tools
+for dir in packages/*/; do (cd "$dir" && bun link); done
+
+# Or link individual tools
+cd packages/gitignore-check && bun link
+```
+
+Tools are now available globally (requires `~/.bun/bin` in PATH):
 ```bash
 gitignore-check .
 language-detect .
@@ -137,17 +138,13 @@ argus-send --source test --type ping
 lore-capture task --project=test --name="Task" --problem="P" --solution="S"
 ```
 
-### Development Usage (No Global Install)
+### Running without global install
+
+Run tools directly without linking:
 
 ```bash
-cd llcli-tools
-bun install
-
-# Run directly via bun
 bun packages/gitignore-check/gitignore-check.ts .
-
-# Or via package script (if defined in root package.json)
-bun run gitignore-check .
+bun packages/language-detect/language-detect.ts .
 ```
 
 ## Development

@@ -184,11 +184,16 @@ Tools install to XDG-compliant paths:
 └── QUICKSTART.md
 ```
 
-Use the repo-level install script:
+Use `bun link` from the package directory:
 
 ```bash
-# From llcli-tools repo:
-./install.sh tool-name
+cd packages/tool-name && bun link
+```
+
+Or link all tools at once from repo root:
+
+```bash
+for dir in packages/*/; do (cd "$dir" && bun link); done
 ```
 
 ## Creating a New Tool
@@ -230,8 +235,7 @@ bun run new-tool.ts <test-args>
 ### Step 6: Install
 
 ```bash
-cd ..
-./install.sh new-tool
+bun link
 new-tool --help  # Should work from PATH
 ```
 
