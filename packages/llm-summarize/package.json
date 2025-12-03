@@ -1,0 +1,25 @@
+{
+  "name": "llm-summarize",
+  "version": "1.0.0",
+  "description": "Fast LLM-powered text summarization for observability and logging",
+  "type": "module",
+  "main": "llm-summarize.ts",
+  "bin": {
+    "llm-summarize": "./llm-summarize.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "keywords": [
+    "llm",
+    "summarize",
+    "anthropic",
+    "openai",
+    "cli",
+    "llcli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
