@@ -1,0 +1,28 @@
+{
+  "name": "lore-search",
+  "version": "1.0.0",
+  "description": "Knowledge search CLI - Query Lore's FTS5 database for indexed content",
+  "type": "module",
+  "main": "lore-search.ts",
+  "bin": {
+    "lore-search": "./lore-search.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "keywords": [
+    "knowledge",
+    "search",
+    "fts5",
+    "sqlite",
+    "cli",
+    "llcli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
