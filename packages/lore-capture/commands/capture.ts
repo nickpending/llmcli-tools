@@ -12,6 +12,7 @@ import {
   TaskEvent,
   KnowledgeEvent,
   NoteEvent,
+  KnowledgeCaptureType,
 } from "../lib/events";
 
 /**
@@ -115,10 +116,20 @@ export function captureKnowledge(args: string[]): void {
   // Required fields
   requireFields(parsed, ["context", "text", "type"]);
 
-  const captureType = parsed.get("type");
-  if (captureType !== "project" && captureType !== "conversation") {
+  const validTypes: KnowledgeCaptureType[] = [
+    "project",
+    "conversation",
+    "decision",
+    "learning",
+    "gotcha",
+    "preference",
+    "knowledge",
+  ];
+
+  const captureType = parsed.get("type") as KnowledgeCaptureType;
+  if (!validTypes.includes(captureType)) {
     throw new Error(
-      `Invalid type: ${captureType}. Must be 'project' or 'conversation'`,
+      `Invalid type: ${captureType}. Must be one of: ${validTypes.join(", ")}`,
     );
   }
 
@@ -129,7 +140,7 @@ export function captureKnowledge(args: string[]): void {
     data: {
       context: parsed.get("context")!,
       capture: parsed.get("text")!,
-      type: captureType as "project" | "conversation",
+      type: captureType,
     },
   };
 

@@ -31,6 +31,16 @@ export interface TaskEvent {
   };
 }
 
+// Knowledge capture types - used by CAPTURE format
+export type KnowledgeCaptureType =
+  | "project"
+  | "conversation"
+  | "decision"
+  | "learning"
+  | "gotcha"
+  | "preference"
+  | "knowledge";
+
 export interface KnowledgeEvent {
   event: "captured";
   type: "knowledge";
@@ -38,7 +48,7 @@ export interface KnowledgeEvent {
   data: {
     context: string;
     capture: string;
-    type: "project" | "conversation";
+    type: KnowledgeCaptureType;
   };
 }
 
