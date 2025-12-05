@@ -1,15 +1,21 @@
 {
   "name": "gitignore-check",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Gitignore compliance checker - Ensures projects include essential security patterns",
   "type": "module",
-  "main": "gitignore-check.ts",
+  "main": "./index.ts",
   "bin": {
-    "gitignore-check": "./gitignore-check.ts"
+    "gitignore-check": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
+  },
+  "dependencies": {
+    "language-detect": "workspace:*"
   },
   "scripts": {
-    "check": "bun run gitignore-check.ts",
-    "install-local": "../install.sh gitignore-check"
+    "check": "bun run cli.ts"
   },
   "keywords": [
     "gitignore",

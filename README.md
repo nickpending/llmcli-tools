@@ -17,7 +17,7 @@ Building blocks for development automation - gitignore compliance, language dete
 
 ## Status: Active
 
-**Production-ready tools in active daily use.** Four tools shipped: gitignore-check, language-detect, argus-send, and lore-capture.
+**Production-ready tools in active daily use.** Six tools shipped: gitignore-check, language-detect, argus-send, lore-capture, lore-search, and llm-summarize.
 
 ## Philosophy
 
@@ -30,6 +30,7 @@ Offload simple, repetitive tasks to deterministic scripts so LLMs can focus on w
 - **Composable** - Pipes to jq, grep, other Unix tools
 - **Complete** - Production-ready, not scaffolds
 - **Type-safe** - TypeScript strict mode throughout
+- **Dual-use** - Library exports + CLI wrapper for flexible integration
 
 ## Available Tools
 
@@ -110,6 +111,47 @@ lore-capture note --text="Quick note" --tags=reminder,testing
 
 **Integration:** Momentum hooks use lore-capture to log task completions and knowledge insights.
 
+### lore-search
+
+FTS5 full-text search across your indexed knowledge fabric.
+
+**Features:**
+- SQLite FTS5 for sub-second queries across all indexed content
+- Source filtering (blogs, commits, events, projects)
+- FTS5 query syntax support (phrases, OR, prefix matching)
+- Composable JSON output
+
+```bash
+lore-search "authentication"           # Search all sources
+lore-search blogs "typescript"         # Search only blogs
+lore-search --sources                  # List indexed sources
+lore-search "error" | jq '.results[]'  # Pipe results to jq
+```
+
+[Documentation](./packages/lore-search/README.md)
+
+**Integration:** Query your personal knowledge base from scripts, hooks, or other tools.
+
+### llm-summarize
+
+LLM-powered text summarization via Anthropic Claude API.
+
+**Features:**
+- Configurable summary styles (brief, detailed, technical, executive)
+- Stdin support for piping content
+- Config file support (~/.config/llm-summarize/config.toml)
+- Token-aware chunking for large documents
+
+```bash
+llm-summarize "Text to summarize"
+cat document.md | llm-summarize --stdin --style=technical
+llm-summarize --style=executive "Meeting notes..."
+```
+
+[Documentation](./packages/llm-summarize/README.md)
+
+**Integration:** Summarize content programmatically in TypeScript hooks and automation.
+
 ## Installation
 
 ### Step 1: Clone and install dependencies
@@ -143,46 +185,28 @@ lore-capture task --project=test --name="Task" --problem="P" --solution="S"
 Run tools directly without linking:
 
 ```bash
-bun packages/gitignore-check/gitignore-check.ts .
-bun packages/language-detect/language-detect.ts .
+bun packages/gitignore-check/cli.ts .
+bun packages/language-detect/cli.ts .
 ```
 
 ## Development
 
 ### Structure
 
+All tools follow the hybrid library+CLI pattern:
+
 ```
 llcli-tools/
 ├── package.json                 # Root workspace config
-├── bun.lockb                    # Shared lockfile
+├── bun.lock                     # Shared lockfile
 ├── packages/
-│   ├── gitignore-check/
-│   │   ├── gitignore-check.ts
-│   │   ├── templates/
-│   │   │   ├── base.gitignore
-│   │   │   ├── os/
-│   │   │   └── languages/
-│   │   ├── package.json
-│   │   ├── README.md
-│   │   └── QUICKSTART.md
-│   ├── language-detect/
-│   │   ├── language-detect.ts
-│   │   ├── package.json
-│   │   ├── README.md
-│   │   └── QUICKSTART.md
-│   ├── argus-send/
-│   │   ├── argus-send.ts
-│   │   ├── package.json
-│   │   ├── README.md
-│   │   └── QUICKSTART.md
-│   ├── lore-capture/
-│   │   ├── lore-capture.ts
-│   │   ├── commands/
-│   │   ├── lib/
-│   │   ├── package.json
-│   │   ├── README.md
-│   │   └── QUICKSTART.md
-│   └── (future tools)
+│   └── {tool-name}/
+│       ├── index.ts             # Library exports (pure functions)
+│       ├── cli.ts               # CLI wrapper (arg parsing, exit codes)
+│       ├── lib/                 # Internal implementation (optional)
+│       ├── templates/           # Static assets (optional)
+│       ├── package.json
+│       └── README.md
 ├── CLI-DEVELOPMENT-GUIDE.md     # How to build new tools
 └── README.md
 ```
@@ -193,34 +217,54 @@ See [CLI-DEVELOPMENT-GUIDE.md](./CLI-DEVELOPMENT-GUIDE.md) for the complete proc
 
 **Quick version:**
 
-1. Create tool directory:
+1. Create tool directory and files:
    ```bash
-   mkdir -p packages/new-tool/templates
+   mkdir packages/new-tool
+   touch packages/new-tool/{index.ts,cli.ts,package.json}
    ```
 
-2. Create `packages/new-tool/new-tool.ts` following llcli pattern
+2. Implement `index.ts` with pure library functions (no process.exit, no stderr)
 
-3. Create `packages/new-tool/package.json`:
+3. Implement `cli.ts` as thin wrapper with arg parsing and exit codes
+
+4. Create `package.json` with dual exports:
    ```json
    {
      "name": "new-tool",
      "version": "1.0.0",
      "type": "module",
-     "main": "new-tool.ts",
-     "bin": {
-       "new-tool": "./new-tool.ts"
+     "main": "./index.ts",
+     "bin": { "new-tool": "./cli.ts" },
+     "exports": {
+       ".": "./index.ts",
+       "./cli": "./cli.ts"
      }
    }
    ```
 
-4. Write README.md and QUICKSTART.md
-
 5. Install and test:
    ```bash
-   bun install
-   cd packages/new-tool
-   bun run new-tool.ts --help
+   bun install && cd packages/new-tool && bun link
+   new-tool --help
    ```
+
+### Library Integration
+
+All tools export pure functions for direct import:
+
+```typescript
+import { checkCompliance } from "gitignore-check";
+import { detectLanguages } from "language-detect";
+import { send as sendToArgus } from "argus-send";
+import { captureKnowledge } from "lore-capture";
+import { search } from "lore-search";
+import { summarize } from "llm-summarize";
+```
+
+Use library imports for:
+- High-frequency calls (hooks, automation)
+- Type-safe error handling
+- Avoiding subprocess overhead
 
 ### Workspace Benefits
 

@@ -1,11 +1,15 @@
 {
   "name": "lore-search",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Knowledge search CLI - Query Lore's FTS5 database for indexed content",
   "type": "module",
-  "main": "lore-search.ts",
+  "main": "./index.ts",
   "bin": {
-    "lore-search": "./lore-search.ts"
+    "lore-search": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
   },
   "scripts": {
     "test": "bun test"

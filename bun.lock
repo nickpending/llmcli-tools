@@ -6,35 +6,38 @@
     },
     "packages/argus-send": {
       "name": "argus-send",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "bin": {
         "argus-send": "./argus-send.ts",
       },
     },
     "packages/gitignore-check": {
       "name": "gitignore-check",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "bin": {
-        "gitignore-check": "./gitignore-check.ts",
+        "gitignore-check": "./cli.ts",
+      },
+      "dependencies": {
+        "language-detect": "workspace:*",
       },
     },
     "packages/language-detect": {
       "name": "language-detect",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "bin": {
-        "language-detect": "./language-detect.ts",
+        "language-detect": "./cli.ts",
       },
     },
     "packages/llm-summarize": {
       "name": "llm-summarize",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "bin": {
         "llm-summarize": "./llm-summarize.ts",
       },
     },
     "packages/lore-capture": {
       "name": "lore-capture",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "bin": {
         "lore-capture": "./lore-capture.ts",
       },

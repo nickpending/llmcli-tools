@@ -1,14 +1,18 @@
 {
   "name": "language-detect",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Fast, evidence-based programming language detector for projects",
   "type": "module",
-  "main": "language-detect.ts",
+  "main": "./index.ts",
   "bin": {
-    "language-detect": "./language-detect.ts"
+    "language-detect": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
   },
   "scripts": {
-    "detect": "bun run language-detect.ts"
+    "detect": "bun run cli.ts"
   },
   "keywords": [
     "language",

@@ -1,42 +1,34 @@
-#!/usr/bin/env bun
 /**
- * language-detect - Project Language Detector
+ * language-detect - Library exports
  *
- * Detects programming languages used in a project by examining marker files
- * and file extensions. Outputs deterministic JSON for composability.
- *
- * Philosophy:
- * - Evidence-based detection - Shows WHY each language was detected
- * - Fast scanning - Only checks markers, not full file enumeration
- * - Composable output - JSON pipes to jq, other tools
- * - Useful standalone - Debugging, CI/CD, tool integration
+ * Fast, evidence-based programming language detector for projects.
+ * Pure functions, no process.exit, no stderr output.
  *
  * Usage:
- *   language-detect <project-dir>
- *
- * Examples:
- *   language-detect .                           # Detect current directory
- *   language-detect /path/to/project            # Detect specific project
- *   language-detect . | jq '.languages[]'       # List languages
- *   language-detect . | jq '.markers.python'    # Show Python evidence
- *
- * Exit codes:
- *   0 - Success (languages detected or none found)
- *   2 - Error (invalid args, directory not found)
+ *   import { detectLanguages } from "language-detect";
+ *   const result = await detectLanguages("/path/to/project");
  */
 
 import { existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface DetectionResult {
+  languages: string[];
+  markers: Record<string, string[]>; // language -> evidence (why each detected)
+}
 
 interface LanguageMarker {
   files: string[]; // Marker filenames to check
   extensions?: string[]; // File extensions (optional, for verification)
 }
 
-interface DetectionResult {
-  languages: string[];
-  markers: Record<string, string[]>; // language -> evidence (why each detected)
-}
+// ============================================================================
+// Configuration
+// ============================================================================
 
 /**
  * Minimum files needed for extension-based detection (when no markers found)
@@ -105,8 +97,12 @@ const LANGUAGE_MARKERS: Record<string, LanguageMarker> = {
   },
 };
 
+// ============================================================================
+// Internal helpers
+// ============================================================================
+
 /**
- * Check if a file exists in directory (case-insensitive for some markers)
+ * Check if a file exists in directory
  */
 function fileExists(dir: string, filename: string): boolean {
   const fullPath = join(dir, filename);
@@ -203,10 +199,19 @@ function countFilesWithExtension(
   return count;
 }
 
+// ============================================================================
+// Public API
+// ============================================================================
+
 /**
- * Detect languages in project directory
+ * Detect programming languages used in a project directory
+ *
+ * @param projectDir - Path to project root directory
+ * @returns DetectionResult with languages and evidence markers
  */
-async function detectLanguages(projectDir: string): Promise<DetectionResult> {
+export async function detectLanguages(
+  projectDir: string,
+): Promise<DetectionResult> {
   const detected = new Map<string, string[]>();
 
   // Phase 1: Check each language's markers
@@ -266,7 +271,6 @@ async function detectLanguages(projectDir: string): Promise<DetectionResult> {
     markers[lang] = evidence;
   }
 
-  // Terse output: drop scanned field (caller knows the directory)
   return {
     languages,
     markers,
@@ -274,90 +278,61 @@ async function detectLanguages(projectDir: string): Promise<DetectionResult> {
 }
 
 /**
- * Print usage and exit
+ * Synchronous version of detectLanguages
+ * For use in contexts where async is not available
  */
-function printUsage(): void {
-  console.error(`
-language-detect - Project Language Detector
+export function detectLanguagesSync(projectDir: string): DetectionResult {
+  const detected = new Map<string, string[]>();
 
-Usage: language-detect <project-dir>
+  // Phase 1: Check each language's markers
+  for (const [language, marker] of Object.entries(LANGUAGE_MARKERS)) {
+    const evidence: string[] = [];
 
-Arguments:
-  project-dir  Path to project root
+    for (const file of marker.files) {
+      if (fileExists(projectDir, file)) {
+        evidence.push(file);
+      }
+    }
 
-Exit codes:
-  0 - Success
-  2 - Error
+    if (evidence.length > 0 && marker.extensions) {
+      for (const ext of marker.extensions) {
+        if (hasFilesWithExtension(projectDir, ext)) {
+          evidence.push(`*${ext} files`);
+          break;
+        }
+      }
+    }
 
-Examples:
-  # Detect languages in current directory
-  language-detect .
+    if (evidence.length > 0) {
+      detected.set(language, evidence);
+    }
+  }
 
-  # Detect in specific project
-  language-detect /path/to/project
+  // Phase 2: Extension-based fallback
+  for (const [language, marker] of Object.entries(LANGUAGE_MARKERS)) {
+    if (detected.has(language)) continue;
+    if (!marker.extensions || marker.extensions.length === 0) continue;
 
-  # List detected languages
-  language-detect . | jq -r '.languages[]'
+    const evidence: string[] = [];
 
-  # Show evidence for Python detection
-  language-detect . | jq '.markers.python'
+    for (const ext of marker.extensions) {
+      const count = countFilesWithExtension(projectDir, ext);
+      if (count > EXTENSION_THRESHOLD) {
+        evidence.push(`${count} *${ext} files`);
+      }
+    }
 
-  # Check if project uses Go
-  language-detect . | jq -e '.languages[] | select(. == "go")'
+    if (evidence.length > 0) {
+      detected.set(language, evidence);
+    }
+  }
 
-  # Count detected languages
-  language-detect . | jq '.languages | length'
+  const languages = Array.from(detected.keys()).sort();
+  const markers: Record<string, string[]> = {};
 
-Philosophy:
-  Fast, evidence-based language detection for tooling.
-  Scans marker files (package.json, go.mod, etc.) not all files.
-  Outputs JSON for composability with jq, scripts, other tools.
+  for (const [lang, evidence] of detected) {
+    markers[lang] = evidence;
+  }
 
-Supported Languages:
-  Python, JavaScript, TypeScript, Go, Rust, Ruby, Java, C#,
-  PHP, Swift, Kotlin, Scala
-`);
+  return { languages, markers };
 }
-
-/**
- * Main entry point
- */
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-
-  // Parse arguments
-  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-    printUsage();
-    process.exit(0);
-  }
-
-  const projectDir = args[0];
-
-  if (!projectDir) {
-    console.error("Error: project-dir required");
-    printUsage();
-    process.exit(2);
-  }
-
-  if (!existsSync(projectDir)) {
-    console.error(`Error: Directory not found: ${projectDir}`);
-    process.exit(2);
-  }
-
-  // Detect languages
-  const result = await detectLanguages(projectDir);
-
-  // Output JSON (stdout)
-  console.log(JSON.stringify(result, null, 2));
-
-  // Diagnostic to stderr
-  if (result.languages.length === 0) {
-    console.error("ℹ️  No languages detected");
-  } else {
-    console.error(`✅ Detected: ${result.languages.join(", ")}`);
-  }
-
-  process.exit(0);
-}
-
-main();

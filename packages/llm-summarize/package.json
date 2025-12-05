@@ -1,11 +1,15 @@
 {
   "name": "llm-summarize",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Fast LLM-powered text summarization for observability and logging",
   "type": "module",
-  "main": "llm-summarize.ts",
+  "main": "./index.ts",
   "bin": {
-    "llm-summarize": "./llm-summarize.ts"
+    "llm-summarize": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
   },
   "scripts": {
     "test": "bun test"

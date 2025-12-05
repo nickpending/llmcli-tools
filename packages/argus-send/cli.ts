@@ -1,21 +1,14 @@
 #!/usr/bin/env bun
 /**
- * argus-send - Send events to Argus observability platform
+ * argus-send CLI
  *
  * Philosophy:
  * - Synchronous delivery - Blocks until Argus confirms capture
- * - Zero dependencies - Uses Bun's native fetch
  * - Config-aware - Reads API key from ~/.config/argus/config.toml
  * - Composable - Accepts data via --data flag or stdin pipe
  *
  * Usage:
  *   argus-send --source <name> --type <event-type> [options]
- *
- * Examples:
- *   argus-send --source llcli-tools --type gitignore-check --message "Checked project"
- *   argus-send --source momentum --type task-complete --level info
- *   echo '{"missing": 96}' | argus-send --source llcli-tools --type gitignore-check --stdin
- *   gitignore-check . | argus-send --source llcli-tools --type gitignore-check --stdin
  *
  * Exit codes:
  *   0 - Event captured successfully
@@ -23,76 +16,11 @@
  *   2 - Client error (missing args, invalid data, config not found)
  */
 
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
+import { sendEvent, loadConfig, type ArgusEvent } from "./index";
 
-export interface ArgusEvent {
-  source: string;
-  event_type: string;
-  message?: string;
-  level?: "debug" | "info" | "warn" | "error";
-  timestamp?: string;
-  data?: unknown;
-}
-
-export interface SendResult {
-  captured: boolean;
-  event_id?: number;
-  error?: string;
-}
-
-export interface ArgusConfig {
-  host: string;
-  apiKey: string | null;
-}
-
-/**
- * Load Argus configuration from config file
- * Returns host URL and API key
- */
-export function loadConfig(): ArgusConfig {
-  const configPath = join(process.env.HOME!, ".config", "argus", "config.toml");
-  const defaultHost = "http://127.0.0.1:8765";
-
-  if (!existsSync(configPath)) {
-    return { host: defaultHost, apiKey: null };
-  }
-
-  try {
-    const content = readFileSync(configPath, "utf-8");
-
-    // Parse server.host (default: 127.0.0.1)
-    const hostMatch = content.match(/^\s*host\s*=\s*"([^"]+)"/m);
-    const host = hostMatch ? hostMatch[1] : "127.0.0.1";
-
-    // Parse server.port (default: 8765)
-    const portMatch = content.match(/^\s*port\s*=\s*(\d+)/m);
-    const port = portMatch ? portMatch[1] : "8765";
-
-    // Parse api_keys array, extract first key
-    const keysMatch = content.match(/api_keys\s*=\s*\[([^\]]+)\]/);
-    let apiKey: string | null = null;
-    if (keysMatch) {
-      const firstKey = keysMatch[1].match(/"([^"]+)"/);
-      apiKey = firstKey ? firstKey[1] : null;
-    }
-
-    return {
-      host: `http://${host}:${port}`,
-      apiKey,
-    };
-  } catch {
-    return { host: defaultHost, apiKey: null };
-  }
-}
-
-/**
- * Read API key from Argus config file
- * @deprecated Use loadConfig() instead
- */
-export function loadApiKey(): string | null {
-  return loadConfig().apiKey;
-}
+// ============================================================================
+// Stdin Reading
+// ============================================================================
 
 /**
  * Read JSON data from stdin
@@ -118,49 +46,9 @@ async function readStdin(): Promise<unknown | null> {
   }
 }
 
-/**
- * Send event to Argus
- */
-export async function sendEvent(
-  event: ArgusEvent,
-  apiKey: string,
-  host: string = "http://127.0.0.1:8765",
-): Promise<SendResult> {
-  try {
-    // Add timestamp if missing
-    if (!event.timestamp) {
-      event.timestamp = new Date().toISOString();
-    }
-
-    const response = await fetch(`${host}/events`, {
-      method: "POST",
-      headers: {
-        "X-API-Key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(event),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return {
-        captured: false,
-        error: `HTTP ${response.status}: ${text}`,
-      };
-    }
-
-    const result = await response.json();
-    return {
-      captured: true,
-      event_id: result.event_id,
-    };
-  } catch (error) {
-    return {
-      captured: false,
-      error: `Connection failed: ${String(error)}`,
-    };
-  }
-}
+// ============================================================================
+// CLI
+// ============================================================================
 
 /**
  * Print usage and exit
@@ -213,27 +101,35 @@ Examples:
 `);
 }
 
-/**
- * Main entry point
- */
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
+interface ParsedArgs {
+  source: string;
+  eventType: string;
+  message?: string;
+  level?: "debug" | "info" | "warn" | "error";
+  dataStr?: string;
+  useStdin: boolean;
+  host: string;
+  apiKey: string | null;
+}
 
-  // Handle help
+/**
+ * Parse command-line arguments
+ */
+function parseArgs(
+  argv: string[],
+  config: ReturnType<typeof loadConfig>,
+): ParsedArgs | null {
+  const args = argv.slice(2);
+
   if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-    printUsage();
-    process.exit(0);
+    return null;
   }
 
-  // Load config from file
-  const config = loadConfig();
-
-  // Parse arguments
   let source: string | null = null;
   let eventType: string | null = null;
-  let message: string | null = null;
-  let level: "debug" | "info" | "warn" | "error" | null = null;
-  let dataStr: string | null = null;
+  let message: string | undefined;
+  let level: "debug" | "info" | "warn" | "error" | undefined;
+  let dataStr: string | undefined;
   let useStdin = false;
   let host = process.env.ARGUS_HOST || config.host;
   let apiKey: string | null = process.env.ARGUS_API_KEY || config.apiKey;
@@ -260,24 +156,41 @@ async function main(): Promise<void> {
     }
   }
 
-  // Validate required args
   if (!source || !eventType) {
-    console.error("Error: --source and --type are required");
+    return null;
+  }
+
+  return {
+    source,
+    eventType,
+    message,
+    level,
+    dataStr,
+    useStdin,
+    host,
+    apiKey,
+  };
+}
+
+/**
+ * Main entry point
+ */
+async function main(): Promise<void> {
+  const config = loadConfig();
+  const parsed = parseArgs(process.argv, config);
+
+  if (!parsed) {
     printUsage();
-    process.exit(2);
+    process.exit(parsed === null && process.argv.length > 2 ? 2 : 0);
   }
 
   // Validate API key
-  if (!apiKey) {
+  if (!parsed.apiKey) {
     console.log(
-      JSON.stringify(
-        {
-          captured: false,
-          error: "API key not found (check ~/.config/argus/config.toml)",
-        },
-        null,
-        2,
-      ),
+      JSON.stringify({
+        captured: false,
+        error: "API key not found (check ~/.config/argus/config.toml)",
+      }),
     );
     console.error("❌ API key not found in config");
     process.exit(2);
@@ -285,32 +198,28 @@ async function main(): Promise<void> {
 
   // Build event
   const event: ArgusEvent = {
-    source,
-    event_type: eventType,
+    source: parsed.source,
+    event_type: parsed.eventType,
   };
 
-  if (message) event.message = message;
-  if (level) event.level = level;
+  if (parsed.message) event.message = parsed.message;
+  if (parsed.level) event.level = parsed.level;
 
   // Parse data from --data flag or stdin
-  if (useStdin) {
+  if (parsed.useStdin) {
     const stdinData = await readStdin();
     if (stdinData) {
       event.data = stdinData;
     }
-  } else if (dataStr) {
+  } else if (parsed.dataStr) {
     try {
-      event.data = JSON.parse(dataStr);
+      event.data = JSON.parse(parsed.dataStr);
     } catch {
       console.log(
-        JSON.stringify(
-          {
-            captured: false,
-            error: "Invalid JSON in --data argument",
-          },
-          null,
-          2,
-        ),
+        JSON.stringify({
+          captured: false,
+          error: "Invalid JSON in --data argument",
+        }),
       );
       console.error("❌ Invalid JSON in --data");
       process.exit(2);
@@ -318,10 +227,10 @@ async function main(): Promise<void> {
   }
 
   // Send event
-  const result = await sendEvent(event, apiKey, host);
+  const result = await sendEvent(event, parsed.apiKey, parsed.host);
 
   // Output JSON (stdout)
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(result));
 
   // Diagnostic to stderr
   if (result.captured) {

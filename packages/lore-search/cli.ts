@@ -1,9 +1,6 @@
 #!/usr/bin/env bun
 /**
- * lore-search - Knowledge search CLI
- *
- * Query Lore's FTS5 database for indexed content across all domains.
- * Full-text search with source filtering and relevance ranking.
+ * lore-search CLI
  *
  * Philosophy:
  * - Fast - SQLite FTS5 for sub-second queries
@@ -15,18 +12,13 @@
  *   lore-search <source> <query>           # Search specific source
  *   lore-search --sources                  # List available sources
  *
- * Examples:
- *   lore-search "authentication"           # Find auth-related content
- *   lore-search blogs "typescript"         # Search only blogs
- *   lore-search commits "refactor" | jq    # Pipe to jq
- *
  * Exit codes:
  *   0 - Success
  *   1 - Failure (validation)
  *   2 - Error (database)
  */
 
-import { search, listSources, type SearchResult } from "./lib/search";
+import { search, listSources, type SearchResult } from "./index";
 
 interface SearchOutput {
   success: boolean;
