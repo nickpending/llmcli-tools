@@ -16,7 +16,13 @@
  *   2 - Client error (missing args, invalid data, config not found)
  */
 
-import { sendEvent, loadConfig, type ArgusEvent } from "./index";
+import {
+  sendEvent,
+  loadConfig,
+  type ArgusEvent,
+  type ArgusHook,
+  type ArgusStatus,
+} from "./index";
 
 // ============================================================================
 // Stdin Reading
@@ -66,11 +72,16 @@ Usage: argus-send --source <name> --type <event-type> [options]
 
 Required:
   --source <name>           Source name (e.g., "llcli-tools", "momentum")
-  --type <event-type>       Event type (e.g., "gitignore-check", "task-complete")
+  --type <event-type>       Event type: tool, session, agent, response, prompt
 
 Optional:
   --message <text>          Human-readable message
-  --level <level>           Level: debug, info, warn, error
+  --hook <hook>             Hook name: PreToolUse, PostToolUse, Stop, SessionStart,
+                            SessionEnd, SubagentStart, SubagentStop, UserPromptSubmit
+  --session-id <id>         Claude Code session identifier
+  --tool-name <name>        Tool name (Bash, Read, Edit, Task, etc.)
+  --tool-use-id <id>        Correlates PreToolUse/PostToolUse pairs
+  --status <status>         Event outcome: success, failure, pending
   --data <json>             JSON data string
   --stdin                   Read data from stdin (JSON)
   --host <url>              Argus host (default: http://127.0.0.1:8765)
@@ -82,22 +93,22 @@ Environment:
   ARGUS_HOST                Override default host
 
 Examples:
-  # Simple event
-  argus-send --source momentum --type task-complete --level info
+  # Tool event
+  argus-send --source momentum --type tool \\
+    --hook PreToolUse \\
+    --session-id "f10e9765-1999-456f-81c3-eb4c531ecee2" \\
+    --tool-name Bash \\
+    --tool-use-id "toolu_01ABC" \\
+    --message "Bash: git status"
 
-  # With message and data
-  argus-send --source llcli-tools --type gitignore-check \\
-    --message "Checked project" \\
-    --data '{"missing": 96}'
+  # Session event
+  argus-send --source momentum --type session \\
+    --hook SessionStart \\
+    --session-id "f10e9765-1999-456f-81c3-eb4c531ecee2" \\
+    --message "Session started: argus (active)"
 
   # Pipe data from another tool
-  gitignore-check . | argus-send --source llcli-tools --type gitignore-check --stdin
-
-  # Compose with jq
-  gitignore-check . | jq '{missing: .missing | length}' | argus-send \\
-    --source llcli-tools \\
-    --type gitignore-check \\
-    --stdin
+  gitignore-check . | argus-send --source llcli-tools --type tool --stdin
 `);
 }
 
@@ -105,7 +116,11 @@ interface ParsedArgs {
   source: string;
   eventType: string;
   message?: string;
-  level?: "debug" | "info" | "warn" | "error";
+  hook?: ArgusHook;
+  sessionId?: string;
+  toolName?: string;
+  toolUseId?: string;
+  status?: ArgusStatus;
   dataStr?: string;
   useStdin: boolean;
   host: string;
@@ -125,10 +140,22 @@ function parseArgs(
     return null;
   }
 
+  // Check for deprecated --level flag
+  if (args.includes("--level")) {
+    console.error(
+      "❌ --level flag is deprecated and rejected by Argus API. Remove it from your command.",
+    );
+    process.exit(2);
+  }
+
   let source: string | null = null;
   let eventType: string | null = null;
   let message: string | undefined;
-  let level: "debug" | "info" | "warn" | "error" | undefined;
+  let hook: ArgusHook | undefined;
+  let sessionId: string | undefined;
+  let toolName: string | undefined;
+  let toolUseId: string | undefined;
+  let status: ArgusStatus | undefined;
   let dataStr: string | undefined;
   let useStdin = false;
   let host = process.env.ARGUS_HOST || config.host;
@@ -143,8 +170,16 @@ function parseArgs(
       eventType = args[++i];
     } else if (arg === "--message" && i + 1 < args.length) {
       message = args[++i];
-    } else if (arg === "--level" && i + 1 < args.length) {
-      level = args[++i] as "debug" | "info" | "warn" | "error";
+    } else if (arg === "--hook" && i + 1 < args.length) {
+      hook = args[++i] as ArgusHook;
+    } else if (arg === "--session-id" && i + 1 < args.length) {
+      sessionId = args[++i];
+    } else if (arg === "--tool-name" && i + 1 < args.length) {
+      toolName = args[++i];
+    } else if (arg === "--tool-use-id" && i + 1 < args.length) {
+      toolUseId = args[++i];
+    } else if (arg === "--status" && i + 1 < args.length) {
+      status = args[++i] as ArgusStatus;
     } else if (arg === "--data" && i + 1 < args.length) {
       dataStr = args[++i];
     } else if (arg === "--stdin") {
@@ -164,7 +199,11 @@ function parseArgs(
     source,
     eventType,
     message,
-    level,
+    hook,
+    sessionId,
+    toolName,
+    toolUseId,
+    status,
     dataStr,
     useStdin,
     host,
@@ -203,7 +242,11 @@ async function main(): Promise<void> {
   };
 
   if (parsed.message) event.message = parsed.message;
-  if (parsed.level) event.level = parsed.level;
+  if (parsed.hook) event.hook = parsed.hook;
+  if (parsed.sessionId) event.session_id = parsed.sessionId;
+  if (parsed.toolName) event.tool_name = parsed.toolName;
+  if (parsed.toolUseId) event.tool_use_id = parsed.toolUseId;
+  if (parsed.status) event.status = parsed.status;
 
   // Parse data from --data flag or stdin
   if (parsed.useStdin) {

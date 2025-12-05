@@ -17,13 +17,38 @@ import { join } from "path";
 // Types
 // ============================================================================
 
+export type ArgusEventType =
+  | "tool"
+  | "session"
+  | "agent"
+  | "response"
+  | "prompt";
+
+export type ArgusHook =
+  | "PreToolUse"
+  | "PostToolUse"
+  | "Stop"
+  | "SessionStart"
+  | "SessionEnd"
+  | "SubagentStart"
+  | "SubagentStop"
+  | "UserPromptSubmit";
+
+export type ArgusStatus = "success" | "failure" | "pending";
+
 export interface ArgusEvent {
   source: string;
   event_type: string;
-  message?: string;
-  level?: "debug" | "info" | "warn" | "error";
   timestamp?: string;
+  message?: string;
   data?: unknown;
+  // Agent observability fields (send at top level, not in data)
+  session_id?: string;
+  hook?: ArgusHook;
+  tool_name?: string;
+  tool_use_id?: string;
+  status?: ArgusStatus;
+  agent_id?: string;
 }
 
 export interface SendResult {

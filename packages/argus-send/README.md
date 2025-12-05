@@ -13,16 +13,22 @@ Send events to Argus observability platform from the command line.
 ## Quick Start
 
 ```bash
-# Simple event
-argus-send --source momentum --type task-complete --level info
+# Tool event with agent observability fields
+argus-send --source momentum --type tool \
+  --hook PreToolUse \
+  --session-id "f10e9765-1999-456f-81c3-eb4c531ecee2" \
+  --tool-name Bash \
+  --tool-use-id "toolu_01ABC" \
+  --message "Bash: git status"
 
-# With message and structured data
-argus-send --source llcli-tools --type gitignore-check \
-  --message "Checked project compliance" \
-  --data '{"missing": 96, "sources": ["base", "macos"]}'
+# Session event
+argus-send --source momentum --type session \
+  --hook SessionStart \
+  --session-id "f10e9765-1999-456f-81c3-eb4c531ecee2" \
+  --message "Session started: argus (active)"
 
 # Pipe from another tool
-gitignore-check . | argus-send --source llcli-tools --type gitignore-check --stdin
+gitignore-check . | argus-send --source llcli-tools --type tool --stdin
 ```
 
 ## Installation
@@ -42,13 +48,17 @@ argus-send --source <name> --type <event-type> [options]
 
 ### Required Arguments
 
-- `--source <name>` - Source name (e.g., "llcli-tools", "momentum", "sable")
-- `--type <event-type>` - Event type (e.g., "gitignore-check", "task-complete")
+- `--source <name>` - Source name (e.g., "llcli-tools", "momentum")
+- `--type <event-type>` - Event type: `tool`, `session`, `agent`, `response`, `prompt`
 
 ### Optional Arguments
 
 - `--message <text>` - Human-readable message
-- `--level <level>` - Event level: `debug`, `info`, `warn`, `error`
+- `--hook <hook>` - Hook name: `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `UserPromptSubmit`
+- `--session-id <id>` - Claude Code session identifier
+- `--tool-name <name>` - Tool name (Bash, Read, Edit, Task, etc.)
+- `--tool-use-id <id>` - Correlates PreToolUse/PostToolUse pairs
+- `--status <status>` - Event outcome: `success`, `failure`, `pending`
 - `--data <json>` - JSON data string
 - `--stdin` - Read data object from stdin (JSON)
 - `--host <url>` - Argus host (default: `http://127.0.0.1:8765`)
@@ -104,12 +114,16 @@ language-detect . | argus-send --source llcli-tools --type language-detect --std
 ### Momentum Hooks
 
 ```typescript
-// In momentum session-start hook
+// In momentum pre-tool-use hook
 const result = Bun.spawnSync([
   "argus-send",
   "--source", "momentum",
-  "--type", "session-start",
-  "--level", "info"
+  "--type", "tool",
+  "--hook", "PreToolUse",
+  "--session-id", data.session_id,
+  "--tool-name", data.tool_name,
+  "--tool-use-id", data.tool_use_id,
+  "--message", `${data.tool_name}: ${summary}`
 ]);
 ```
 
