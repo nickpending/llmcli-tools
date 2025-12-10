@@ -1,0 +1,31 @@
+{
+  "name": "visual-mermaid",
+  "version": "1.0.0",
+  "description": "Render Mermaid diagrams to PNG/SVG with terminal-noir theming",
+  "type": "module",
+  "main": "./index.ts",
+  "bin": {
+    "visual-mermaid": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2"
+  },
+  "keywords": [
+    "mermaid",
+    "diagram",
+    "cli",
+    "llcli",
+    "visual"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
