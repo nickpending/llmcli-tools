@@ -90,6 +90,42 @@ export const TERMINAL_NOIR_THEME: MermaidTheme = {
   },
 };
 
+export const BACKGROUNDS = {
+  transparent: "transparent",
+  deep: "#0a0e14",
+  card: "#0f1419",
+} as const;
+
+export type BackgroundOption = keyof typeof BACKGROUNDS;
+
+const THEMES: Record<string, MermaidTheme> = {
+  "terminal-noir": TERMINAL_NOIR_THEME,
+};
+
+/**
+ * Get theme configuration for mmdc
+ * @param themeName - Theme name (currently only "terminal-noir")
+ * @param background - Background option: "transparent", "deep", or "card"
+ * @returns MermaidConfig for mmdc --configFile
+ */
+export function getThemeConfig(
+  themeName: string = "terminal-noir",
+  background: BackgroundOption = "deep",
+): MermaidConfig {
+  const theme = THEMES[themeName];
+  if (!theme) {
+    throw new Error(
+      `Unknown theme: ${themeName}. Available: ${Object.keys(THEMES).join(", ")}`,
+    );
+  }
+
+  return {
+    theme: theme.theme,
+    themeVariables: theme.themeVariables,
+    backgroundColor: BACKGROUNDS[background],
+  };
+}
+
 // ============================================================================
 // Configuration
 // ============================================================================
