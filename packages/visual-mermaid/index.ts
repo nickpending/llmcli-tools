@@ -127,6 +127,48 @@ export function getThemeConfig(
 }
 
 // ============================================================================
+// Validation
+// ============================================================================
+
+/**
+ * Get HOME directory with explicit validation
+ */
+function getHome(): string {
+  const home = process.env.HOME;
+  if (!home) {
+    throw new Error(
+      "HOME environment variable not set. Cannot locate config files.",
+    );
+  }
+  return home;
+}
+
+/**
+ * Validate output path is safe (no path traversal)
+ * Ensures output stays within reasonable bounds
+ */
+function validateOutputPath(outputPath: string): void {
+  const resolved = join(outputPath);
+
+  // Block obvious traversal attempts
+  if (outputPath.includes("..")) {
+    throw new Error(
+      `Invalid output path: path traversal not allowed (${outputPath})`,
+    );
+  }
+
+  // Block sensitive system directories
+  const blockedPrefixes = ["/etc", "/usr", "/bin", "/sbin", "/var", "/System"];
+  for (const prefix of blockedPrefixes) {
+    if (resolved.startsWith(prefix)) {
+      throw new Error(
+        `Invalid output path: cannot write to system directory (${prefix})`,
+      );
+    }
+  }
+}
+
+// ============================================================================
 // Configuration
 // ============================================================================
 
@@ -146,12 +188,8 @@ output_dir = "~/.local/share/visual-mermaid/output"
  * Throws with helpful message if config file is missing
  */
 export function loadConfig(): MermaidToolConfig {
-  const configPath = join(
-    process.env.HOME!,
-    ".config",
-    "visual-mermaid",
-    "config.toml",
-  );
+  const home = getHome();
+  const configPath = join(home, ".config", "visual-mermaid", "config.toml");
 
   if (!existsSync(configPath)) {
     throw new Error(
@@ -193,7 +231,7 @@ export function loadConfig(): MermaidToolConfig {
 
   // Resolve ~ in output_dir
   if (config.output_dir.startsWith("~")) {
-    config.output_dir = config.output_dir.replace("~", process.env.HOME!);
+    config.output_dir = config.output_dir.replace("~", home);
   }
 
   return config;
@@ -253,6 +291,13 @@ export async function renderMermaid(
   code: string,
   options: RenderOptions,
 ): Promise<RenderResult> {
+  // Validate output path before proceeding
+  try {
+    validateOutputPath(options.output);
+  } catch (err) {
+    return { error: String(err) };
+  }
+
   const mmdc = findMmdc();
   if (!mmdc) {
     return {

@@ -89,6 +89,46 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
 };
 
 // ============================================================================
+// Validation
+// ============================================================================
+
+/**
+ * Get HOME directory with explicit validation
+ */
+function getHome(): string {
+  const home = process.env.HOME;
+  if (!home) {
+    throw new Error(
+      "HOME environment variable not set. Cannot locate config files.",
+    );
+  }
+  return home;
+}
+
+/**
+ * Validate output path is safe (no path traversal)
+ * Ensures output stays within reasonable bounds
+ */
+function validateOutputPath(outputPath: string): void {
+  // Block obvious traversal attempts
+  if (outputPath.includes("..")) {
+    throw new Error(
+      `Invalid output path: path traversal not allowed (${outputPath})`,
+    );
+  }
+
+  // Block sensitive system directories
+  const blockedPrefixes = ["/etc", "/usr", "/bin", "/sbin", "/var", "/System"];
+  for (const prefix of blockedPrefixes) {
+    if (outputPath.startsWith(prefix)) {
+      throw new Error(
+        `Invalid output path: cannot write to system directory (${prefix})`,
+      );
+    }
+  }
+}
+
+// ============================================================================
 // Configuration
 // ============================================================================
 
@@ -108,33 +148,40 @@ default_size = "2K"
 
 /**
  * Load .env file and set environment variables
+ * @throws Error if file exists but is malformed
  */
 async function loadEnvFile(envPath: string): Promise<void> {
-  if (!existsSync(envPath)) return;
+  if (!existsSync(envPath)) {
+    throw new Error(
+      `API key file not found: ${envPath}\n\nCreate it with:\nmkdir -p ~/.config/llm\necho 'REPLICATE_API_TOKEN=your_token' >> ~/.config/llm/.env\necho 'GOOGLE_API_KEY=your_key' >> ~/.config/llm/.env`,
+    );
+  }
 
+  let content: string;
   try {
-    const content = await readFile(envPath, "utf-8");
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const eqIndex = trimmed.indexOf("=");
-      if (eqIndex === -1) continue;
-      const key = trimmed.slice(0, eqIndex).trim();
-      let value = trimmed.slice(eqIndex + 1).trim();
-      // Remove quotes
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
-      // Only set if not already defined
-      if (!process.env[key]) {
-        process.env[key] = value;
-      }
+    content = await readFile(envPath, "utf-8");
+  } catch (err) {
+    throw new Error(`Failed to read ${envPath}: ${String(err)}`);
+  }
+
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    // Remove quotes
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
     }
-  } catch {
-    // Ignore read errors
+    // Only set if not already defined
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
   }
 }
 
@@ -143,7 +190,7 @@ async function loadEnvFile(envPath: string): Promise<void> {
  * Also loads API keys from ~/.config/llm/.env
  */
 export async function loadConfig(): Promise<ImageToolConfig> {
-  const home = process.env.HOME!;
+  const home = getHome();
 
   // Load shared API keys first
   await loadEnvFile(join(home, ".config", "llm", ".env"));
@@ -363,6 +410,13 @@ export async function generateImage(
   options: GenerateOptions,
   config?: ImageToolConfig,
 ): Promise<GenerateResult> {
+  // Validate output path before proceeding
+  try {
+    validateOutputPath(options.output);
+  } catch (err) {
+    return { error: String(err) };
+  }
+
   // Load config if not provided
   const cfg = config ?? (await loadConfig());
 
