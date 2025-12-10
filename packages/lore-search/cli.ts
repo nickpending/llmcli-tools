@@ -58,6 +58,19 @@ FTS5 Query Syntax:
   word1 word2     Match both (implicit AND)
   word1 OR word2  Match either
   word*           Prefix match
+
+Available Domains:
+  blogs           Blog posts from labs.voidwire.info
+  captures        Quick captures and notes
+  commits         Git commit messages across projects
+  development     Development project READMEs and docs
+  events          Calendar events and meetings
+  explorations    Technical exploration documents
+  obsidian        Obsidian vault notes
+  personal        Personal data (books, movies, podcasts, interests)
+  readmes         Project README files
+  sessions        Claude Code session logs
+  tasks           Project task definitions
 `);
 }
 
