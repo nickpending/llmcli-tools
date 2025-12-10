@@ -18,6 +18,8 @@ import {
   generateImage,
   loadConfig,
   STYLE_PRESETS,
+  AVAILABLE_MODELS,
+  AVAILABLE_SIZES,
   type Model,
   type AspectRatio,
   type GeminiSize,
@@ -30,20 +32,22 @@ import {
 
 function printUsage(): void {
   const styles = Object.keys(STYLE_PRESETS).join(", ");
+  const models = AVAILABLE_MODELS.join(", ");
+  const sizes = AVAILABLE_SIZES.join(", ");
   console.error(`
 visual-image - Generate AI images via Replicate and Google
 
 Usage:
-  visual-image -m <model> -p <prompt> -o <output> [OPTIONS]
+  visual-image -p <prompt> -o <output> [OPTIONS]
 
 Required:
-  -m, --model <model>   Model: flux, nano-banana-pro
   -p, --prompt <text>   Image generation prompt
   -o, --output <file>   Output file path
 
 Options:
-  -a, --aspect <ratio>  Aspect ratio: 1:1, 16:9, 9:16, 3:2, 2:3, etc. (default: 16:9)
-  -s, --size <size>     Size for nano-banana-pro: 1K, 2K, 4K (default: 2K)
+  -m, --model <model>   Model: ${models} (default: from config)
+  -a, --aspect <ratio>  Aspect ratio: 1:1, 16:9, 9:16, 3:2, 2:3, etc. (default: from config)
+  -s, --size <size>     Size for nano-banana-pro: ${sizes} (default: from config)
   --style <name>        Style preset: ${styles}, none (default: from config)
   --raw                 Skip style injection (use prompt as-is)
   --verbose             Show final prompt with style applied
@@ -85,11 +89,11 @@ Config:
 // ============================================================================
 
 interface ParsedArgs {
-  model: Model;
+  model?: Model;
   prompt: string;
   output: string;
-  aspectRatio: AspectRatio;
-  size: GeminiSize;
+  aspectRatio?: AspectRatio;
+  size?: GeminiSize;
   style?: string;
   raw: boolean;
   verbose: boolean;
@@ -106,8 +110,8 @@ function parseArgs(argv: string[]): ParsedArgs | null {
   let model: Model | undefined;
   let prompt = "";
   let output = "";
-  let aspectRatio: AspectRatio = "16:9";
-  let size: GeminiSize = "2K";
+  let aspectRatio: AspectRatio | undefined;
+  let size: GeminiSize | undefined;
   let style: string | undefined;
   let raw = false;
   let verbose = false;
@@ -118,11 +122,11 @@ function parseArgs(argv: string[]): ParsedArgs | null {
 
     if ((arg === "-m" || arg === "--model") && i + 1 < args.length) {
       const m = args[++i];
-      if (m === "flux" || m === "nano-banana-pro") {
-        model = m;
+      if (AVAILABLE_MODELS.includes(m as Model)) {
+        model = m as Model;
       } else {
         console.error(
-          `Error: Invalid model '${m}'. Use: flux, nano-banana-pro`,
+          `Error: Invalid model '${m}'. Use: ${AVAILABLE_MODELS.join(", ")}`,
         );
         process.exit(2);
       }
@@ -134,8 +138,13 @@ function parseArgs(argv: string[]): ParsedArgs | null {
       aspectRatio = args[++i] as AspectRatio;
     } else if ((arg === "-s" || arg === "--size") && i + 1 < args.length) {
       const s = args[++i];
-      if (s === "1K" || s === "2K" || s === "4K") {
-        size = s;
+      if (AVAILABLE_SIZES.includes(s as GeminiSize)) {
+        size = s as GeminiSize;
+      } else {
+        console.error(
+          `Error: Invalid size '${s}'. Use: ${AVAILABLE_SIZES.join(", ")}`,
+        );
+        process.exit(2);
       }
     } else if (arg === "--style" && i + 1 < args.length) {
       style = args[++i];
@@ -146,10 +155,6 @@ function parseArgs(argv: string[]): ParsedArgs | null {
     } else if (arg === "--open") {
       open = true;
     }
-  }
-
-  if (!model) {
-    return null;
   }
 
   return {
@@ -177,6 +182,16 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // Load config first (need defaults)
+  let config;
+  try {
+    config = await loadConfig();
+  } catch (err) {
+    console.log(JSON.stringify({ error: String(err) }, null, 2));
+    console.error(`Error: ${err}`);
+    process.exit(2);
+  }
+
   // Validate required args
   if (!parsed.prompt) {
     console.log(JSON.stringify({ error: "Prompt required (-p)" }, null, 2));
@@ -192,22 +207,18 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  // Load config
-  let config;
-  try {
-    config = await loadConfig();
-  } catch (err) {
-    console.log(JSON.stringify({ error: String(err) }, null, 2));
-    console.error(`Error: ${err}`);
-    process.exit(2);
-  }
+  // Merge CLI args with config defaults
+  const model = parsed.model ?? config.default_model;
+  const aspectRatio = parsed.aspectRatio ?? config.default_aspect_ratio;
+  const size = parsed.size ?? config.default_size;
+  const style = parsed.style ?? config.default_style;
 
   // Build options
   const options: GenerateOptions = {
     output: parsed.output,
-    aspectRatio: parsed.aspectRatio,
-    size: parsed.size,
-    style: parsed.style ?? config.default_style,
+    aspectRatio,
+    size,
+    style,
     raw: parsed.raw,
   };
 
@@ -227,13 +238,8 @@ async function main(): Promise<void> {
   }
 
   // Generate
-  console.error(`Generating with ${parsed.model}...`);
-  const result = await generateImage(
-    parsed.model,
-    parsed.prompt,
-    options,
-    config,
-  );
+  console.error(`Generating with ${model}...`);
+  const result = await generateImage(model, parsed.prompt, options, config);
 
   // Output JSON
   console.log(JSON.stringify(result, null, 2));

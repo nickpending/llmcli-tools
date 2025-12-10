@@ -1,0 +1,18 @@
+# visual-mermaid configuration
+# Copy to: ~/.config/visual-mermaid/config.toml
+
+# Theme: terminal-noir, dark, default
+theme = "terminal-noir"
+
+# Background color (hex or "transparent")
+background = "#0a0e14"
+
+# Output format: png, svg, pdf
+format = "png"
+
+# Default dimensions
+width = 1200
+height = 800
+
+# Default output directory (~ expanded to HOME)
+output_dir = "~/.local/share/visual-mermaid/output"

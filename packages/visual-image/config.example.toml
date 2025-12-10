@@ -1,0 +1,22 @@
+# visual-image configuration
+# Copy to: ~/.config/visual-image/config.toml
+
+# Default model: flux, nano-banana-pro
+default_model = "flux"
+
+# Default output directory (~ expanded to HOME)
+default_output_dir = "~/.local/share/visual-image/output"
+
+# Default style preset: none, tokyo-noir, wireframe
+default_style = "none"
+
+# Default aspect ratio: 1:1, 16:9, 9:16, 3:2, 2:3, 3:4, 4:3, 4:5, 5:4, 21:9
+default_aspect_ratio = "16:9"
+
+# Default size for nano-banana-pro: 1K, 2K, 4K
+default_size = "2K"
+
+# API keys loaded from shared ~/.config/llm/.env
+# Required keys:
+#   REPLICATE_API_TOKEN - https://replicate.com/account/api-tokens
+#   GOOGLE_API_KEY - https://aistudio.google.com/apikey

@@ -16,11 +16,7 @@
  */
 
 import { readFileSync, existsSync } from "fs";
-import {
-  renderMermaid,
-  TERMINAL_NOIR_THEME,
-  type RenderOptions,
-} from "./index";
+import { renderMermaid, loadConfig, THEMES, type RenderOptions } from "./index";
 
 // ============================================================================
 // Stdin Reading
@@ -182,6 +178,16 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // Load config
+  let config;
+  try {
+    config = loadConfig();
+  } catch (err) {
+    console.log(JSON.stringify({ error: String(err) }, null, 2));
+    console.error(`Error: ${err}`);
+    process.exit(2);
+  }
+
   // Validate required args
   if (!parsed.output) {
     console.log(
@@ -203,18 +209,25 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
+  // Merge CLI args with config defaults
+  const themeName = parsed.theme ?? config.theme;
+  const background = parsed.background ?? config.background;
+  const format = parsed.format ?? config.format;
+  const width = parsed.width ?? config.width;
+  const height = parsed.height ?? config.height;
+
   // Build render options
   const options: RenderOptions = {
     output: parsed.output,
-    format: parsed.format,
-    width: parsed.width,
-    height: parsed.height,
-    backgroundColor: parsed.background,
+    format,
+    width,
+    height,
+    backgroundColor: background,
   };
 
-  // Apply theme
-  if (parsed.theme === "terminal-noir") {
-    options.theme = TERMINAL_NOIR_THEME;
+  // Apply theme from config or CLI override
+  if (THEMES[themeName]) {
+    options.theme = THEMES[themeName];
   }
 
   // Render

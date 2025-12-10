@@ -21,6 +21,8 @@ import { dirname, join, resolve } from "node:path";
 
 export type Model = "flux" | "nano-banana-pro";
 
+export const AVAILABLE_MODELS: Model[] = ["flux", "nano-banana-pro"];
+
 export type AspectRatio =
   | "1:1"
   | "16:9"
@@ -34,6 +36,8 @@ export type AspectRatio =
   | "21:9";
 
 export type GeminiSize = "1K" | "2K" | "4K";
+
+export const AVAILABLE_SIZES: GeminiSize[] = ["1K", "2K", "4K"];
 
 export interface GenerateOptions {
   output: string;

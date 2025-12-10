@@ -98,7 +98,7 @@ export const BACKGROUNDS = {
 
 export type BackgroundOption = keyof typeof BACKGROUNDS;
 
-const THEMES: Record<string, MermaidTheme> = {
+export const THEMES: Record<string, MermaidTheme> = {
   "terminal-noir": TERMINAL_NOIR_THEME,
 };
 

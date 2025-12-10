@@ -17,7 +17,7 @@ Building blocks for development automation - gitignore compliance, language dete
 
 ## Status: Active
 
-**Production-ready tools in active daily use.** Six tools shipped: gitignore-check, language-detect, argus-send, lore-capture, lore-search, and llm-summarize.
+**Production-ready tools in active daily use.** Eight tools shipped: gitignore-check, language-detect, argus-send, lore-capture, lore-search, llm-summarize, visual-mermaid, and visual-image.
 
 ## Philosophy
 
@@ -152,6 +152,52 @@ llm-summarize --style=executive "Meeting notes..."
 
 **Integration:** Summarize content programmatically in TypeScript hooks and automation.
 
+### visual-mermaid
+
+Render Mermaid diagrams to PNG/SVG with terminal-noir theming.
+
+**Features:**
+- Inline code, file input, or stdin support
+- Terminal-noir theme with cyan/slate color palette
+- Configurable output format (PNG, SVG, PDF)
+- macOS `--open` flag to launch Preview
+
+```bash
+visual-mermaid --code "flowchart TD; A-->B" -o diagram.png
+visual-mermaid -i diagram.mmd -o output.png --theme terminal-noir
+cat diagram.mmd | visual-mermaid -o flow.png --open
+```
+
+[Documentation](./packages/visual-mermaid/README.md)
+
+**Config:** Copy `packages/visual-mermaid/config.example.toml` to `~/.config/visual-mermaid/config.toml`
+
+**Integration:** Generate diagrams programmatically for documentation and blogs.
+
+### visual-image
+
+AI image generation via Replicate (Flux) and Google (nano-banana-pro).
+
+**Features:**
+- Multiple providers: Flux 1.1 Pro via Replicate, Gemini 3 Pro via Google
+- Style presets: tokyo-noir (Blade Runner aesthetic), wireframe (technical mockups)
+- Configurable aspect ratio and size
+- `--raw` flag to skip style injection
+
+```bash
+visual-image -m flux -p "developer workspace at night" -o hero.png
+visual-image -m nano-banana-pro -p "city street" -o city.png --style tokyo-noir
+visual-image -m nano-banana-pro -p "admin dashboard" -o wireframe.png --style wireframe --open
+```
+
+[Documentation](./packages/visual-image/README.md)
+
+**Config:** Copy `packages/visual-image/config.example.toml` to `~/.config/visual-image/config.toml`
+
+**API Keys:** Add `REPLICATE_API_TOKEN` and `GOOGLE_API_KEY` to `~/.config/llm/.env`
+
+**Integration:** Generate images programmatically for blog posts and visual content.
+
 ## Installation
 
 ### Step 1: Clone and install dependencies
@@ -259,6 +305,8 @@ import { send as sendToArgus } from "argus-send";
 import { captureKnowledge } from "lore-capture";
 import { search } from "lore-search";
 import { summarize } from "llm-summarize";
+import { renderMermaid } from "visual-mermaid";
+import { generateImage } from "visual-image";
 ```
 
 Use library imports for:
