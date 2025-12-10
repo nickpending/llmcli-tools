@@ -1,0 +1,35 @@
+{
+  "name": "visual-image",
+  "version": "1.0.0",
+  "description": "Generate AI images via Replicate (flux) and Google (nano-banana-pro)",
+  "type": "module",
+  "main": "./index.ts",
+  "bin": {
+    "visual-image": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@google/genai": "^0.3.0",
+    "replicate": "^1.0.0"
+  },
+  "keywords": [
+    "image",
+    "ai",
+    "flux",
+    "replicate",
+    "gemini",
+    "cli",
+    "llcli",
+    "visual"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
