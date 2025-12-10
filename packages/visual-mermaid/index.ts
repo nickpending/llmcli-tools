@@ -9,7 +9,13 @@
  *   const result = await renderMermaid("flowchart TD; A-->B", { output: "/tmp/diagram.png" });
  */
 
-import { existsSync, unlinkSync, writeFileSync, mkdirSync } from "fs";
+import {
+  existsSync,
+  unlinkSync,
+  writeFileSync,
+  mkdirSync,
+  readFileSync,
+} from "fs";
 import { join, dirname } from "path";
 import { tmpdir } from "os";
 
@@ -40,6 +46,15 @@ export interface MermaidConfig {
   theme: string;
   themeVariables?: Record<string, string>;
   backgroundColor?: string;
+}
+
+export interface MermaidToolConfig {
+  theme: string;
+  background: string;
+  format: "png" | "svg" | "pdf";
+  width: number;
+  height: number;
+  output_dir: string;
 }
 
 // ============================================================================
@@ -74,6 +89,79 @@ export const TERMINAL_NOIR_THEME: MermaidTheme = {
     nodeTextColor: "#e6e6e6",
   },
 };
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const EXAMPLE_CONFIG = `# visual-mermaid configuration
+# Place at: ~/.config/visual-mermaid/config.toml
+
+theme = "terminal-noir"
+background = "#0a0e14"
+format = "png"
+width = 1200
+height = 800
+output_dir = "~/.local/share/visual-mermaid/output"
+`;
+
+/**
+ * Load configuration from ~/.config/visual-mermaid/config.toml
+ * Throws with helpful message if config file is missing
+ */
+export function loadConfig(): MermaidToolConfig {
+  const configPath = join(
+    process.env.HOME!,
+    ".config",
+    "visual-mermaid",
+    "config.toml",
+  );
+
+  if (!existsSync(configPath)) {
+    throw new Error(
+      `Config file not found: ${configPath}\n\nCreate it with:\n\n${EXAMPLE_CONFIG}`,
+    );
+  }
+
+  let content: string;
+  try {
+    content = readFileSync(configPath, "utf-8");
+  } catch (err) {
+    throw new Error(`Failed to read config: ${configPath}\n${String(err)}`);
+  }
+
+  // Parse with regex (flat TOML key-value pairs)
+  const themeMatch = content.match(/^\s*theme\s*=\s*"([^"]+)"/m);
+  const backgroundMatch = content.match(/^\s*background\s*=\s*"([^"]+)"/m);
+  const formatMatch = content.match(/^\s*format\s*=\s*"([^"]+)"/m);
+  const widthMatch = content.match(/^\s*width\s*=\s*(\d+)/m);
+  const heightMatch = content.match(/^\s*height\s*=\s*(\d+)/m);
+  const outputDirMatch = content.match(/^\s*output_dir\s*=\s*"([^"]+)"/m);
+
+  // Validate required fields
+  if (!themeMatch) {
+    throw new Error(
+      `Missing required field 'theme' in ${configPath}\n\nExample:\n${EXAMPLE_CONFIG}`,
+    );
+  }
+
+  // Build config with defaults for optional fields
+  const config: MermaidToolConfig = {
+    theme: themeMatch[1],
+    background: backgroundMatch?.[1] ?? "#0a0e14",
+    format: (formatMatch?.[1] as "png" | "svg" | "pdf") ?? "png",
+    width: widthMatch ? parseInt(widthMatch[1], 10) : 1200,
+    height: heightMatch ? parseInt(heightMatch[1], 10) : 800,
+    output_dir: outputDirMatch?.[1] ?? "~/.local/share/visual-mermaid/output",
+  };
+
+  // Resolve ~ in output_dir
+  if (config.output_dir.startsWith("~")) {
+    config.output_dir = config.output_dir.replace("~", process.env.HOME!);
+  }
+
+  return config;
+}
 
 // ============================================================================
 // Core Implementation
