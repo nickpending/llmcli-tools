@@ -20,6 +20,39 @@
 
 import { search, listSources, type SearchResult } from "./index";
 
+/**
+ * Parse relative or absolute date to YYYY-MM-DD format
+ */
+function parseSinceDate(value: string): string | null {
+  const today = new Date();
+
+  if (value === "today") {
+    return today.toISOString().split("T")[0];
+  }
+
+  if (value === "yesterday") {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().split("T")[0];
+  }
+
+  if (value === "this-week") {
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return weekAgo.toISOString().split("T")[0];
+  }
+
+  // Validate YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 interface SearchOutput {
   success: boolean;
   results?: SearchResult[];
@@ -43,6 +76,7 @@ Usage:
 
 Options:
   --limit <n>     Maximum results (default: 20)
+  --since <date>  Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources       List indexed sources with counts
   --help, -h      Show this help
 
@@ -85,13 +119,42 @@ async function main(): Promise<void> {
 
   // Parse options
   let limit = 20;
+  let since: string | undefined;
   let showSources = false;
   const positionalArgs: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--limit") {
+    if (arg === "--since") {
+      const nextArg = args[i + 1];
+      if (!nextArg || nextArg.startsWith("--")) {
+        const output: SearchOutput = {
+          success: false,
+          error:
+            "--since requires a date (today, yesterday, this-week, YYYY-MM-DD)",
+        };
+        console.log(JSON.stringify(output));
+        console.error(
+          "❌ --since requires a date (today, yesterday, this-week, YYYY-MM-DD)",
+        );
+        process.exit(1);
+      }
+      const parsed = parseSinceDate(nextArg);
+      if (!parsed) {
+        const output: SearchOutput = {
+          success: false,
+          error: `Invalid date: ${nextArg}. Use: today, yesterday, this-week, or YYYY-MM-DD`,
+        };
+        console.log(JSON.stringify(output));
+        console.error(
+          `❌ Invalid date: ${nextArg}. Use: today, yesterday, this-week, or YYYY-MM-DD`,
+        );
+        process.exit(1);
+      }
+      since = parsed;
+      i++;
+    } else if (arg === "--limit") {
       const nextArg = args[i + 1];
       if (!nextArg || nextArg.startsWith("--")) {
         const output: SearchOutput = {
@@ -150,7 +213,7 @@ async function main(): Promise<void> {
     }
 
     // Execute search
-    const results = search(query, { source, limit });
+    const results = search(query, { source, limit, since });
 
     // Output JSON to stdout
     const output: SearchOutput = {

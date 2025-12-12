@@ -21,6 +21,7 @@ export interface SearchResult {
 export interface SearchOptions {
   source?: string;
   limit?: number;
+  since?: string;
 }
 
 // Database path following XDG spec
@@ -51,28 +52,32 @@ export function search(
   try {
     const limit = options.limit ?? 20;
 
-    let sql: string;
-    let params: (string | number)[];
+    // Build query dynamically based on options
+    const conditions: string[] = ["search MATCH ?"];
+    const params: (string | number)[] = [query];
 
     if (options.source) {
-      sql = `
-        SELECT source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, rank
-        FROM search
-        WHERE search MATCH ? AND source = ?
-        ORDER BY rank
-        LIMIT ?
-      `;
-      params = [query, options.source, limit];
-    } else {
-      sql = `
-        SELECT source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, rank
-        FROM search
-        WHERE search MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `;
-      params = [query, limit];
+      conditions.push("source = ?");
+      params.push(options.source);
     }
+
+    if (options.since) {
+      // Filter by date in metadata JSON, excluding entries with missing/unknown dates
+      conditions.push(
+        "json_extract(metadata, '$.date') IS NOT NULL AND json_extract(metadata, '$.date') != 'unknown' AND json_extract(metadata, '$.date') >= ?",
+      );
+      params.push(options.since);
+    }
+
+    params.push(limit);
+
+    const sql = `
+      SELECT source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, rank
+      FROM search
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY rank
+      LIMIT ?
+    `;
 
     const stmt = db.prepare(sql);
     const results = stmt.all(...params) as SearchResult[];
