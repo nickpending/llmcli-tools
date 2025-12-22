@@ -17,7 +17,7 @@ Building blocks for development automation - gitignore compliance, language dete
 
 ## Status: Active
 
-**Production-ready tools in active daily use.** Eight tools shipped: gitignore-check, language-detect, argus-send, lore-capture, lore-search, llm-summarize, visual-mermaid, and visual-image.
+**Production-ready tools in active daily use.** Nine tools shipped: gitignore-check, language-detect, argus-send, lore-capture, lore-search, llm-summarize, visual-mermaid, visual-image, and expertise-update.
 
 ## Philosophy
 
@@ -198,6 +198,25 @@ visual-image -m nano-banana-pro -p "admin dashboard" -o wireframe.png --style wi
 
 **Integration:** Generate images programmatically for blog posts and visual content.
 
+### expertise-update
+
+Sync Lore insights into PROJECT_EXPERTISE.toml for agent knowledge persistence.
+
+**Features:**
+- Queries Lore for project-specific captures (gotchas, decisions, learnings)
+- Additive merge - preserves existing insights, deduplicates by content
+- Silent on missing expertise file (exit 0, nothing to update)
+- JSON output with update statistics
+
+```bash
+expertise-update --project argus --root ~/development/projects/argus
+expertise-update -p momentum -r ~/development/projects/momentum
+```
+
+[Documentation](./packages/expertise-update/README.md)
+
+**Integration:** Used by Momentum's `/update-expertise` command to sync Lore insights into project expertise files.
+
 ## Installation
 
 ### Step 1: Clone and install dependencies
@@ -307,6 +326,7 @@ import { search } from "lore-search";
 import { summarize } from "llm-summarize";
 import { renderMermaid } from "visual-mermaid";
 import { generateImage } from "visual-image";
+import { updateExpertise } from "expertise-update";
 ```
 
 Use library imports for:
