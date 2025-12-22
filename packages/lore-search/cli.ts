@@ -18,7 +18,10 @@
  *   2 - Error (database)
  */
 
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import { search, listSources, type SearchResult } from "./index";
+import { summarize, type LLMConfig } from "llm-summarize";
 
 /**
  * Parse relative or absolute date to YYYY-MM-DD format
@@ -53,8 +56,48 @@ function parseSinceDate(value: string): string | null {
   return null;
 }
 
+/**
+ * Load LLM config from ~/.config/lore/config.toml
+ */
+function loadLoreConfig(): LLMConfig {
+  const configPath = join(process.env.HOME!, ".config", "lore", "config.toml");
+
+  const config: LLMConfig = {
+    provider: null,
+    model: null,
+    apiKey: null,
+    apiBase: null,
+    maxTokens: 150,
+  };
+
+  if (!existsSync(configPath)) {
+    return config;
+  }
+
+  try {
+    const content = readFileSync(configPath, "utf-8");
+
+    const providerMatch = content.match(/^\s*provider\s*=\s*"([^"]+)"/m);
+    if (providerMatch) config.provider = providerMatch[1];
+
+    const modelMatch = content.match(/^\s*model\s*=\s*"([^"]+)"/m);
+    if (modelMatch) config.model = modelMatch[1];
+
+    const apiKeyMatch = content.match(/^\s*api_key\s*=\s*"([^"]+)"/m);
+    if (apiKeyMatch) config.apiKey = apiKeyMatch[1];
+
+    const apiBaseMatch = content.match(/^\s*api_base\s*=\s*"([^"]+)"/m);
+    if (apiBaseMatch) config.apiBase = apiBaseMatch[1];
+  } catch {
+    // Ignore parse errors
+  }
+
+  return config;
+}
+
 interface SearchOutput {
   success: boolean;
+  summary?: string;
   results?: SearchResult[];
   sources?: { source: string; count: number }[];
   count?: number;
@@ -77,6 +120,7 @@ Usage:
 Options:
   --limit <n>     Maximum results (default: 20)
   --since <date>  Filter by date (today, yesterday, this-week, YYYY-MM-DD)
+  --summarize     Generate LLM summary of results (requires config.toml)
   --sources       List indexed sources with counts
   --help, -h      Show this help
 
@@ -121,6 +165,7 @@ async function main(): Promise<void> {
   let limit = 20;
   let since: string | undefined;
   let showSources = false;
+  let doSummarize = false;
   const positionalArgs: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -178,6 +223,8 @@ async function main(): Promise<void> {
       i++;
     } else if (arg === "--sources") {
       showSources = true;
+    } else if (arg === "--summarize") {
+      doSummarize = true;
     } else if (!arg.startsWith("--")) {
       positionalArgs.push(arg);
     }
@@ -215,17 +262,43 @@ async function main(): Promise<void> {
     // Execute search
     const results = search(query, { source, limit, since });
 
+    // Generate summary if requested
+    let summaryText: string | undefined;
+    if (doSummarize && results.length > 0) {
+      const config = loadLoreConfig();
+      if (!config.provider) {
+        console.error(
+          "⚠️  No LLM configured in ~/.config/lore/config.toml - skipping summary",
+        );
+      } else {
+        const context = results
+          .map((r) => `[${r.source}] ${r.title}: ${r.content}`)
+          .join("\n\n");
+
+        const prompt = `Summarize these search results in 2-3 sentences, highlighting key themes:\n\n${context}`;
+
+        const result = await summarize(prompt, config, { maxTokens: 200 });
+        if (result.summary) {
+          summaryText = result.summary;
+        } else if (result.error) {
+          console.error(`⚠️  Summary failed: ${result.error}`);
+        }
+      }
+    }
+
     // Output JSON to stdout
     const output: SearchOutput = {
       success: true,
+      ...(summaryText && { summary: summaryText }),
       results,
       count: results.length,
     };
     console.log(JSON.stringify(output, null, 2));
 
     // Diagnostic to stderr
+    const summaryNote = summaryText ? " (with summary)" : "";
     console.error(
-      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found`,
+      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found${summaryNote}`,
     );
     process.exit(0);
   } catch (error) {

@@ -26,6 +26,9 @@
   "engines": {
     "bun": ">=1.0.0"
   },
+  "dependencies": {
+    "llm-summarize": "workspace:*"
+  },
   "devDependencies": {
     "bun-types": "latest"
   }

@@ -282,9 +282,9 @@ async function callOllama(
   text: string,
   model: string,
   maxTokens: number,
-  apiBase?: string,
+  apiBase: string,
 ): Promise<SummarizeResult> {
-  const endpoint = apiBase || "http://localhost:11434/api/generate";
+  const endpoint = `${apiBase}/api/generate`;
 
   try {
     const response = await fetch(endpoint, {
@@ -385,7 +385,12 @@ export async function summarize(
       config.apiBase || undefined,
     );
   } else if (provider === "ollama") {
-    return callOllama(text, model, maxTokens, config.apiBase || undefined);
+    if (!config.apiBase) {
+      return {
+        error: `No api_base configured for ollama. Set api_base in ~/.config/llm/config.toml`,
+      };
+    }
+    return callOllama(text, model, maxTokens, config.apiBase);
   } else {
     return {
       error: `Unknown provider: ${provider}. Supported: anthropic, openai, ollama`,
