@@ -9,7 +9,6 @@ import { Database } from "bun:sqlite";
 import { homedir } from "os";
 import { existsSync } from "fs";
 
-// Result types
 export interface SearchResult {
   source: string;
   title: string;
@@ -24,7 +23,6 @@ export interface SearchOptions {
   since?: string;
 }
 
-// Database path following XDG spec
 function getDatabasePath(): string {
   return `${homedir()}/.local/share/lore/lore.db`;
 }
@@ -52,7 +50,6 @@ export function search(
   try {
     const limit = options.limit ?? 20;
 
-    // Build query dynamically based on options
     const conditions: string[] = ["search MATCH ?"];
     const params: (string | number)[] = [query];
 
@@ -62,7 +59,6 @@ export function search(
     }
 
     if (options.since) {
-      // Filter by date in metadata JSON, excluding entries with missing/unknown dates
       conditions.push(
         "json_extract(metadata, '$.date') IS NOT NULL AND json_extract(metadata, '$.date') != 'unknown' AND json_extract(metadata, '$.date') >= ?",
       );

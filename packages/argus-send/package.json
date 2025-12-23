@@ -1,5 +1,5 @@
 {
-  "name": "argus-send",
+  "name": "@voidwire/argus-send",
   "version": "2.0.0",
   "description": "Send events to Argus observability platform",
   "type": "module",
@@ -11,6 +11,13 @@
   "bin": {
     "argus-send": "./cli.ts"
   },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "lib/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "bun run cli.ts"
   },
@@ -20,6 +27,18 @@
     "events",
     "llcli"
   ],
-  "author": "",
-  "license": "MIT"
+  "author": "nickpending <nickpending@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/argus-send"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/argus-send#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
 }

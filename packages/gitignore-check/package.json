@@ -1,5 +1,5 @@
 {
-  "name": "gitignore-check",
+  "name": "@voidwire/gitignore-check",
   "version": "2.0.0",
   "description": "Gitignore compliance checker - Ensures projects include essential security patterns",
   "type": "module",
@@ -11,8 +11,16 @@
     ".": "./index.ts",
     "./cli": "./cli.ts"
   },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "lib/**/*.ts",
+    "templates/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
-    "language-detect": "workspace:*"
+    "@voidwire/language-detect": "^2.0.0"
   },
   "scripts": {
     "check": "bun run cli.ts"
@@ -24,7 +32,17 @@
     "cli",
     "llcli"
   ],
+  "author": "nickpending <nickpending@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/gitignore-check"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/gitignore-check#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
   "engines": {
     "bun": ">=1.0.0"
   }

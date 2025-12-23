@@ -1,5 +1,5 @@
 {
-  "name": "expertise-update",
+  "name": "@voidwire/expertise-update",
   "version": "1.0.0",
   "description": "Sync Lore insights into PROJECT_EXPERTISE.toml",
   "type": "module",
@@ -11,6 +11,13 @@
     ".": "./index.ts",
     "./cli": "./cli.ts"
   },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "lib/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "bun test"
   },
@@ -21,12 +28,22 @@
     "cli",
     "llcli"
   ],
+  "author": "nickpending <nickpending@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/expertise-update"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/expertise-update#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
   "engines": {
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "lore-search": "workspace:*",
+    "@voidwire/lore": "^0.1.0",
     "smol-toml": "1.3.1"
   },
   "devDependencies": {

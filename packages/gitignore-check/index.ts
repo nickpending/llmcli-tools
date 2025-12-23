@@ -14,7 +14,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 // Import language-detect library directly (no subprocess)
-import { detectLanguages as detectProjectLanguages } from "language-detect";
+import { detectLanguages as detectProjectLanguages } from "@voidwire/language-detect";
 
 // ============================================================================
 // Types

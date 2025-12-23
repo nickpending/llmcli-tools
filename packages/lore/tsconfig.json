@@ -6,9 +6,7 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "types": ["bun-types"]
   },
-  "include": ["*.ts", "lib/*.ts"]
+  "include": ["index.ts", "cli.ts", "lib/**/*.ts"]
 }

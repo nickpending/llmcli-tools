@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { parse, stringify } from "smol-toml";
-import { search, type SearchResult } from "lore-search";
+import { search, type SearchResult } from "@voidwire/lore";
 
 export interface ExpertiseResult {
   updated: boolean;
@@ -68,7 +68,7 @@ function queryLoreInsights(
 ): string[] {
   try {
     const results = search(`${type} ${project}`, {
-      source: "events",
+      source: "captures",
       limit: 50,
     });
     return results

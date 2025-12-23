@@ -1,5 +1,5 @@
 {
-  "name": "visual-mermaid",
+  "name": "@voidwire/visual-mermaid",
   "version": "1.0.0",
   "description": "Render Mermaid diagrams to PNG/SVG with terminal-noir theming",
   "type": "module",
@@ -11,6 +11,13 @@
     ".": "./index.ts",
     "./cli": "./cli.ts"
   },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "lib/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "bun test"
   },
@@ -24,7 +31,17 @@
     "llcli",
     "visual"
   ],
+  "author": "nickpending <nickpending@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/visual-mermaid"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/visual-mermaid#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
   "engines": {
     "bun": ">=1.0.0"
   }

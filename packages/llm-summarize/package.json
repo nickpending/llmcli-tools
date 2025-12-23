@@ -1,5 +1,5 @@
 {
-  "name": "llm-summarize",
+  "name": "@voidwire/llm-summarize",
   "version": "2.0.0",
   "description": "Fast LLM-powered text summarization for observability and logging",
   "type": "module",
@@ -11,6 +11,13 @@
     ".": "./index.ts",
     "./cli": "./cli.ts"
   },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "lib/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "bun test"
   },
@@ -22,7 +29,17 @@
     "cli",
     "llcli"
   ],
+  "author": "nickpending <nickpending@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/llm-summarize"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/llm-summarize#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
   "engines": {
     "bun": ">=1.0.0"
   }

@@ -17,7 +17,7 @@ Building blocks for development automation - gitignore compliance, language dete
 
 ## Status: Active
 
-**Production-ready tools in active daily use.** Nine tools shipped: gitignore-check, language-detect, argus-send, lore-capture, lore-search, llm-summarize, visual-mermaid, visual-image, and expertise-update.
+**Production-ready tools in active daily use.** Eight tools shipped: gitignore-check, language-detect, argus-send, lore, llm-summarize, visual-mermaid, visual-image, and expertise-update. All available on npm under the `@voidwire` scope.
 
 ## Philosophy
 
@@ -91,46 +91,28 @@ echo '{"test": "data"}' | argus-send --source my-app --type event --stdin
 
 **Integration:** All llcli-tools can pipe their JSON output to argus-send for unified observability.
 
-### lore-capture
+### lore
 
-Type-safe event logging for tasks, knowledge insights, and notes.
+Unified knowledge CLI - search, list, and capture your indexed knowledge fabric.
 
 **Features:**
-- Replaces bash capture function sprawl with unified TypeScript CLI
-- Three subcommands: task, knowledge, note
-- Type-safe validation with model-friendly error messages
+- FTS5 full-text search across all indexed content (blogs, commits, events, projects, tasks)
+- Domain listing with 15 queryable domains
+- Type-safe event capture for tasks, knowledge insights, and notes
 - Logs to ~/.local/share/lore/log.jsonl in JSONL format
 
 ```bash
-lore-capture task --project=myapp --name="Add feature" --problem="..." --solution="..."
-lore-capture knowledge --context=project --text="Insight here" --type=project
-lore-capture note --text="Quick note" --tags=reminder,testing
+lore search "authentication"              # Search all sources
+lore search "typescript" --source=blogs   # Filter by source
+lore list development                     # List development projects
+lore list --domains                       # Show available domains
+lore capture task --project=myapp --name="Feature" --problem="..." --solution="..."
+lore capture knowledge --context=project --text="Insight" --type=decision
 ```
 
-[Documentation](./packages/lore-capture/README.md) | [Quick Start](./packages/lore-capture/QUICKSTART.md)
+[Documentation](./packages/lore/README.md)
 
-**Integration:** Momentum hooks use lore-capture to log task completions and knowledge insights.
-
-### lore-search
-
-FTS5 full-text search across your indexed knowledge fabric.
-
-**Features:**
-- SQLite FTS5 for sub-second queries across all indexed content
-- Source filtering (blogs, commits, events, projects)
-- FTS5 query syntax support (phrases, OR, prefix matching)
-- Composable JSON output
-
-```bash
-lore-search "authentication"           # Search all sources
-lore-search blogs "typescript"         # Search only blogs
-lore-search --sources                  # List indexed sources
-lore-search "error" | jq '.results[]'  # Pipe results to jq
-```
-
-[Documentation](./packages/lore-search/README.md)
-
-**Integration:** Query your personal knowledge base from scripts, hooks, or other tools.
+**Integration:** Momentum hooks use lore for task logging and knowledge queries.
 
 ### llm-summarize
 
@@ -219,39 +201,40 @@ expertise-update -p momentum -r ~/development/projects/momentum
 
 ## Installation
 
-### Step 1: Clone and install dependencies
+### From npm (recommended)
 
 ```bash
-git clone https://github.com/yourusername/llcli-tools.git
-cd llcli-tools
-bun install
+bun add @voidwire/lore @voidwire/gitignore-check @voidwire/language-detect
+# Or install individually
+bun add @voidwire/lore
 ```
 
-### Step 2: Link tools globally
+All packages available under `@voidwire` scope:
+- `@voidwire/lore` - Knowledge search, list, capture
+- `@voidwire/gitignore-check` - Gitignore compliance
+- `@voidwire/language-detect` - Language detection
+- `@voidwire/argus-send` - Observability events
+- `@voidwire/llm-summarize` - LLM summarization
+- `@voidwire/visual-mermaid` - Mermaid rendering
+- `@voidwire/visual-image` - AI image generation
+- `@voidwire/expertise-update` - Expertise sync
+
+### From source
 
 ```bash
-# Link all tools
-for dir in packages/*/; do (cd "$dir" && bun link); done
+git clone https://github.com/nickpending/llmcli-tools.git
+cd llmcli-tools
+bun install
 
-# Or link individual tools
-cd packages/gitignore-check && bun link
+# Link tools globally
+for dir in packages/*/; do (cd "$dir" && bun link); done
 ```
 
 Tools are now available globally (requires `~/.bun/bin` in PATH):
 ```bash
 gitignore-check .
 language-detect .
-argus-send --source test --type ping
-lore-capture task --project=test --name="Task" --problem="P" --solution="S"
-```
-
-### Running without global install
-
-Run tools directly without linking:
-
-```bash
-bun packages/gitignore-check/cli.ts .
-bun packages/language-detect/cli.ts .
+lore search "query"
 ```
 
 ## Development
@@ -318,15 +301,14 @@ See [CLI-DEVELOPMENT-GUIDE.md](./CLI-DEVELOPMENT-GUIDE.md) for the complete proc
 All tools export pure functions for direct import:
 
 ```typescript
-import { checkCompliance } from "gitignore-check";
-import { detectLanguages } from "language-detect";
-import { send as sendToArgus } from "argus-send";
-import { captureKnowledge } from "lore-capture";
-import { search } from "lore-search";
-import { summarize } from "llm-summarize";
-import { renderMermaid } from "visual-mermaid";
-import { generateImage } from "visual-image";
-import { updateExpertise } from "expertise-update";
+import { checkCompliance } from "@voidwire/gitignore-check";
+import { detectLanguages } from "@voidwire/language-detect";
+import { send as sendToArgus } from "@voidwire/argus-send";
+import { search, captureKnowledge, list } from "@voidwire/lore";
+import { summarize } from "@voidwire/llm-summarize";
+import { renderMermaid } from "@voidwire/visual-mermaid";
+import { generateImage } from "@voidwire/visual-image";
+import { updateExpertise } from "@voidwire/expertise-update";
 ```
 
 Use library imports for:

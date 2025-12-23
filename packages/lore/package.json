@@ -1,11 +1,11 @@
 {
-  "name": "@voidwire/visual-image",
-  "version": "1.0.0",
-  "description": "Generate AI images via Replicate (flux) and Google (Gemini)",
+  "name": "@voidwire/lore",
+  "version": "0.1.0",
+  "description": "Unified knowledge CLI - Search, list, and capture your indexed knowledge",
   "type": "module",
   "main": "./index.ts",
   "bin": {
-    "visual-image": "./cli.ts"
+    "lore": "./cli.ts"
   },
   "exports": {
     ".": "./index.ts",
@@ -21,32 +21,30 @@
   "scripts": {
     "test": "bun test"
   },
-  "dependencies": {
-    "@google/genai": "0.3.1",
-    "replicate": "1.0.0"
-  },
   "keywords": [
-    "image",
-    "ai",
-    "flux",
-    "replicate",
-    "gemini",
+    "knowledge",
+    "search",
+    "capture",
+    "fts5",
+    "sqlite",
     "cli",
-    "llcli",
-    "visual"
+    "llcli"
   ],
   "author": "nickpending <nickpending@users.noreply.github.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nickpending/llmcli-tools.git",
-    "directory": "packages/visual-image"
+    "directory": "packages/lore"
   },
-  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/visual-image#readme",
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/lore#readme",
   "bugs": {
     "url": "https://github.com/nickpending/llmcli-tools/issues"
   },
   "engines": {
     "bun": ">=1.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
   }
 }

@@ -1,28 +1,19 @@
 /**
- * lore-capture - Library exports
+ * lib/capture.ts - Knowledge capture functions
  *
- * Knowledge capture for tasks, insights, and notes.
- * Pure functions, no process.exit, no stderr output.
- *
- * Usage:
- *   import { captureKnowledge, captureTask, captureNote } from "lore-capture";
- *   const result = captureKnowledge({ context: "project", text: "insight", type: "decision" });
+ * Pure functions for capturing tasks, insights, and notes.
+ * Writes to ~/.local/share/lore/log.jsonl
  */
 
 import { appendFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface CaptureResult {
   success: boolean;
   error?: string;
 }
 
-// Knowledge capture types - used by CAPTURE format
 export type KnowledgeCaptureType =
   | "project"
   | "conversation"
@@ -58,7 +49,6 @@ export interface NoteInput {
   context?: string;
 }
 
-// Internal event types for JSONL
 interface TaskEvent {
   event: "captured";
   type: "task";
@@ -102,23 +92,12 @@ interface NoteEvent {
 
 type CaptureEvent = TaskEvent | KnowledgeEvent | NoteEvent;
 
-// ============================================================================
-// Internal helpers
-// ============================================================================
-
-/**
- * Get lore log path
- * ~/.local/share/lore/log.jsonl (XDG-compliant)
- */
 function getLogPath(): string {
   const dataHome =
     process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
   return join(dataHome, "lore", "log.jsonl");
 }
 
-/**
- * Ensure log directory exists
- */
 function ensureLogDirectory(): void {
   const logPath = getLogPath();
   const logDir = join(logPath, "..");
@@ -128,17 +107,10 @@ function ensureLogDirectory(): void {
   }
 }
 
-/**
- * Get current timestamp in ISO 8601 UTC format
- */
 function getTimestamp(): string {
   return new Date().toISOString();
 }
 
-/**
- * Write event to log
- * Appends JSONL line to ~/.local/share/lore/log.jsonl
- */
 function writeEvent(event: CaptureEvent): CaptureResult {
   ensureLogDirectory();
 
@@ -157,10 +129,6 @@ function writeEvent(event: CaptureEvent): CaptureResult {
   }
 }
 
-// ============================================================================
-// Public API
-// ============================================================================
-
 const VALID_KNOWLEDGE_TYPES: KnowledgeCaptureType[] = [
   "project",
   "conversation",
@@ -173,12 +141,8 @@ const VALID_KNOWLEDGE_TYPES: KnowledgeCaptureType[] = [
 
 /**
  * Capture a knowledge insight
- *
- * @param input - Knowledge capture input
- * @returns CaptureResult with success or error
  */
 export function captureKnowledge(input: KnowledgeInput): CaptureResult {
-  // Validate type
   if (!VALID_KNOWLEDGE_TYPES.includes(input.type)) {
     return {
       success: false,
@@ -202,9 +166,6 @@ export function captureKnowledge(input: KnowledgeInput): CaptureResult {
 
 /**
  * Capture a task completion
- *
- * @param input - Task capture input
- * @returns CaptureResult with success or error
  */
 export function captureTask(input: TaskInput): CaptureResult {
   const event: TaskEvent = {
@@ -231,9 +192,6 @@ export function captureTask(input: TaskInput): CaptureResult {
 
 /**
  * Capture a quick note
- *
- * @param input - Note capture input
- * @returns CaptureResult with success or error
  */
 export function captureNote(input: NoteInput): CaptureResult {
   const event: NoteEvent = {
@@ -250,5 +208,4 @@ export function captureNote(input: NoteInput): CaptureResult {
   return writeEvent(event);
 }
 
-// Re-export types for consumers
 export type { CaptureEvent };
