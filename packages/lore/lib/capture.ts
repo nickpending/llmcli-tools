@@ -12,6 +12,7 @@ import { homedir } from "os";
 export interface CaptureResult {
   success: boolean;
   error?: string;
+  [key: string]: unknown;
 }
 
 export type KnowledgeCaptureType =

@@ -27,6 +27,13 @@ export {
   type ListResult,
 } from "./lib/list";
 
+// Prismis integration
+export {
+  searchPrismis,
+  type PrismisSearchResult,
+  type PrismisSearchOptions,
+} from "./lib/prismis";
+
 // Capture
 export {
   captureKnowledge,

@@ -21,6 +21,7 @@
 
 import {
   search,
+  searchPrismis,
   listSources,
   list,
   listDomains,
@@ -140,6 +141,28 @@ function handleSearch(args: string[]): void {
 
   const limit = parsed.has("limit") ? parseInt(parsed.get("limit")!, 10) : 20;
   const since = parsed.get("since");
+
+  // Handle prismis passthrough
+  if (source === "prismis") {
+    searchPrismis(query, { limit })
+      .then((results) => {
+        output({
+          success: true,
+          results,
+          count: results.length,
+        });
+        console.error(
+          `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found`,
+        );
+        process.exit(0);
+      })
+      .catch((error) => {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        fail(message, 2);
+      });
+    return;
+  }
 
   try {
     const results = search(query, { source, limit, since });
@@ -368,6 +391,9 @@ Search Options:
   --limit <n>       Maximum results (default: 20)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
+
+Passthrough Sources:
+  prismis           Semantic search via prismis daemon (requires prismis-daemon running)
 
 List Options:
   --limit <n>       Maximum entries
