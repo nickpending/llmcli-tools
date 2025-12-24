@@ -113,6 +113,10 @@ function fail(error: string, code: number = 1): never {
 // ============================================================================
 
 function handleSearch(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showSearchHelp();
+  }
+
   const parsed = parseArgs(args);
   const positional = getPositionalArgs(args);
 
@@ -199,6 +203,10 @@ function formatHumanOutput(result: ListResult): string {
 }
 
 function handleList(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showListHelp();
+  }
+
   const parsed = parseArgs(args);
   const positional = getPositionalArgs(args);
 
@@ -342,6 +350,10 @@ function handleCaptureNote(args: string[]): void {
 }
 
 function handleCapture(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showCaptureHelp();
+  }
+
   if (args.length === 0) {
     fail("Missing capture type. Use: task, knowledge, or note");
   }
@@ -427,10 +439,140 @@ Examples:
   process.exit(0);
 }
 
+function showSearchHelp(): void {
+  console.log(`
+lore search - Search indexed knowledge
+
+Usage:
+  lore search <query>                   Search all sources
+  lore search <source> <query>          Search specific source
+  lore search --sources                 List indexed sources
+
+Options:
+  --limit <n>       Maximum results (default: 20)
+  --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
+  --sources         List indexed sources with counts
+  --help            Show this help
+
+Indexed Sources:
+  blogs             Blog posts and articles
+  captures          Quick captures and notes
+  commits           Git commit history
+  development       Active development projects
+  events            Calendar events and meetings
+  explorations      Technical explorations
+  obsidian          Obsidian vault notes
+  personal          Personal data (books, movies, etc.)
+  readmes           Project README files
+  sessions          Claude Code session transcripts
+  tasks             Logged development tasks
+
+Passthrough Sources:
+  prismis           Semantic search via prismis daemon
+                    (requires prismis-daemon running)
+
+Examples:
+  lore search "authentication"
+  lore search blogs "typescript patterns"
+  lore search commits --since this-week "refactor"
+  lore search prismis "kubernetes security"
+`);
+  process.exit(0);
+}
+
+function showListHelp(): void {
+  console.log(`
+lore list - List domain entries
+
+Usage:
+  lore list <domain>                    List entries in domain
+  lore list --domains                   List available domains
+
+Options:
+  --limit <n>       Maximum entries (default: all)
+  --format <fmt>    Output format: json (default), jsonl, human
+  --domains         List available domains
+  --help            Show this help
+
+Available Domains:
+  blogs             Blog posts
+  books             Books read
+  captures          Quick captures
+  commits           Git commits
+  development       Development projects
+  events            Calendar events
+  explorations      Technical explorations
+  habits            Tracked habits
+  interests         Personal interests
+  movies            Movies watched
+  obsidian          Obsidian notes
+  people            People/contacts
+  personal          Personal data aggregate
+  podcasts          Podcasts listened
+  readmes           Project READMEs
+  sessions          Claude Code sessions
+  tasks             Development tasks
+
+Examples:
+  lore list development
+  lore list commits --limit 10 --format human
+  lore list books --format jsonl
+`);
+  process.exit(0);
+}
+
+function showCaptureHelp(): void {
+  console.log(`
+lore capture - Capture knowledge
+
+Usage:
+  lore capture task                     Log task completion
+  lore capture knowledge                Log insight/learning
+  lore capture note                     Quick note
+
+Capture Types:
+
+  task - Log completed development task
+    Required:
+      --project       Project name
+      --name          Task name
+      --problem       Problem solved
+      --solution      Solution pattern
+    Optional:
+      --code          Code snippet
+      --discoveries   Comma-separated discoveries
+      --deviations    Deviation from plan
+      --pattern       Pattern name
+      --keywords      Comma-separated keywords
+      --tech          Comma-separated technologies
+      --difficulty    Difficulty level
+
+  knowledge - Log insight or learning
+    Required:
+      --context       Context/project name
+      --text          Insight text
+      --type          Type: decision, learning, gotcha, preference
+
+  note - Quick note capture
+    Required:
+      --text          Note content
+    Optional:
+      --tags          Comma-separated tags
+      --context       Optional context
+
+Examples:
+  lore capture task --project=lore --name="Add help" --problem="No subcommand help" --solution="Added per-command help functions"
+  lore capture knowledge --context=lore --text="Unified CLI works" --type=learning
+  lore capture note --text="Remember to update docs" --tags=docs,todo
+`);
+  process.exit(0);
+}
+
 function main(): void {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || hasFlag(args, "help") || args[0] === "-h") {
+  // Show global help only when no args or help is first arg
+  if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
     showHelp();
   }
 
@@ -446,10 +588,6 @@ function main(): void {
       break;
     case "capture":
       handleCapture(commandArgs);
-      break;
-    case "--help":
-    case "-h":
-      showHelp();
       break;
     default:
       fail(`Unknown command: ${command}. Use: search, list, or capture`);
