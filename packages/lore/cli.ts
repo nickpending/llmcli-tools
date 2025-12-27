@@ -122,9 +122,18 @@ function handleSearch(args: string[]): void {
 
   // Handle --sources flag
   if (hasFlag(args, "sources")) {
-    const sources = listSources();
+    const indexed = listSources();
+    const passthrough = [
+      { source: "prismis", count: null, type: "passthrough" },
+    ];
+    const sources = [
+      ...indexed.map((s) => ({ ...s, type: "indexed" })),
+      ...passthrough,
+    ];
     output({ success: true, sources });
-    console.error(`✅ ${sources.length} sources indexed`);
+    console.error(
+      `✅ ${indexed.length} indexed sources + ${passthrough.length} passthrough`,
+    );
     process.exit(0);
   }
 
