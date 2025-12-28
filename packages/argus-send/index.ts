@@ -22,7 +22,9 @@ export type ArgusEventType =
   | "session"
   | "agent"
   | "response"
-  | "prompt";
+  | "prompt"
+  | "command"
+  | "skill";
 
 export type ArgusHook =
   | "PreToolUse"
