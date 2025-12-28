@@ -11,7 +11,7 @@
 
 ---
 
-Collection of zero-dependency TypeScript CLIs built with Bun. Manual argument parsing, JSON output, designed for LLM agent consumption.
+Collection of TypeScript CLIs built with Bun. Manual argument parsing, JSON output, designed for LLM agent consumption. Minimal dependencies — most tools are self-contained.
 
 Building blocks for development automation - gitignore compliance, language detection, observability events, and knowledge capture.
 
@@ -25,7 +25,7 @@ Offload simple, repetitive tasks to deterministic scripts so LLMs can focus on w
 
 **Core principles:**
 
-- **Simple** - Manual argument parsing, zero framework dependencies
+- **Simple** - Manual argument parsing, no frameworks, minimal dependencies
 - **Deterministic** - Same input → Same output, always JSON
 - **Composable** - Pipes to jq, grep, other Unix tools
 - **Complete** - Production-ready, not scaffolds
