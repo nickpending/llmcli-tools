@@ -35,6 +35,20 @@ lore capture task|knowledge|note       # Capture knowledge
 - `--since <date>` — Filter by date (today, yesterday, this-week, YYYY-MM-DD)
 - `--sources` — List indexed sources with counts
 
+### Passthrough Sources
+
+Some sources query external services rather than the local index:
+
+```bash
+lore search prismis "kubernetes security"    # Semantic search via prismis
+```
+
+| Source | Description | Requires |
+|--------|-------------|----------|
+| `prismis` | Semantic search across saved articles | prismis-daemon running |
+
+Passthrough sources appear in `lore search --sources` with `type: "passthrough"`.
+
 ### List Options
 
 - `--limit <n>` — Maximum entries
