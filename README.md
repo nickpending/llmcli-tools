@@ -78,13 +78,14 @@ Send events to Argus observability platform from command line.
 **Features:**
 - Synchronous delivery - Blocks until Argus confirms capture
 - Config-aware - Reads API key from `~/.config/argus/config.toml`
+- Event types: tool, session, agent, response, prompt, command, skill
 - Composable - Pipes JSON data from other llcli tools to Argus
 - Stdin support - Chain with gitignore-check, language-detect, any JSON producer
 
 ```bash
-argus-send --source llcli-tools --type gitignore-check --level info
-gitignore-check . | argus-send --source llcli-tools --type gitignore-check --stdin
-echo '{"test": "data"}' | argus-send --source my-app --type event --stdin
+argus-send --source momentum --type tool --hook PreToolUse --tool-name Bash
+argus-send --source momentum --type command --message "/commit executed"
+gitignore-check . | argus-send --source llcli-tools --type tool --stdin
 ```
 
 [Documentation](./packages/argus-send/README.md) | [Quick Start](./packages/argus-send/QUICKSTART.md)
@@ -97,13 +98,15 @@ Unified knowledge CLI - search, list, and capture your indexed knowledge fabric.
 
 **Features:**
 - FTS5 full-text search across all indexed content (blogs, commits, events, projects, tasks)
+- Passthrough sources (prismis) for semantic search via external services
 - Domain listing with 15 queryable domains
 - Type-safe event capture for tasks, knowledge insights, and notes
 - Logs to ~/.local/share/lore/log.jsonl in JSONL format
 
 ```bash
 lore search "authentication"              # Search all sources
-lore search "typescript" --source=blogs   # Filter by source
+lore search blogs "typescript patterns"   # Filter by source
+lore search prismis "kubernetes security" # Semantic search via prismis
 lore list development                     # List development projects
 lore list --domains                       # Show available domains
 lore capture task --project=myapp --name="Feature" --problem="..." --solution="..."
