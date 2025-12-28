@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/argus-send",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Send events to Argus observability platform",
   "type": "module",
   "main": "./index.ts",
