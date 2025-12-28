@@ -49,7 +49,7 @@ argus-send --source <name> --type <event-type> [options]
 ### Required Arguments
 
 - `--source <name>` - Source name (e.g., "llcli-tools", "momentum")
-- `--type <event-type>` - Event type: `tool`, `session`, `agent`, `response`, `prompt`
+- `--type <event-type>` - Event type: `tool`, `session`, `agent`, `response`, `prompt`, `command`, `skill`
 
 ### Optional Arguments
 
