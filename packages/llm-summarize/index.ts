@@ -1,13 +1,14 @@
 /**
  * llm-summarize - Library exports
  *
- * Fast LLM-powered text summarization for observability and logging.
+ * Structured session insight extraction for knowledge systems.
  * Pure functions, no process.exit, no stderr output.
  *
  * Usage:
  *   import { summarize, loadConfig } from "llm-summarize";
  *   const config = loadConfig();
- *   const result = await summarize("text to summarize", config);
+ *   const result = await summarize("session transcript", config);
+ *   // result.insights.summary, result.insights.decisions, etc.
  */
 
 import { readFileSync, existsSync } from "fs";
@@ -17,8 +18,17 @@ import { join } from "path";
 // Types
 // ============================================================================
 
+export interface SessionInsights {
+  summary: string;
+  decisions?: string[];
+  patterns_used?: string[];
+  preferences_expressed?: string[];
+  problems_solved?: string[];
+  tools_heavy?: string[];
+}
+
 export interface SummarizeResult {
-  summary?: string;
+  insights?: SessionInsights;
   error?: string;
   model?: string;
   tokens_used?: number;
@@ -38,6 +48,80 @@ export interface SummarizeOptions {
 }
 
 export type ProviderType = "anthropic" | "openai" | "ollama";
+
+// ============================================================================
+// System Prompt
+// ============================================================================
+
+const SYSTEM_PROMPT = `You are an experienced engineering manager reviewing session transcripts to extract actionable team insights.
+
+Analyze the development session conversation and extract structured observations.
+
+<output_schema>
+{
+  "summary": "One sentence: what was accomplished or decided",
+  "decisions": ["Specific decision and its reasoning"],
+  "patterns_used": ["Development pattern or approach observed"],
+  "preferences_expressed": ["User preference revealed through actions or statements"],
+  "problems_solved": ["Problem that was addressed and how"],
+  "tools_heavy": ["Tool used repeatedly or in notable ways"]
+}
+</output_schema>
+
+<rules>
+- Include a field ONLY when the conversation provides clear evidence
+- Extract specifics: "Chose SQLite over Postgres for single-user simplicity" not "Made a database decision"
+- Omit empty arrays entirely
+</rules>
+
+Output valid JSON only. No markdown code blocks, no explanation.`;
+
+// ============================================================================
+// Response Parsing
+// ============================================================================
+
+/**
+ * Extract JSON from LLM response that may contain:
+ * - Markdown code blocks (```json ... ```)
+ * - MLX end tokens (<|im_end|>, <|end|>)
+ * - Thinking blocks (<think>...</think>)
+ * - Raw JSON
+ */
+function extractJson(raw: string): SessionInsights | null {
+  let text = raw.trim();
+
+  // Remove thinking blocks
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+  // Remove MLX end tokens
+  text = text
+    .replace(/<\|im_end\|>/g, "")
+    .replace(/<\|end\|>/g, "")
+    .trim();
+
+  // Extract from markdown code block if present
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    text = codeBlockMatch[1].trim();
+  }
+
+  // Find JSON object in text (handle leading/trailing garbage)
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    // Validate required field
+    if (typeof parsed.summary !== "string") {
+      return null;
+    }
+    return parsed as SessionInsights;
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // Config Loading
@@ -115,7 +199,7 @@ export function loadConfig(): LLMConfig {
     model: null,
     apiKey: null,
     apiBase: null,
-    maxTokens: 50,
+    maxTokens: 1024,
   };
 
   if (!existsSync(configPath)) {
@@ -190,10 +274,11 @@ async function callAnthropic(
         model,
         max_tokens: maxTokens,
         temperature: 0.3,
+        system: SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
-            content: `What was accomplished or decided? One sentence, past tense, focus on actions and outcomes:\n\n${text}`,
+            content: text,
           },
         ],
       }),
@@ -208,9 +293,16 @@ async function callAnthropic(
 
     const result = await response.json();
     const content = result.content?.[0]?.text || "";
+    const insights = extractJson(content);
+
+    if (!insights) {
+      return {
+        error: `Failed to parse response as JSON: ${content.slice(0, 200)}`,
+      };
+    }
 
     return {
-      summary: content.trim(),
+      insights,
       model,
       tokens_used: result.usage?.output_tokens,
     };
@@ -246,8 +338,12 @@ async function callOpenAI(
         temperature: 0.3,
         messages: [
           {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
             role: "user",
-            content: `What was accomplished or decided? One sentence, past tense, focus on actions and outcomes:\n\n${text}`,
+            content: text,
           },
         ],
       }),
@@ -262,9 +358,16 @@ async function callOpenAI(
 
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content || "";
+    const insights = extractJson(content);
+
+    if (!insights) {
+      return {
+        error: `Failed to parse response as JSON: ${content.slice(0, 200)}`,
+      };
+    }
 
     return {
-      summary: content.trim(),
+      insights,
       model,
       tokens_used: result.usage?.completion_tokens,
     };
@@ -276,7 +379,7 @@ async function callOpenAI(
 }
 
 /**
- * Call Ollama API
+ * Call Ollama API (chat endpoint for system prompt support)
  */
 async function callOllama(
   text: string,
@@ -284,7 +387,7 @@ async function callOllama(
   maxTokens: number,
   apiBase: string,
 ): Promise<SummarizeResult> {
-  const endpoint = `${apiBase}/api/generate`;
+  const endpoint = `${apiBase}/api/chat`;
 
   try {
     const response = await fetch(endpoint, {
@@ -294,7 +397,16 @@ async function callOllama(
       },
       body: JSON.stringify({
         model,
-        prompt: `What was accomplished or decided? One sentence, past tense, focus on actions and outcomes:\n\n${text}`,
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: text,
+          },
+        ],
         stream: false,
         options: {
           num_predict: maxTokens,
@@ -311,10 +423,17 @@ async function callOllama(
     }
 
     const result = await response.json();
-    const content = result.response || "";
+    const content = result.message?.content || "";
+    const insights = extractJson(content);
+
+    if (!insights) {
+      return {
+        error: `Failed to parse response as JSON: ${content.slice(0, 200)}`,
+      };
+    }
 
     return {
-      summary: content.trim(),
+      insights,
       model,
       tokens_used: result.eval_count,
     };

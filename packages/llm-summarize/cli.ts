@@ -3,7 +3,7 @@
  * llm-summarize CLI
  *
  * Philosophy:
- * - Fast summaries for observability and logging
+ * - Structured session insight extraction for knowledge systems
  * - Multi-provider support (Anthropic, OpenAI, Ollama)
  * - Deterministic JSON output for tooling integration
  * - Config-driven - no hardcoded defaults
@@ -15,10 +15,10 @@
  *
  * Config: ~/.config/llm/config.toml
  *   [llm]
- *   provider = "anthropic"
- *   model = "claude-3-5-haiku-latest"
- *   api_key = "env:ANTHROPIC_API_KEY"
- *   max_tokens = 50
+ *   provider = "ollama"
+ *   model = "Qwen2.5:3b"
+ *   api_base = "https://ollama.example.com"
+ *   max_tokens = 1024
  *
  * Secrets: ~/.config/llm/.env
  *   ANTHROPIC_API_KEY=sk-ant-...
@@ -49,10 +49,10 @@ async function readStdin(): Promise<string> {
  */
 function printUsage(): void {
   console.error(`
-llm-summarize - Summarize text using LLM APIs
+llm-summarize - Extract structured insights from session transcripts
 
 Philosophy:
-  Fast, cheap summaries for observability events.
+  Structured session insight extraction for knowledge systems.
   Config-driven - specify exact provider/model.
   JSON output for tooling integration.
 
@@ -61,16 +61,16 @@ Usage: llm-summarize [options] <text>
 
 Options:
   --model <name>        Override model from config
-  --max-tokens <n>      Max output tokens (default: from config or 50)
+  --max-tokens <n>      Max output tokens (default: from config or 1024)
   --stdin               Read text from stdin
   -h, --help            Show this help
 
 Config file: ~/.config/llm/config.toml
   [llm]
-  provider = "anthropic"
-  model = "claude-3-5-haiku-latest"
-  api_key = "env:ANTHROPIC_API_KEY"
-  max_tokens = 50
+  provider = "ollama"
+  model = "Qwen2.5:3b"
+  api_base = "https://ollama.example.com"
+  max_tokens = 1024
 
 Secrets file: ~/.config/llm/.env
   ANTHROPIC_API_KEY=sk-ant-...
@@ -84,20 +84,28 @@ Environment overrides:
 Supported providers:
   anthropic - Claude models (claude-3-5-haiku-latest, claude-sonnet-4-20250514)
   openai    - GPT models (gpt-4.1-mini, gpt-4o)
-  ollama    - Local models (llama3, mistral, gemma3, etc.) - no API key needed
+  ollama    - Local models (Qwen2.5:3b, llama3.2:3b, etc.) - no API key needed
+
+Output format:
+  {
+    "insights": {
+      "summary": "One sentence: what was accomplished",
+      "decisions": ["Specific decisions with reasoning"],
+      "patterns_used": ["Development patterns observed"],
+      "preferences_expressed": ["User preferences revealed"],
+      "problems_solved": ["Problems addressed and how"],
+      "tools_heavy": ["Tools used notably"]
+    },
+    "model": "qwen2.5:3b",
+    "tokens_used": 150
+  }
 
 Examples:
-  # Simple summarization
-  llm-summarize "User requested fix for post-password-reset login failure"
+  # Extract insights from session transcript
+  cat session.txt | llm-summarize --stdin
 
-  # With options
-  llm-summarize --max-tokens 30 "Long event description..."
-
-  # From stdin (for piping)
-  echo "Tool: Edit, File: auth.ts, Result: added JWT validation" | llm-summarize --stdin
-
-  # Pipe from another tool
-  cat event.json | jq -r '.description' | llm-summarize --stdin
+  # From clipboard
+  pbpaste | llm-summarize --stdin
 `);
 }
 
@@ -175,8 +183,10 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(result, null, 2));
 
   // Diagnostic
-  if (result.summary) {
-    console.error(`✅ Summarized (${result.tokens_used || "?"} tokens)`);
+  if (result.insights) {
+    console.error(
+      `✅ Extracted insights (${result.tokens_used || "?"} tokens)`,
+    );
     process.exit(0);
   } else {
     console.error(`❌ ${result.error}`);
