@@ -36,7 +36,7 @@ export type ArgusHook =
   | "SubagentStop"
   | "UserPromptSubmit";
 
-export type ArgusStatus = "success" | "failure" | "pending";
+export type ArgusStatus = "success" | "failure" | "pending" | "activated";
 
 export interface ArgusEvent {
   source: string;

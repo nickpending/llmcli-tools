@@ -58,7 +58,7 @@ argus-send --source <name> --type <event-type> [options]
 - `--session-id <id>` - Claude Code session identifier
 - `--tool-name <name>` - Tool name (Bash, Read, Edit, Task, etc.)
 - `--tool-use-id <id>` - Correlates PreToolUse/PostToolUse pairs
-- `--status <status>` - Event outcome: `success`, `failure`, `pending`
+- `--status <status>` - Event outcome: `success`, `failure`, `pending`, `activated`
 - `--data <json>` - JSON data string
 - `--stdin` - Read data object from stdin (JSON)
 - `--host <url>` - Argus host (default: `http://127.0.0.1:8765`)
