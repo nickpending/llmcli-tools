@@ -9,7 +9,15 @@
  *   const result = await emit("ci", "urgent", "Build failed");
  */
 
-import { existsSync, mkdirSync, appendFileSync, readFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  appendFileSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  unlinkSync,
+} from "fs";
 import { join } from "path";
 import { randomUUID } from "crypto";
 
@@ -31,6 +39,18 @@ export interface Notification {
 export interface EmitResult {
   success: boolean;
   id?: string;
+  error?: string;
+}
+
+export interface AckResult {
+  success: boolean;
+  id?: string;
+  error?: string;
+}
+
+export interface PruneResult {
+  success: boolean;
+  pruned?: number;
   error?: string;
 }
 
@@ -152,4 +172,96 @@ export function list(unackedOnly: boolean = false): Notification[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Write notifications to queue file atomically
+ * Uses temp file + rename pattern to prevent corruption
+ *
+ * @param notifications - Array of notifications to write
+ * @returns true if successful, false otherwise
+ */
+function writeQueue(notifications: Notification[]): boolean {
+  if (!ensureStateDir()) {
+    return false;
+  }
+
+  const queuePath = getQueuePath();
+  const tempPath = queuePath + ".tmp";
+
+  try {
+    const content = notifications.map((n) => JSON.stringify(n)).join("\n");
+    writeFileSync(tempPath, content ? content + "\n" : "");
+    renameSync(tempPath, queuePath);
+    return true;
+  } catch {
+    // Clean up temp file if it exists
+    try {
+      if (existsSync(tempPath)) {
+        unlinkSync(tempPath);
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+    return false;
+  }
+}
+
+/**
+ * Acknowledge a notification by ID
+ *
+ * @param id - Notification ID to acknowledge
+ * @returns AckResult with success status
+ */
+export function ack(id: string): AckResult {
+  const notifications = list(false);
+  const index = notifications.findIndex((n) => n.id === id);
+
+  if (index === -1) {
+    return {
+      success: false,
+      error: `Notification not found: ${id}`,
+    };
+  }
+
+  notifications[index].acked = true;
+
+  if (!writeQueue(notifications)) {
+    return {
+      success: false,
+      error: "Failed to write queue",
+    };
+  }
+
+  return {
+    success: true,
+    id,
+  };
+}
+
+/**
+ * Prune notifications older than specified days
+ *
+ * @param days - Remove notifications older than this many days (default: 7)
+ * @returns PruneResult with count of pruned notifications
+ */
+export function prune(days: number = 7): PruneResult {
+  const notifications = list(false);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const kept = notifications.filter((n) => new Date(n.timestamp) >= cutoff);
+  const pruned = notifications.length - kept.length;
+
+  if (!writeQueue(kept)) {
+    return {
+      success: false,
+      error: "Failed to write queue",
+    };
+  }
+
+  return {
+    success: true,
+    pruned,
+  };
 }

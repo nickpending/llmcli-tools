@@ -12,7 +12,7 @@
  *   2 - Client error (missing args, write failure)
  */
 
-import { emit, list, type Tier, type Notification } from "./index";
+import { emit, list, ack, prune, type Tier, type Notification } from "./index";
 
 // ============================================================================
 // CLI
@@ -27,6 +27,8 @@ Usage: llm-notify <command> [options]
 Commands:
   emit      Add a notification to the queue
   list      Show notifications in the queue
+  ack       Mark a notification as acknowledged
+  prune     Remove old notifications
 
 Emit Options:
   --source <name>         Source name (e.g., "ci", "cron", "monitoring")
@@ -37,6 +39,12 @@ Emit Options:
 List Options:
   --unacked               Show only unacked notifications
   --json                  Output as JSON array (default: human-readable)
+
+Ack Options:
+  <id>                    Notification ID to acknowledge (required)
+
+Prune Options:
+  --days <n>              Remove notifications older than n days (default: 7)
 
 Tiers:
   urgent      Interrupt - show immediately, auto-ack after injection
@@ -55,6 +63,12 @@ Examples:
 
   # List unacked notifications
   llm-notify list --unacked
+
+  # Acknowledge a notification
+  llm-notify ack abc123-def456-...
+
+  # Prune notifications older than 7 days
+  llm-notify prune --days 7
 `);
 }
 
@@ -175,6 +189,55 @@ function main(): void {
     }
     console.error(`${notifications.length} notification(s)`);
     process.exit(0);
+  } else if (command === "ack") {
+    const id = args[1];
+
+    if (!id) {
+      console.error("Missing notification ID");
+      printUsage();
+      process.exit(2);
+    }
+
+    const result = ack(id);
+
+    // Output JSON (stdout)
+    console.log(JSON.stringify(result));
+
+    // Diagnostic to stderr
+    if (result.success) {
+      console.error(`Notification acknowledged (ID: ${result.id})`);
+      process.exit(0);
+    } else {
+      console.error(`Failed: ${result.error}`);
+      process.exit(2);
+    }
+  } else if (command === "prune") {
+    let days = 7;
+
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === "--days" && i + 1 < args.length) {
+        const parsed = parseInt(args[++i], 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          days = parsed;
+        }
+      }
+    }
+
+    const result = prune(days);
+
+    // Output JSON (stdout)
+    console.log(JSON.stringify(result));
+
+    // Diagnostic to stderr
+    if (result.success) {
+      console.error(
+        `Pruned ${result.pruned} notification(s) older than ${days} days`,
+      );
+      process.exit(0);
+    } else {
+      console.error(`Failed: ${result.error}`);
+      process.exit(2);
+    }
   } else {
     console.error(`Unknown command: ${command}`);
     printUsage();
