@@ -45,36 +45,71 @@ export interface LLMConfig {
 export interface SummarizeOptions {
   model?: string;
   maxTokens?: number;
+  mode?: "quick" | "insights";
+  /** User name to include in summary (e.g., "Rudy") */
+  userName?: string;
 }
 
 export type ProviderType = "anthropic" | "openai" | "ollama";
+export type SummarizeMode = "quick" | "insights";
 
 // ============================================================================
-// System Prompt
+// System Prompts
 // ============================================================================
 
-const SYSTEM_PROMPT = `You are an experienced engineering manager reviewing session transcripts to extract actionable team insights.
+/**
+ * Build quick mode prompt with optional user name
+ */
+function buildQuickPrompt(userName?: string): string {
+  const nameInstruction = userName ? `Start with "${userName}".` : "";
 
-Analyze the development session conversation and extract structured observations.
+  return `Summarize what the user is asking or doing in one sentence.
+${nameInstruction}
+Output JSON only: {"summary": "One sentence summary"}`;
+}
+
+/**
+ * Build insights mode prompt with optional user name
+ */
+function buildInsightsPrompt(userName?: string): string {
+  const nameInstruction = userName
+    ? `Start the summary with "${userName}".`
+    : "";
+
+  return `You are an experienced engineering manager reviewing session transcripts to extract actionable insights.
+
+Analyze the development session and extract structured observations.
 
 <output_schema>
 {
   "summary": "One sentence: what was accomplished or decided",
   "decisions": ["Specific decision and its reasoning"],
   "patterns_used": ["Development pattern or approach observed"],
-  "preferences_expressed": ["User preference revealed through actions or statements"],
-  "problems_solved": ["Problem that was addressed and how"],
-  "tools_heavy": ["Tool used repeatedly or in notable ways"]
+  "preferences_expressed": ["Preference revealed through actions - DO NOT include user name"],
+  "problems_solved": ["Problem addressed and how - DO NOT include user name"],
+  "tools_heavy": ["Tool used repeatedly or notably"]
 }
 </output_schema>
 
 <rules>
+- ${nameInstruction || "Write summary in third person."}
 - Include a field ONLY when the conversation provides clear evidence
 - Extract specifics: "Chose SQLite over Postgres for single-user simplicity" not "Made a database decision"
 - Omit empty arrays entirely
+- IMPORTANT: Only use user name in the summary field, nowhere else
 </rules>
 
 Output valid JSON only. No markdown code blocks, no explanation.`;
+}
+
+/**
+ * Get prompt for the specified mode
+ */
+function getPromptForMode(mode: SummarizeMode, userName?: string): string {
+  return mode === "quick"
+    ? buildQuickPrompt(userName)
+    : buildInsightsPrompt(userName);
+}
 
 // ============================================================================
 // Response Parsing
@@ -258,6 +293,7 @@ async function callAnthropic(
   model: string,
   maxTokens: number,
   apiKey: string,
+  systemPrompt: string,
   apiBase?: string,
 ): Promise<SummarizeResult> {
   const endpoint = apiBase || "https://api.anthropic.com/v1/messages";
@@ -274,7 +310,7 @@ async function callAnthropic(
         model,
         max_tokens: maxTokens,
         temperature: 0.3,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
@@ -321,6 +357,7 @@ async function callOpenAI(
   model: string,
   maxTokens: number,
   apiKey: string,
+  systemPrompt: string,
   apiBase?: string,
 ): Promise<SummarizeResult> {
   const endpoint = apiBase || "https://api.openai.com/v1/chat/completions";
@@ -339,7 +376,7 @@ async function callOpenAI(
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT,
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -386,6 +423,7 @@ async function callOllama(
   model: string,
   maxTokens: number,
   apiBase: string,
+  systemPrompt: string,
 ): Promise<SummarizeResult> {
   const endpoint = `${apiBase}/api/chat`;
 
@@ -400,7 +438,7 @@ async function callOllama(
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT,
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -453,8 +491,12 @@ async function callOllama(
  *
  * @param text - Text to summarize
  * @param config - LLM configuration (from loadConfig())
- * @param options - Optional overrides for model and maxTokens
- * @returns SummarizeResult with summary or error
+ * @param options - Optional overrides for model, maxTokens, and mode
+ * @returns SummarizeResult with insights or error
+ *
+ * Modes:
+ * - "quick": Fast one-liner summary (for user prompts)
+ * - "insights": Full SessionInsights extraction (for responses, default)
  */
 export async function summarize(
   text: string,
@@ -465,6 +507,9 @@ export async function summarize(
   const model = options?.model || config.model;
   const maxTokens = options?.maxTokens || config.maxTokens;
   const apiKey = config.apiKey;
+  const mode: SummarizeMode = options?.mode || "insights";
+  const userName = options?.userName;
+  const systemPrompt = getPromptForMode(mode, userName);
 
   // Validate config
   if (!provider) {
@@ -493,6 +538,7 @@ export async function summarize(
       model,
       maxTokens,
       apiKey!,
+      systemPrompt,
       config.apiBase || undefined,
     );
   } else if (provider === "openai") {
@@ -501,6 +547,7 @@ export async function summarize(
       model,
       maxTokens,
       apiKey!,
+      systemPrompt,
       config.apiBase || undefined,
     );
   } else if (provider === "ollama") {
@@ -509,7 +556,7 @@ export async function summarize(
         error: `No api_base configured for ollama. Set api_base in ~/.config/llm/config.toml`,
       };
     }
-    return callOllama(text, model, maxTokens, config.apiBase);
+    return callOllama(text, model, maxTokens, config.apiBase, systemPrompt);
   } else {
     return {
       error: `Unknown provider: ${provider}. Supported: anthropic, openai, ollama`,

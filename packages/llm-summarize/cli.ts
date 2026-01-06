@@ -29,7 +29,12 @@
  *   2 - Client error (missing args, invalid config)
  */
 
-import { summarize, loadConfig, type SummarizeOptions } from "./index";
+import {
+  summarize,
+  loadConfig,
+  type SummarizeOptions,
+  type SummarizeMode,
+} from "./index";
 
 /**
  * Read text from stdin
@@ -60,10 +65,15 @@ Usage: llm-summarize [options] <text>
        llm-summarize --stdin
 
 Options:
+  --mode <mode>         Summarization mode: quick or insights (default: insights)
   --model <name>        Override model from config
   --max-tokens <n>      Max output tokens (default: from config or 1024)
   --stdin               Read text from stdin
   -h, --help            Show this help
+
+Modes:
+  quick     - Fast one-liner summary (for user prompts)
+  insights  - Full SessionInsights extraction (for responses)
 
 Config file: ~/.config/llm/config.toml
   [llm]
@@ -127,6 +137,7 @@ async function parseArgs(argv: string[]): Promise<ParsedArgs | null> {
 
   let modelOverride: string | undefined;
   let maxTokensOverride: number | undefined;
+  let modeOverride: SummarizeMode | undefined;
   let useStdin = false;
   let text = "";
 
@@ -137,6 +148,14 @@ async function parseArgs(argv: string[]): Promise<ParsedArgs | null> {
       modelOverride = args[++i];
     } else if (arg === "--max-tokens" && i + 1 < args.length) {
       maxTokensOverride = parseInt(args[++i], 10);
+    } else if (arg === "--mode" && i + 1 < args.length) {
+      const mode = args[++i];
+      if (mode === "quick" || mode === "insights") {
+        modeOverride = mode;
+      } else {
+        console.error(`Invalid mode: ${mode}. Use 'quick' or 'insights'.`);
+        process.exit(2);
+      }
     } else if (arg === "--stdin") {
       useStdin = true;
     } else if (!arg.startsWith("-")) {
@@ -154,6 +173,7 @@ async function parseArgs(argv: string[]): Promise<ParsedArgs | null> {
     options: {
       model: modelOverride,
       maxTokens: maxTokensOverride,
+      mode: modeOverride,
     },
   };
 }
