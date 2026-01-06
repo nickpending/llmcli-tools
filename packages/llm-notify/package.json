@@ -1,0 +1,43 @@
+{
+  "name": "@voidwire/llm-notify",
+  "version": "1.0.0",
+  "description": "Queue notifications for Claude awareness from external systems",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
+  },
+  "bin": {
+    "llm-notify": "./cli.ts"
+  },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "bun run cli.ts"
+  },
+  "keywords": [
+    "notifications",
+    "llcli",
+    "momentum",
+    "claude"
+  ],
+  "author": "nickpending <nickpending@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/llm-notify"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/llm-notify#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
