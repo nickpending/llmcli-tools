@@ -9,8 +9,8 @@
  *   const result = await emit("ci", "urgent", "Build failed");
  */
 
-import { existsSync, mkdirSync, appendFileSync } from "fs";
-import { join, dirname } from "path";
+import { existsSync, mkdirSync, appendFileSync, readFileSync } from "fs";
+import { join } from "path";
 import { randomUUID } from "crypto";
 
 // ============================================================================
@@ -112,5 +112,44 @@ export function emit(source: string, tier: Tier, message: string): EmitResult {
       success: false,
       error: `Failed to write to queue: ${String(error)}`,
     };
+  }
+}
+
+/**
+ * List notifications from the queue
+ *
+ * @param unackedOnly - If true, only return unacked notifications
+ * @returns Array of notifications (empty if file missing or empty)
+ */
+export function list(unackedOnly: boolean = false): Notification[] {
+  const queuePath = getQueuePath();
+
+  if (!existsSync(queuePath)) {
+    return [];
+  }
+
+  try {
+    const content = readFileSync(queuePath, "utf-8").trim();
+    if (!content) {
+      return [];
+    }
+
+    const notifications: Notification[] = [];
+    const lines = content.split("\n");
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const notification = JSON.parse(line) as Notification;
+        if (unackedOnly && notification.acked) continue;
+        notifications.push(notification);
+      } catch {
+        // Skip malformed lines silently
+      }
+    }
+
+    return notifications;
+  } catch {
+    return [];
   }
 }
