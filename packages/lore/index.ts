@@ -34,6 +34,13 @@ export {
   type PrismisSearchOptions,
 } from "./lib/prismis";
 
+// Atuin integration
+export {
+  searchAtuin,
+  type AtuinSearchResult,
+  type AtuinSearchOptions,
+} from "./lib/atuin";
+
 // Capture
 export {
   captureKnowledge,

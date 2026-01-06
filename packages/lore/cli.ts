@@ -22,6 +22,7 @@
 import {
   search,
   searchPrismis,
+  searchAtuin,
   listSources,
   list,
   listDomains,
@@ -73,7 +74,21 @@ function parseArgs(args: string[]): Map<string, string> {
 }
 
 function getPositionalArgs(args: string[]): string[] {
-  return args.filter((arg) => !arg.startsWith("--"));
+  const result: string[] = [];
+  let skipNext = false;
+  for (const arg of args) {
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      // Skip this flag and its value (if next arg doesn't start with -)
+      skipNext = true;
+      continue;
+    }
+    result.push(arg);
+  }
+  return result;
 }
 
 function hasFlag(args: string[], flag: string): boolean {
@@ -125,6 +140,7 @@ function handleSearch(args: string[]): void {
     const indexed = listSources();
     const passthrough = [
       { source: "prismis", count: null, type: "passthrough" },
+      { source: "atuin", count: null, type: "passthrough" },
     ];
     const sources = [
       ...indexed.map((s) => ({ ...s, type: "indexed" })),
@@ -174,6 +190,26 @@ function handleSearch(args: string[]): void {
           error instanceof Error ? error.message : "Unknown error";
         fail(message, 2);
       });
+    return;
+  }
+
+  // Handle atuin passthrough
+  if (source === "atuin") {
+    try {
+      const results = searchAtuin(query, { limit });
+      output({
+        success: true,
+        results,
+        count: results.length,
+      });
+      console.error(
+        `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found`,
+      );
+      process.exit(0);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      fail(message, 2);
+    }
     return;
   }
 
@@ -415,6 +451,7 @@ Search Options:
 
 Passthrough Sources:
   prismis           Semantic search via prismis daemon (requires prismis-daemon running)
+  atuin             Shell history search (queries ~/.local/share/atuin/history.db directly)
 
 List Options:
   --limit <n>       Maximum entries
@@ -479,12 +516,15 @@ Indexed Sources:
 Passthrough Sources:
   prismis           Semantic search via prismis daemon
                     (requires prismis-daemon running)
+  atuin             Shell history search
+                    (queries ~/.local/share/atuin/history.db directly)
 
 Examples:
   lore search "authentication"
   lore search blogs "typescript patterns"
   lore search commits --since this-week "refactor"
   lore search prismis "kubernetes security"
+  lore search atuin "docker build"
 `);
   process.exit(0);
 }
