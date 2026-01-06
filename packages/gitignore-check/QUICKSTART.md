@@ -214,7 +214,7 @@ jobs:
 
       - name: Install gitignore-check
         run: |
-          git clone https://github.com/yourusername/llcli-tools.git
+          git clone https://github.com/nickpending/llmcli-tools.git
           cd llcli-tools
           ./install.sh gitignore-check
 

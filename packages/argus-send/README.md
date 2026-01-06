@@ -169,6 +169,6 @@ See [QUICKSTART.md](QUICKSTART.md) for comprehensive examples.
 
 ## Related
 
-- [Argus](https://github.com/yourusername/argus) - Observability platform this tool sends to
+- [Argus](https://github.com/nickpending/argus) - Observability platform this tool sends to
 - [gitignore-check](../gitignore-check/) - Compliance checker that can pipe to argus-send
 - [language-detect](../language-detect/) - Language detector that can pipe to argus-send
