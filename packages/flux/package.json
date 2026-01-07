@@ -1,0 +1,26 @@
+{
+  "name": "@voidwire/flux",
+  "version": "1.0.0",
+  "description": "Task management CLI for Obsidian-based workflows",
+  "type": "module",
+  "main": "./index.ts",
+  "bin": {
+    "flux": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.5",
+    "typescript": "5.3.3",
+    "vitest": "1.2.0"
+  },
+  "keywords": ["cli", "task", "obsidian", "flux"],
+  "license": "MIT"
+}
