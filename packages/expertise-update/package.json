@@ -43,10 +43,10 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@voidwire/lore": "^0.1.0",
+    "@voidwire/lore": "0.1.2",
     "smol-toml": "1.3.1"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "1.3.5"
   }
 }

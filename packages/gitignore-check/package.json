@@ -20,7 +20,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@voidwire/language-detect": "^2.0.0"
+    "@voidwire/language-detect": "2.0.0"
   },
   "scripts": {
     "check": "bun run cli.ts"
