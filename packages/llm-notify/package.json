@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/llm-notify",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Queue notifications for Claude awareness from external systems",
   "type": "module",
   "main": "./index.ts",
