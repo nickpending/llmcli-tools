@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/expertise-update",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sync Lore insights into PROJECT_EXPERTISE.toml",
   "type": "module",
   "main": "./index.ts",

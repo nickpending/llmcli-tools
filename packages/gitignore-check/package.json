@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/gitignore-check",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Gitignore compliance checker - Ensures projects include essential security patterns",
   "type": "module",
   "main": "./index.ts",
