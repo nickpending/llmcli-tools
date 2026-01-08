@@ -72,6 +72,28 @@ flux recurring --dry-run                 # Preview what would surface
 flux recurring                           # Surface due recurring tasks
 ```
 
+Recurring items support two modes:
+
+**Cadence-based** (time since last done):
+```markdown
+- [ ] Weigh-in id::rec001 last::2026-01-01
+```
+
+**Date-anchored** (approaching due date):
+```markdown
+- [ ] Tax prep id::rec002 due::2026-04-15 lead::45
+```
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `last::` | Last completion date (cadence-based) | — |
+| `due::` | Next due date (date-anchored) | — |
+| `lead::` | Days before due to surface | 7 |
+
+On completion:
+- Cadence-based: `last::` updates to today
+- Date-anchored: `due::` advances by cadence (yearly → +1 year)
+
 ### Maintenance
 
 ```bash

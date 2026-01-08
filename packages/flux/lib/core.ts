@@ -574,11 +574,12 @@ function getCadenceDays(cadence: string | undefined): number {
   }
 }
 
+const DEFAULT_LEAD_DAYS = 7;
+
 export async function recurring(dryRun = false): Promise<RecurringResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
   const now = new Date();
-  const today = formatDate(now);
 
   if (!existsSync(paths.recurring)) {
     return { success: true, surfaced: [], dryRun };
@@ -598,17 +599,30 @@ export async function recurring(dryRun = false): Promise<RecurringResult> {
     for (const item of section.items) {
       item.cadence = cadence;
 
-      // Check if due
-      if (!item.last) {
-        // Never done, surface it
-        toSurface.push(item);
-      } else {
-        const lastDate = new Date(item.last);
-        const daysSince = Math.floor(
-          (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
+      if (item.due) {
+        // Date-anchored item: trigger by approaching due date
+        const dueDate = new Date(item.due);
+        const leadDays = item.lead ?? DEFAULT_LEAD_DAYS;
+        const daysUntilDue = Math.floor(
+          (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         );
-        if (daysSince >= cadenceDays) {
+
+        if (daysUntilDue <= leadDays) {
           toSurface.push(item);
+        }
+      } else {
+        // Cadence-based item: trigger by time since last done
+        if (!item.last) {
+          // Never done, surface it
+          toSurface.push(item);
+        } else {
+          const lastDate = new Date(item.last);
+          const daysSince = Math.floor(
+            (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
+          );
+          if (daysSince >= cadenceDays) {
+            toSurface.push(item);
+          }
         }
       }
     }
@@ -648,12 +662,49 @@ export async function recurring(dryRun = false): Promise<RecurringResult> {
   return { success: true, surfaced: toSurface, dryRun: false };
 }
 
+function advanceByCadence(
+  dateStr: string,
+  cadence: string | undefined,
+): string {
+  // Parse date string directly to avoid timezone issues
+  const [year, month, day] = dateStr.split("-").map(Number);
+
+  let newYear = year;
+  let newMonth = month;
+  let newDay = day;
+
+  switch (cadence) {
+    case "daily":
+      newDay += 1;
+      break;
+    case "weekly":
+      newDay += 7;
+      break;
+    case "monthly":
+      newMonth += 1;
+      break;
+    case "quarterly":
+      newMonth += 3;
+      break;
+    case "yearly":
+      newYear += 1;
+      break;
+  }
+
+  // Normalize using Date (handles overflow like Jan 32 → Feb 1)
+  const result = new Date(newYear, newMonth - 1, newDay);
+  const y = result.getFullYear();
+  const m = String(result.getMonth() + 1).padStart(2, "0");
+  const d = String(result.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export async function completeRecurring(query: string): Promise<void> {
   const config = await loadConfig();
   const paths = getPaths(config);
   const today = formatDate(new Date());
 
-  // Find in recurring.md and update last::
+  // Find in recurring.md and update
   await withFileLock(paths.recurring, async () => {
     const parsed = await getFileParsed(
       paths.recurring,
@@ -662,22 +713,39 @@ export async function completeRecurring(query: string): Promise<void> {
     const found = findItemByFuzzy(parsed.sections, query);
 
     if (found) {
-      found.item.last = today;
+      const item = found.item;
+      const cadence = found.section.name.toLowerCase();
 
-      // Rebuild file content manually to preserve last:: field
+      if (item.due) {
+        // Date-anchored: advance due date by cadence from OLD due date
+        item.due = advanceByCadence(item.due, cadence);
+        // Clear last:: if present (not used for due-date items)
+        item.last = undefined;
+      } else {
+        // Cadence-based: update last:: to today
+        item.last = today;
+      }
+
+      // Rebuild file content to preserve all fields
       let content = `# Recurring\n`;
       for (const section of parsed.sections) {
         content += `\n## ${section.name}\n`;
-        for (const item of section.items) {
-          let line = `- [ ] ${item.description}`;
-          if (item.tags && item.tags.length > 0) {
-            line += " " + item.tags.map((t) => `#${t}`).join(" ");
+        for (const sectionItem of section.items) {
+          let line = `- [ ] ${sectionItem.description}`;
+          if (sectionItem.tags && sectionItem.tags.length > 0) {
+            line += " " + sectionItem.tags.map((t) => `#${t}`).join(" ");
           }
-          if (item.id) {
-            line += ` id::${item.id}`;
+          if (sectionItem.id) {
+            line += ` id::${sectionItem.id}`;
           }
-          if (item.last) {
-            line += ` last::${item.last}`;
+          if (sectionItem.due) {
+            line += ` due::${sectionItem.due}`;
+          }
+          if (sectionItem.lead !== undefined && sectionItem.lead !== 7) {
+            line += ` lead::${sectionItem.lead}`;
+          }
+          if (sectionItem.last) {
+            line += ` last::${sectionItem.last}`;
           }
           content += line + "\n";
         }

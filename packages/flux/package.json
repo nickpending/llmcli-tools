@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/flux",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Task management CLI for Obsidian-based workflows",
   "type": "module",
   "main": "./index.ts",
@@ -21,6 +21,11 @@
     "typescript": "5.3.3",
     "vitest": "1.2.0"
   },
-  "keywords": ["cli", "task", "obsidian", "flux"],
+  "keywords": [
+    "cli",
+    "task",
+    "obsidian",
+    "flux"
+  ],
   "license": "MIT"
 }

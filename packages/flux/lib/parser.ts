@@ -14,6 +14,9 @@ export interface FluxItem {
   // For recurring items
   last?: string;
   cadence?: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+  // For date-anchored recurring items
+  due?: string; // YYYY-MM-DD format
+  lead?: number; // Days before due to surface (default: 7)
   // Checkbox state (for active.md)
   checked?: boolean;
 }
@@ -30,52 +33,100 @@ export interface ParsedFile {
   rawContent: string;
 }
 
-const ITEM_REGEX =
-  /^- (\[[ x~]\] )?(?:(\w+):: )?(.+?)(?:\s+\[([^\]]+)\])?(?:\s+id::(\w+))?(?:\s+captured:: ([\d-]+ [\d:]+))?(?:\s+completed:: ([\d-]+ [\d:]+))?(?:\s+cancelled:: ([\d-]+ [\d:]+))?(?:\s+archived:: ([\d-]+))?(?:\s+last::([\d-]+))?(?:\s+(#\w+(?:\s+#\w+)*))?$/;
+// Field extraction patterns
+const FIELD_PATTERNS = {
+  id: /\bid::(\w+)/,
+  captured: /\bcaptured::\s*([\d-]+ [\d:]+)/,
+  completed: /\bcompleted::\s*([\d-]+ [\d:]+)/,
+  cancelled: /\bcancelled::\s*([\d-]+ [\d:]+)/,
+  archived: /\barchived::\s*([\d-]+)/,
+  last: /\blast::([\d-]+)/,
+  due: /\bdue::([\d-]+)/,
+  lead: /\blead::(\d+)/,
+  project: /\s\[([^\]\s][^\]]*)\]/, // Match [project] but not checkbox [ ]
+  tags: /#(\w+)/g,
+};
 
 export function parseItem(line: string): FluxItem | null {
-  const match = line.match(ITEM_REGEX);
-  if (!match) return null;
+  if (!line.startsWith("- ")) return null;
 
-  const [
-    ,
-    checkbox,
-    typePrefix,
-    description,
-    project,
-    id,
-    captured,
-    completed,
-    cancelled,
-    archived,
-    last,
-    tagsStr,
-  ] = match;
-
+  // Extract checkbox state
+  const checkboxMatch = line.match(/^- \[([x ~])\]/);
   let checked: boolean | undefined;
-  if (checkbox) {
-    checked = checkbox.includes("x");
+  if (checkboxMatch) {
+    checked = checkboxMatch[1] === "x";
   }
 
-  const type = (typePrefix as ItemType) || "todo";
-  const tags = tagsStr
-    ? tagsStr
-        .split(/\s+/)
-        .filter((t) => t.startsWith("#"))
-        .map((t) => t.slice(1))
-    : undefined;
+  // Extract type prefix (todo::, bug::, idea::, etc.)
+  const typeMatch = line.match(/^- (?:\[[x ~]\] )?(\w+)::\s*/);
+  const type = (typeMatch?.[1] as ItemType) || "todo";
+
+  // Extract description (text after prefix, before fields)
+  let descStart = line.indexOf("] ") + 2;
+  if (descStart < 2) descStart = 2; // No checkbox
+  if (typeMatch) {
+    descStart = line.indexOf(":: ", descStart) + 3;
+  }
+
+  // Find where fields begin (first field marker)
+  const fieldMarkers = [
+    "id::",
+    "captured::",
+    "completed::",
+    "cancelled::",
+    "archived::",
+    "last::",
+    "due::",
+    "lead::",
+    " #",
+  ];
+  let descEnd = line.length;
+  for (const marker of fieldMarkers) {
+    const idx = line.indexOf(marker, descStart);
+    if (idx !== -1 && idx < descEnd) {
+      descEnd = idx;
+    }
+  }
+  // Also check for [project] bracket
+  const bracketIdx = line.indexOf(" [", descStart);
+  if (bracketIdx !== -1 && bracketIdx < descEnd) {
+    descEnd = bracketIdx;
+  }
+
+  const description = line.slice(descStart, descEnd).trim();
+
+  // Extract fields
+  const idMatch = line.match(FIELD_PATTERNS.id);
+  const capturedMatch = line.match(FIELD_PATTERNS.captured);
+  const completedMatch = line.match(FIELD_PATTERNS.completed);
+  const cancelledMatch = line.match(FIELD_PATTERNS.cancelled);
+  const archivedMatch = line.match(FIELD_PATTERNS.archived);
+  const lastMatch = line.match(FIELD_PATTERNS.last);
+  const dueMatch = line.match(FIELD_PATTERNS.due);
+  const leadMatch = line.match(FIELD_PATTERNS.lead);
+  const projectMatch = line.match(FIELD_PATTERNS.project);
+
+  // Extract tags
+  const tags: string[] = [];
+  let tagMatch;
+  const tagRegex = /#(\w+)/g;
+  while ((tagMatch = tagRegex.exec(line)) !== null) {
+    tags.push(tagMatch[1]);
+  }
 
   return {
-    id: id || "",
+    id: idMatch?.[1] || "",
     type,
-    description: description.trim(),
-    project: project || undefined,
-    captured: captured || "",
-    completed: completed || undefined,
-    cancelled: cancelled || undefined,
-    archived: archived || undefined,
-    last: last || undefined,
-    tags,
+    description,
+    project: projectMatch?.[1] || undefined,
+    captured: capturedMatch?.[1] || "",
+    completed: completedMatch?.[1] || undefined,
+    cancelled: cancelledMatch?.[1] || undefined,
+    archived: archivedMatch?.[1] || undefined,
+    last: lastMatch?.[1] || undefined,
+    due: dueMatch?.[1] || undefined,
+    lead: leadMatch ? parseInt(leadMatch[1], 10) : undefined,
+    tags: tags.length > 0 ? tags : undefined,
     checked,
   };
 }
@@ -165,6 +216,15 @@ export function serializeItem(item: FluxItem, includeCheckbox = false): string {
 
   if (item.archived) {
     line += ` archived:: ${item.archived}`;
+  }
+
+  if (item.due) {
+    line += ` due::${item.due}`;
+  }
+
+  if (item.lead !== undefined && item.lead !== 7) {
+    // Only serialize if non-default
+    line += ` lead::${item.lead}`;
   }
 
   if (item.last) {
