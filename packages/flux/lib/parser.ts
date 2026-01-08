@@ -1,6 +1,15 @@
 export type ItemType = "todo" | "bug" | "idea" | "note" | "changelog";
 export type ItemStatus = "open" | "completed" | "cancelled";
 
+export type DayOfWeek =
+  | "sunday"
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday";
+
 export interface FluxItem {
   id: string;
   type: ItemType;
@@ -17,6 +26,8 @@ export interface FluxItem {
   // For date-anchored recurring items
   due?: string; // YYYY-MM-DD format
   lead?: number; // Days before due to surface (default: 7)
+  // For day-of-week anchored recurring items
+  day?: DayOfWeek; // Day of week to surface (takes precedence over due:: and last::)
   // Checkbox state (for active.md)
   checked?: boolean;
 }
@@ -35,7 +46,7 @@ export interface ParsedFile {
 
 // Field extraction patterns
 const FIELD_PATTERNS = {
-  id: /\bid::(\w+)/,
+  id: /\bid::([\w-]+)/,
   captured: /\bcaptured::\s*([\d-]+ [\d:]+)/,
   completed: /\bcompleted::\s*([\d-]+ [\d:]+)/,
   cancelled: /\bcancelled::\s*([\d-]+ [\d:]+)/,
@@ -43,6 +54,7 @@ const FIELD_PATTERNS = {
   last: /\blast::([\d-]+)/,
   due: /\bdue::([\d-]+)/,
   lead: /\blead::(\d+)/,
+  day: /\bday::(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/,
   project: /\s\[([^\]\s][^\]]*)\]/, // Match [project] but not checkbox [ ]
   tags: /#(\w+)/g,
 };
@@ -78,6 +90,7 @@ export function parseItem(line: string): FluxItem | null {
     "last::",
     "due::",
     "lead::",
+    "day::",
     " #",
   ];
   let descEnd = line.length;
@@ -104,6 +117,7 @@ export function parseItem(line: string): FluxItem | null {
   const lastMatch = line.match(FIELD_PATTERNS.last);
   const dueMatch = line.match(FIELD_PATTERNS.due);
   const leadMatch = line.match(FIELD_PATTERNS.lead);
+  const dayMatch = line.match(FIELD_PATTERNS.day);
   const projectMatch = line.match(FIELD_PATTERNS.project);
 
   // Extract tags
@@ -126,6 +140,7 @@ export function parseItem(line: string): FluxItem | null {
     last: lastMatch?.[1] || undefined,
     due: dueMatch?.[1] || undefined,
     lead: leadMatch ? parseInt(leadMatch[1], 10) : undefined,
+    day: (dayMatch?.[1] as DayOfWeek) || undefined,
     tags: tags.length > 0 ? tags : undefined,
     checked,
   };
@@ -216,6 +231,10 @@ export function serializeItem(item: FluxItem, includeCheckbox = false): string {
 
   if (item.archived) {
     line += ` archived:: ${item.archived}`;
+  }
+
+  if (item.day) {
+    line += ` day::${item.day}`;
   }
 
   if (item.due) {

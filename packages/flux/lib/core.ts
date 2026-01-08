@@ -576,6 +576,17 @@ function getCadenceDays(cadence: string | undefined): number {
 
 const DEFAULT_LEAD_DAYS = 7;
 
+// Day-of-week mapping: JS Date.getDay() returns 0=Sunday through 6=Saturday
+const DAY_MAP: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
 export async function recurring(dryRun = false): Promise<RecurringResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
@@ -599,7 +610,15 @@ export async function recurring(dryRun = false): Promise<RecurringResult> {
     for (const item of section.items) {
       item.cadence = cadence;
 
-      if (item.due) {
+      if (item.day) {
+        // Day-of-week anchored: surface on specific day each week (highest priority)
+        const targetDay = DAY_MAP[item.day];
+        const todayDay = now.getDay();
+
+        if (todayDay === targetDay) {
+          toSurface.push(item);
+        }
+      } else if (item.due) {
         // Date-anchored item: trigger by approaching due date
         const dueDate = new Date(item.due);
         const leadDays = item.lead ?? DEFAULT_LEAD_DAYS;
@@ -716,7 +735,12 @@ export async function completeRecurring(query: string): Promise<void> {
       const item = found.item;
       const cadence = found.section.name.toLowerCase();
 
-      if (item.due) {
+      if (item.day) {
+        // Day-of-week anchored: no last:: update needed
+        // Item will resurface next week on the anchored day
+        // Clear last:: if present (not used for day-anchored items)
+        item.last = undefined;
+      } else if (item.due) {
         // Date-anchored: advance due date by cadence from OLD due date
         item.due = advanceByCadence(item.due, cadence);
         // Clear last:: if present (not used for due-date items)
@@ -737,6 +761,9 @@ export async function completeRecurring(query: string): Promise<void> {
           }
           if (sectionItem.id) {
             line += ` id::${sectionItem.id}`;
+          }
+          if (sectionItem.day) {
+            line += ` day::${sectionItem.day}`;
           }
           if (sectionItem.due) {
             line += ` due::${sectionItem.due}`;
@@ -945,5 +972,5 @@ export async function archive(dryRun = false): Promise<ArchiveResult> {
 }
 
 // Re-export types
-export type { FluxItem, ItemType } from "./parser";
+export type { DayOfWeek, FluxItem, ItemType } from "./parser";
 export type { FluxConfig, FluxPaths } from "./config";
