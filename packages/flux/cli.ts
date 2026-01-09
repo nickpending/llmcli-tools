@@ -41,20 +41,26 @@ flux - Task management CLI for Obsidian-based workflows
 USAGE:
   flux <command> [options]
 
+SCOPING:
+  All commands support -p/--project to scope to a specific project.
+  Without -p, commands operate on global items only.
+
 COMMANDS:
   add <text>              Add a new item
   done <id|query>         Mark item as completed
   cancel <id|query>       Cancel an item
   activate <id|query>     Move item to active.md
   defer <id|query>        Move item from active back to backlog
-  list                    List all items
+  list                    List items (active by default)
   recurring               Surface due recurring items
   lint                    Check files for format issues
   archive                 Archive old completed items
 
 OPTIONS:
+  Common:
+    --project, -p <name>  Scope to project (all commands)
+
   add:
-    --project, -p <name>  Assign to project
     --type, -t <type>     Item type: todo, bug, idea (default: todo)
     --urgent, -u          Also add to active.md ## Today
 
@@ -62,9 +68,9 @@ OPTIONS:
     --week, -w            Add to "This Week" instead of "Today"
 
   list:
-    --project, -p <name>  Filter by project
+    --backlog, -b         Show backlog instead of active
+    --complete, -c        Show completed items
     --type, -t <type>     Filter by type
-    --json                JSON output (default)
 
   recurring:
     --dry-run             Show what would be surfaced without doing it
@@ -80,11 +86,16 @@ EXAMPLES:
   flux add "implement auth middleware" -p momentum
   flux add "fix login bug" -p momentum -t bug --urgent
   flux done a3f2d1
-  flux done "auth middleware"
-  flux activate a3f2d1
+  flux done a3f2d1 -p momentum
+  flux activate a3f2d1 -p momentum
   flux activate a3f2d1 --week
   flux defer a3f2d1
-  flux list --project momentum
+  flux list                        # global active items
+  flux list -p momentum            # momentum's active items
+  flux list -b                     # global backlog
+  flux list -b -p momentum         # momentum's backlog
+  flux list -c                     # today's completed
+  flux list -c -p momentum         # momentum's completed
   flux recurring --dry-run
   flux lint --fix
   flux archive --dry-run
@@ -137,7 +148,8 @@ async function main(): Promise<void> {
       if (!query) {
         fail("Missing item ID or query. Usage: flux done <id|query>");
       }
-      const result = await done(query);
+      const project = getArg("--project") ?? getArg("-p");
+      const result = await done(query, { project });
       respond(result);
       break;
     }
@@ -147,7 +159,8 @@ async function main(): Promise<void> {
       if (!query) {
         fail("Missing item ID or query. Usage: flux cancel <id|query>");
       }
-      const result = await cancel(query);
+      const project = getArg("--project") ?? getArg("-p");
+      const result = await cancel(query, { project });
       respond(result);
       break;
     }
@@ -158,7 +171,8 @@ async function main(): Promise<void> {
         fail("Missing item ID or query. Usage: flux activate <id|query>");
       }
       const week = hasFlag("--week") || hasFlag("-w");
-      const result = await activate(query, week);
+      const project = getArg("--project") ?? getArg("-p");
+      const result = await activate(query, { week, project });
       respond(result);
       break;
     }
@@ -168,7 +182,8 @@ async function main(): Promise<void> {
       if (!query) {
         fail("Missing item ID or query. Usage: flux defer <id|query>");
       }
-      const result = await defer(query);
+      const project = getArg("--project") ?? getArg("-p");
+      const result = await defer(query, { project });
       respond(result);
       break;
     }
@@ -177,7 +192,9 @@ async function main(): Promise<void> {
       const project = getArg("--project") ?? getArg("-p");
       const typeArg = getArg("--type") ?? getArg("-t");
       const type = typeArg as ItemType | undefined;
-      const result = await list({ project, type });
+      const backlog = hasFlag("--backlog") || hasFlag("-b");
+      const complete = hasFlag("--complete") || hasFlag("-c");
+      const result = await list({ project, type, backlog, complete });
       respond(result);
       break;
     }

@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/flux",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Task management CLI for Obsidian-based workflows",
   "type": "module",
   "main": "./index.ts",

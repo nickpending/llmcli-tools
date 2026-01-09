@@ -16,9 +16,13 @@ export {
 export type {
   AddOptions,
   AddResult,
+  DoneOptions,
   DoneResult,
+  CancelOptions,
   CancelResult,
+  ActivateOptions,
   ActivateResult,
+  DeferOptions,
   DeferResult,
   ListOptions,
   ListResult,

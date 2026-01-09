@@ -89,6 +89,8 @@ export interface DeferResult {
 export interface ListOptions {
   project?: string;
   type?: ItemType;
+  backlog?: boolean;
+  complete?: boolean;
 }
 
 export interface ListResult {
@@ -216,28 +218,29 @@ async function findItemAcrossFiles(
   config: FluxConfig,
   paths: FluxPaths,
   query: string,
+  scopeProject?: string,
 ): Promise<{
   filePath: string;
   parsed: ParsedFile;
   section: ReturnType<typeof findItemByFuzzy> extends infer T ? T : never;
   inferredProject?: string;
 } | null> {
-  // Search order: active, later, project backlogs
-  const searchPaths: { path: string; default: string; project?: string }[] = [
-    { path: paths.active, default: getDefaultActiveContent() },
-    { path: paths.later, default: getDefaultLaterContent() },
-  ];
+  const searchPaths: { path: string; default: string; project?: string }[] = [];
 
-  // Add project backlogs
-  for (const project of discoverProjects(config)) {
-    const projectPath = getProjectBacklogPath(config, project);
-    if (existsSync(projectPath)) {
-      searchPaths.push({
-        path: projectPath,
-        default: getDefaultProjectBacklogContent(project),
-        project,
-      });
-    }
+  if (scopeProject) {
+    // Project scope: only search project backlog
+    const projectPath = getProjectBacklogPath(config, scopeProject);
+    searchPaths.push({
+      path: projectPath,
+      default: getDefaultProjectBacklogContent(scopeProject),
+      project: scopeProject,
+    });
+  } else {
+    // Global scope: only search active.md and later.md
+    searchPaths.push(
+      { path: paths.active, default: getDefaultActiveContent() },
+      { path: paths.later, default: getDefaultLaterContent() },
+    );
   }
 
   for (const { path, default: defaultContent, project } of searchPaths) {
@@ -257,12 +260,24 @@ async function findItemAcrossFiles(
   return null;
 }
 
-export async function done(query: string): Promise<DoneResult> {
+export interface DoneOptions {
+  project?: string;
+}
+
+export async function done(
+  query: string,
+  options: DoneOptions = {},
+): Promise<DoneResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
   const now = new Date();
 
-  const found = await findItemAcrossFiles(config, paths, query);
+  const found = await findItemAcrossFiles(
+    config,
+    paths,
+    query,
+    options.project,
+  );
   if (!found || !found.section) {
     throw new Error(`Item not found: ${query}`);
   }
@@ -329,12 +344,24 @@ export async function done(query: string): Promise<DoneResult> {
   };
 }
 
-export async function cancel(query: string): Promise<CancelResult> {
+export interface CancelOptions {
+  project?: string;
+}
+
+export async function cancel(
+  query: string,
+  options: CancelOptions = {},
+): Promise<CancelResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
   const now = new Date();
 
-  const found = await findItemAcrossFiles(config, paths, query);
+  const found = await findItemAcrossFiles(
+    config,
+    paths,
+    query,
+    options.project,
+  );
   if (!found || !found.section) {
     throw new Error(`Item not found: ${query}`);
   }
@@ -372,14 +399,24 @@ export async function cancel(query: string): Promise<CancelResult> {
   };
 }
 
+export interface ActivateOptions {
+  week?: boolean;
+  project?: string;
+}
+
 export async function activate(
   query: string,
-  week = false,
+  options: ActivateOptions = {},
 ): Promise<ActivateResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
 
-  const found = await findItemAcrossFiles(config, paths, query);
+  const found = await findItemAcrossFiles(
+    config,
+    paths,
+    query,
+    options.project,
+  );
   if (!found || !found.section) {
     throw new Error(`Item not found: ${query}`);
   }
@@ -404,7 +441,7 @@ export async function activate(
   });
 
   // Add to active.md
-  const targetSection = week ? "This Week" : "Today";
+  const targetSection = options.week ? "This Week" : "Today";
   await withFileLock(paths.active, async () => {
     const activeParsed = await getFileParsed(
       paths.active,
@@ -426,11 +463,18 @@ export async function activate(
   };
 }
 
-export async function defer(query: string): Promise<DeferResult> {
+export interface DeferOptions {
+  project?: string;
+}
+
+export async function defer(
+  query: string,
+  options: DeferOptions = {},
+): Promise<DeferResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
 
-  // Only search active.md for defer
+  // Defer always searches active.md (project scope not applicable)
   const activeParsed = await getFileParsed(
     paths.active,
     getDefaultActiveContent(),
@@ -493,46 +537,100 @@ export async function defer(query: string): Promise<DeferResult> {
 export async function list(options: ListOptions = {}): Promise<ListResult> {
   const config = await loadConfig();
   const paths = getPaths(config);
+  const items: FluxItem[] = [];
 
-  const allItems: FluxItem[] = [];
-
-  // Collect from active.md
-  if (existsSync(paths.active)) {
-    const parsed = await getFileParsed(paths.active, getDefaultActiveContent());
-    for (const section of parsed.sections) {
-      allItems.push(...section.items);
+  if (options.project) {
+    // Project scope
+    if (options.complete) {
+      // Project completed: read projects/{project}/completed.md
+      const changelogPath = getProjectChangelogPath(config, options.project);
+      if (existsSync(changelogPath)) {
+        const parsed = await getFileParsed(
+          changelogPath,
+          `# ${options.project} Changelog\n`,
+        );
+        for (const section of parsed.sections) {
+          for (const item of section.items) {
+            items.push({ ...item, project: options.project });
+          }
+        }
+      }
+    } else if (options.backlog) {
+      // Project backlog: read projects/{project}/later.md
+      const backlogPath = getProjectBacklogPath(config, options.project);
+      if (existsSync(backlogPath)) {
+        const parsed = await getFileParsed(
+          backlogPath,
+          getDefaultProjectBacklogContent(options.project),
+        );
+        for (const section of parsed.sections) {
+          for (const item of section.items) {
+            items.push({ ...item, project: options.project });
+          }
+        }
+      }
+    } else {
+      // Project active: read active.md, filter by project tag
+      if (existsSync(paths.active)) {
+        const parsed = await getFileParsed(
+          paths.active,
+          getDefaultActiveContent(),
+        );
+        for (const section of parsed.sections) {
+          for (const item of section.items) {
+            if (item.project === options.project) {
+              items.push(item);
+            }
+          }
+        }
+      }
     }
-  }
-
-  // Collect from later.md
-  if (existsSync(paths.later)) {
-    const parsed = await getFileParsed(paths.later, getDefaultLaterContent());
-    for (const section of parsed.sections) {
-      allItems.push(...section.items);
-    }
-  }
-
-  // Collect from project backlogs
-  for (const project of discoverProjects(config)) {
-    const projectPath = getProjectBacklogPath(config, project);
-    if (existsSync(projectPath)) {
-      const parsed = await getFileParsed(
-        projectPath,
-        getDefaultProjectBacklogContent(project),
-      );
-      for (const section of parsed.sections) {
-        for (const item of section.items) {
-          allItems.push({ ...item, project });
+  } else {
+    // Global scope
+    if (options.complete) {
+      // Global completed: read today's daily log
+      const today = new Date();
+      const dailyPath = getDailyPath(config, today);
+      if (existsSync(dailyPath)) {
+        const parsed = await getFileParsed(
+          dailyPath,
+          getDefaultDailyContent(formatDate(today)),
+        );
+        for (const section of parsed.sections) {
+          items.push(...section.items);
+        }
+      }
+    } else if (options.backlog) {
+      // Global backlog: read later.md
+      if (existsSync(paths.later)) {
+        const parsed = await getFileParsed(
+          paths.later,
+          getDefaultLaterContent(),
+        );
+        for (const section of parsed.sections) {
+          items.push(...section.items);
+        }
+      }
+    } else {
+      // Global active: read active.md, filter items WITHOUT project tag
+      if (existsSync(paths.active)) {
+        const parsed = await getFileParsed(
+          paths.active,
+          getDefaultActiveContent(),
+        );
+        for (const section of parsed.sections) {
+          for (const item of section.items) {
+            if (!item.project) {
+              items.push(item);
+            }
+          }
         }
       }
     }
   }
 
-  // Filter
-  let filtered = allItems;
-  if (options.project) {
-    filtered = filtered.filter((item) => item.project === options.project);
-  }
+  // Apply type filter if specified
+  let filtered = items;
   if (options.type) {
     filtered = filtered.filter((item) => item.type === options.type);
   }
