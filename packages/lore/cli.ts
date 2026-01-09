@@ -224,48 +224,51 @@ async function handleSearch(args: string[]): Promise<void> {
     return;
   }
 
-  // Route semantic vs FTS5 based on --exact flag and availability
-  if (!exact) {
+  // FTS5 path (explicit --exact only)
+  if (exact) {
     try {
-      const canUseSemantic = hasEmbeddings() && (await isOllamaAvailable());
-      if (canUseSemantic) {
-        const results = await semanticSearch(query, { source, limit });
-        output({
-          success: true,
-          results,
-          count: results.length,
-          mode: "semantic",
-        });
-        console.error(
-          `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (semantic)`,
-        );
-        process.exit(0);
-      }
-      // Fall through to FTS5 if semantic not available
-    } catch (error) {
-      // Semantic search failed, fall back to FTS5
+      const results = search(query, { source, limit, since });
+      output({
+        success: true,
+        results,
+        count: results.length,
+        mode: "exact",
+      });
       console.error(
-        `⚠️ Semantic search unavailable: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (exact)`,
       );
+      process.exit(0);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      fail(message, 2);
     }
+    return;
   }
 
-  // FTS5 path (default fallback or explicit --exact)
+  // Semantic path (default) - fail if unavailable
+  if (!hasEmbeddings()) {
+    fail("No embeddings found. Run lore-embed-all first.", 2);
+  }
+
+  if (!(await isOllamaAvailable())) {
+    fail("Ollama not available. Start Ollama or check SQLITE_VEC_PATH.", 2);
+  }
+
   try {
-    const results = search(query, { source, limit, since });
+    const results = await semanticSearch(query, { source, limit });
     output({
       success: true,
       results,
       count: results.length,
-      mode: exact ? "exact" : "fts5",
+      mode: "semantic",
     });
     console.error(
-      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (${exact ? "exact" : "fts5"})`,
+      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (semantic)`,
     );
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    fail(message, 2);
+    fail(`Semantic search failed: ${message}`, 2);
   }
 }
 
