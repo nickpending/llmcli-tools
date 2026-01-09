@@ -73,20 +73,27 @@ function parseArgs(args: string[]): Map<string, string> {
   return parsed;
 }
 
+// Boolean flags that don't take values
+const BOOLEAN_FLAGS = new Set(["help", "sources", "domains", "exact"]);
+
 function getPositionalArgs(args: string[]): string[] {
   const result: string[] = [];
-  let skipNext = false;
-  for (const arg of args) {
-    if (skipNext) {
-      skipNext = false;
-      continue;
-    }
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
     if (arg.startsWith("--")) {
-      // Skip this flag and its value (if next arg doesn't start with -)
-      skipNext = true;
+      const flag = arg.slice(2).split("=")[0]; // Handle --flag=value format
+      if (BOOLEAN_FLAGS.has(flag) || arg.includes("=")) {
+        i += 1; // Boolean flag or --flag=value, skip only the flag
+      } else if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
+        i += 2; // Flag with separate value, skip both
+      } else {
+        i += 1; // Flag at end or followed by another flag
+      }
       continue;
     }
     result.push(arg);
+    i++;
   }
   return result;
 }
@@ -134,6 +141,7 @@ function handleSearch(args: string[]): void {
 
   const parsed = parseArgs(args);
   const positional = getPositionalArgs(args);
+  const exact = hasFlag(args, "exact");
 
   // Handle --sources flag
   if (hasFlag(args, "sources")) {
@@ -213,7 +221,13 @@ function handleSearch(args: string[]): void {
     return;
   }
 
+  // TODO (Task 3.4): Route to semantic search when exact=false and embeddings available
+  // if (!exact) {
+  //   return semanticSearch(query, { source, limit });
+  // }
+
   try {
+    // FTS5 path (current default, will be --exact only after Task 3.4)
     const results = search(query, { source, limit, since });
     output({
       success: true,
@@ -445,6 +459,7 @@ Usage:
   lore capture task|knowledge|note      Capture knowledge
 
 Search Options:
+  --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
@@ -495,6 +510,7 @@ Usage:
   lore search --sources                 List indexed sources
 
 Options:
+  --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
@@ -523,6 +539,7 @@ Examples:
   lore search "authentication"
   lore search blogs "typescript patterns"
   lore search commits --since this-week "refactor"
+  lore search --exact "def process_data"
   lore search prismis "kubernetes security"
   lore search atuin "docker build"
 `);
