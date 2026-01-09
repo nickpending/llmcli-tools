@@ -53,3 +53,13 @@ export {
   type NoteInput,
   type CaptureEvent,
 } from "./lib/capture";
+
+// Semantic search
+export {
+  semanticSearch,
+  embedQuery,
+  isOllamaAvailable,
+  hasEmbeddings,
+  type SemanticResult,
+  type SemanticSearchOptions,
+} from "./lib/semantic";

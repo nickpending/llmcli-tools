@@ -29,6 +29,9 @@ import {
   captureTask,
   captureKnowledge,
   captureNote,
+  semanticSearch,
+  isOllamaAvailable,
+  hasEmbeddings,
   DOMAINS,
   type SearchResult,
   type ListResult,
@@ -134,7 +137,7 @@ function fail(error: string, code: number = 1): never {
 // Search Command
 // ============================================================================
 
-function handleSearch(args: string[]): void {
+async function handleSearch(args: string[]): Promise<void> {
   if (hasFlag(args, "help")) {
     showSearchHelp();
   }
@@ -221,21 +224,43 @@ function handleSearch(args: string[]): void {
     return;
   }
 
-  // TODO (Task 3.4): Route to semantic search when exact=false and embeddings available
-  // if (!exact) {
-  //   return semanticSearch(query, { source, limit });
-  // }
+  // Route semantic vs FTS5 based on --exact flag and availability
+  if (!exact) {
+    try {
+      const canUseSemantic = hasEmbeddings() && (await isOllamaAvailable());
+      if (canUseSemantic) {
+        const results = await semanticSearch(query, { source, limit });
+        output({
+          success: true,
+          results,
+          count: results.length,
+          mode: "semantic",
+        });
+        console.error(
+          `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (semantic)`,
+        );
+        process.exit(0);
+      }
+      // Fall through to FTS5 if semantic not available
+    } catch (error) {
+      // Semantic search failed, fall back to FTS5
+      console.error(
+        `⚠️ Semantic search unavailable: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
 
+  // FTS5 path (default fallback or explicit --exact)
   try {
-    // FTS5 path (current default, will be --exact only after Task 3.4)
     const results = search(query, { source, limit, since });
     output({
       success: true,
       results,
       count: results.length,
+      mode: exact ? "exact" : "fts5",
     });
     console.error(
-      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found`,
+      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (${exact ? "exact" : "fts5"})`,
     );
     process.exit(0);
   } catch (error) {
