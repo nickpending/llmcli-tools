@@ -66,7 +66,7 @@ export function getStateDir(): string {
   const xdgState = process.env.XDG_STATE_HOME;
   const home = process.env.HOME!;
   const baseDir = xdgState || join(home, ".local", "state");
-  return join(baseDir, "momentum");
+  return join(baseDir, "llm-notify");
 }
 
 /**

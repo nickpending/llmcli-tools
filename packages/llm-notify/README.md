@@ -8,7 +8,7 @@ Queue notifications for Claude awareness from external systems.
 
 **Three tiers** - Urgent interrupts, indicators persist until acked, silent logs for audit trails.
 
-**JSONL queue** - Append-only file at `~/.local/state/momentum/notifications.jsonl` for durability and simplicity.
+**JSONL queue** - Append-only file at `~/.local/state/llm-notify/notifications.jsonl` for durability and simplicity.
 
 ## Quick Start
 
@@ -70,6 +70,77 @@ const result = emit("ci", "urgent", "Build failed on main");
 if (result.success) {
   console.log(`Notification queued: ${result.id}`);
 }
+```
+
+## Claude Code Integration
+
+To wire notifications into Claude Code, create a hook that reads the queue and injects notifications into context.
+
+### Sample Hook
+
+Create `.claude/hooks/llm-notify-hook.ts`:
+
+```typescript
+#!/usr/bin/env bun
+/**
+ * llm-notify hook for Claude Code
+ * Injects pending notifications into UserPromptSubmit context
+ */
+import { list, ack, type Notification } from "@voidwire/llm-notify";
+
+// Get unacked notifications (urgent and indicator tiers)
+const notifications = list(true).filter(
+  (n) => n.tier === "urgent" || n.tier === "indicator"
+);
+
+if (notifications.length > 0) {
+  // Format for context injection
+  const lines = ["<notifications>"];
+  for (const n of notifications) {
+    lines.push(
+      `  <notification tier="${n.tier}" source="${n.source}">${n.message}</notification>`
+    );
+  }
+  lines.push("</notifications>");
+
+  console.log(lines.join("\n"));
+
+  // Auto-ack urgent notifications after injection
+  for (const n of notifications.filter((n) => n.tier === "urgent")) {
+    ack(n.id);
+  }
+}
+```
+
+### Hook Configuration
+
+Add to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run .claude/hooks/llm-notify-hook.ts"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Now external systems can notify Claude:
+
+```bash
+# CI notifies Claude of build failure
+llm-notify emit --source ci --tier urgent --message "Build failed on main"
+
+# Next time you send a message, Claude sees the notification
 ```
 
 ## Architecture
