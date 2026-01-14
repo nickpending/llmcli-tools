@@ -50,6 +50,13 @@ export interface NoteInput {
   context?: string;
 }
 
+export interface TeachingInput {
+  domain: string;
+  confidence: string;
+  text: string;
+  source?: string;
+}
+
 interface TaskEvent {
   event: "captured";
   type: "task";
@@ -91,7 +98,19 @@ interface NoteEvent {
   };
 }
 
-type CaptureEvent = TaskEvent | KnowledgeEvent | NoteEvent;
+interface TeachingEvent {
+  event: "captured";
+  type: "teaching";
+  timestamp: string;
+  data: {
+    domain: string;
+    confidence: string;
+    text: string;
+    source: string;
+  };
+}
+
+type CaptureEvent = TaskEvent | KnowledgeEvent | NoteEvent | TeachingEvent;
 
 function getLogPath(): string {
   const dataHome =
@@ -203,6 +222,25 @@ export function captureNote(input: NoteInput): CaptureResult {
       content: input.text,
       tags: input.tags,
       context: input.context,
+    },
+  };
+
+  return writeEvent(event);
+}
+
+/**
+ * Capture a teaching moment
+ */
+export function captureTeaching(input: TeachingInput): CaptureResult {
+  const event: TeachingEvent = {
+    event: "captured",
+    type: "teaching",
+    timestamp: "",
+    data: {
+      domain: input.domain,
+      confidence: input.confidence,
+      text: input.text,
+      source: input.source || "manual",
     },
   };
 

@@ -11,7 +11,7 @@
  *   lore search <query>                   Search all sources
  *   lore search <source> <query>          Search specific source
  *   lore list <domain>                    List domain entries
- *   lore capture task|knowledge|note      Capture knowledge
+ *   lore capture task|knowledge|note|teaching  Capture knowledge
  *
  * Exit codes:
  *   0 - Success
@@ -29,6 +29,7 @@ import {
   captureTask,
   captureKnowledge,
   captureNote,
+  captureTeaching,
   semanticSearch,
   isOllamaAvailable,
   hasEmbeddings,
@@ -40,6 +41,7 @@ import {
   type TaskInput,
   type KnowledgeInput,
   type NoteInput,
+  type TeachingInput,
   type KnowledgeCaptureType,
 } from "./index";
 
@@ -436,6 +438,34 @@ function handleCaptureNote(args: string[]): void {
   }
 }
 
+function handleCaptureTeaching(args: string[]): void {
+  const parsed = parseArgs(args);
+
+  const required = ["domain", "confidence", "text"];
+  const missing = required.filter((f) => !parsed.has(f));
+  if (missing.length > 0) {
+    fail(`Missing required fields: ${missing.join(", ")}`);
+  }
+
+  const input: TeachingInput = {
+    domain: parsed.get("domain")!,
+    confidence: parsed.get("confidence")!,
+    text: parsed.get("text")!,
+    source: parsed.get("source"),
+  };
+
+  const result = captureTeaching(input);
+  output(result);
+
+  if (result.success) {
+    console.error("✅ Teaching logged");
+    process.exit(0);
+  } else {
+    console.error(`❌ ${result.error}`);
+    process.exit(2);
+  }
+}
+
 function handleCapture(args: string[]): void {
   if (hasFlag(args, "help")) {
     showCaptureHelp();
@@ -458,9 +488,12 @@ function handleCapture(args: string[]): void {
     case "note":
       handleCaptureNote(captureArgs);
       break;
+    case "teaching":
+      handleCaptureTeaching(captureArgs);
+      break;
     default:
       fail(
-        `Unknown capture type: ${captureType}. Use: task, knowledge, or note`,
+        `Unknown capture type: ${captureType}. Use: task, knowledge, note, or teaching`,
       );
   }
 }
@@ -484,7 +517,7 @@ Usage:
   lore search --sources                 List indexed sources
   lore list <domain>                    List domain entries
   lore list --domains                   List available domains
-  lore capture task|knowledge|note      Capture knowledge
+  lore capture task|knowledge|note|teaching  Capture knowledge
 
 Search Options:
   --exact           Use FTS5 text search (bypasses semantic search)
@@ -517,6 +550,12 @@ Capture Types:
     --text          Note content (required)
     --tags          Comma-separated tags
     --context       Optional context
+
+  teaching          Log teaching/learning
+    --domain        Subject area (required)
+    --confidence    Certainty level (required)
+    --text          Teaching content (required)
+    --source        Optional source identifier
 
 Examples:
   lore search "authentication"
@@ -623,6 +662,7 @@ Usage:
   lore capture task                     Log task completion
   lore capture knowledge                Log insight/learning
   lore capture note                     Quick note
+  lore capture teaching                 Log teaching moment
 
 Capture Types:
 
@@ -654,10 +694,19 @@ Capture Types:
       --tags          Comma-separated tags
       --context       Optional context
 
+  teaching - Log teaching or learning moment
+    Required:
+      --domain        Subject area (e.g., typescript, architecture)
+      --confidence    Certainty level (e.g., high, medium, low)
+      --text          Teaching content
+    Optional:
+      --source        Source identifier (defaults to "manual")
+
 Examples:
   lore capture task --project=lore --name="Add help" --problem="No subcommand help" --solution="Added per-command help functions"
   lore capture knowledge --context=lore --text="Unified CLI works" --type=learning
   lore capture note --text="Remember to update docs" --tags=docs,todo
+  lore capture teaching --domain=patterns --confidence=high --text="Prefer composition over inheritance"
 `);
   process.exit(0);
 }
