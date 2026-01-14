@@ -223,8 +223,8 @@ export async function semanticSearch(
 
     const limit = options.limit ?? 20;
 
-    // KNN query with join to search table
-    // Group by doc_id to return best chunk per document
+    // KNN query - 1:1 mapping between search rows and embeddings
+    // Content is pre-chunked at ingest time
     let sql: string;
     const params: (Uint8Array | string | number)[] = [queryBlob];
 
@@ -235,17 +235,16 @@ export async function semanticSearch(
           s.title,
           s.content,
           s.metadata,
-          MIN(e.distance) as distance
+          e.distance
         FROM embeddings e
         JOIN search s ON e.doc_id = s.rowid
         WHERE e.embedding MATCH ?
           AND k = ?
           AND s.source = ?
-        GROUP BY s.rowid
-        ORDER BY distance
+        ORDER BY e.distance
         LIMIT ?
       `;
-      params.push(limit * 3); // Fetch more for grouping
+      params.push(limit);
       params.push(options.source);
       params.push(limit);
     } else {
@@ -255,16 +254,15 @@ export async function semanticSearch(
           s.title,
           s.content,
           s.metadata,
-          MIN(e.distance) as distance
+          e.distance
         FROM embeddings e
         JOIN search s ON e.doc_id = s.rowid
         WHERE e.embedding MATCH ?
           AND k = ?
-        GROUP BY s.rowid
-        ORDER BY distance
+        ORDER BY e.distance
         LIMIT ?
       `;
-      params.push(limit * 3); // Fetch more for grouping
+      params.push(limit);
       params.push(limit);
     }
 
