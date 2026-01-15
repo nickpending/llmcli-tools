@@ -2,7 +2,9 @@
  * Prismis API integration
  *
  * Queries prismis daemon REST API for semantic search across content.
- * Reads host and API key from ~/.config/prismis/config.toml
+ * Config priority:
+ *   1. ~/.config/lore/config.toml [remote] section
+ *   2. ~/.config/prismis/config.toml [api] section (local daemon fallback)
  */
 
 import { readFileSync, existsSync } from "fs";
@@ -18,6 +20,12 @@ export interface PrismisSearchResult {
 }
 
 const DEFAULT_PORT = 8989;
+const LORE_CONFIG_PATH = join(
+  process.env.HOME ?? "",
+  ".config",
+  "lore",
+  "config.toml",
+);
 const PRISMIS_CONFIG_PATH = join(
   process.env.HOME ?? "",
   ".config",
@@ -30,7 +38,7 @@ export interface PrismisSearchOptions {
 }
 
 interface PrismisConfig {
-  host: string;
+  url: string;
   apiKey: string;
 }
 
@@ -55,19 +63,41 @@ interface PrismisResponse {
 }
 
 /**
- * Read prismis config from config.toml
+ * Try to read [remote] section from lore config
  */
-function readPrismisConfig(): PrismisConfig {
+function readLoreRemoteConfig(): PrismisConfig | null {
+  if (!existsSync(LORE_CONFIG_PATH)) {
+    return null;
+  }
+
+  const content = readFileSync(LORE_CONFIG_PATH, "utf-8");
+
+  const urlMatch = content.match(/\[remote\][^[]*url\s*=\s*"([^"]+)"/s);
+  const keyMatch = content.match(/\[remote\][^[]*key\s*=\s*"([^"]+)"/s);
+
+  if (urlMatch && keyMatch) {
+    return {
+      url: urlMatch[1],
+      apiKey: keyMatch[1],
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Read prismis config from local prismis config.toml
+ */
+function readLocalPrismisConfig(): PrismisConfig {
   if (!existsSync(PRISMIS_CONFIG_PATH)) {
     throw new Error(
-      `Prismis config not found at ${PRISMIS_CONFIG_PATH}. ` +
-        "Install prismis and run: prismis-cli source add <url>",
+      `Prismis config not found. Add [remote] to ~/.config/lore/config.toml ` +
+        `or install prismis locally.`,
     );
   }
 
   const content = readFileSync(PRISMIS_CONFIG_PATH, "utf-8");
 
-  // Parse [api] section
   const keyMatch = content.match(/\[api\][^[]*key\s*=\s*"([^"]+)"/);
   if (!keyMatch) {
     throw new Error(
@@ -84,9 +114,20 @@ function readPrismisConfig(): PrismisConfig {
   }
 
   return {
-    host,
+    url: `http://${host}:${DEFAULT_PORT}`,
     apiKey: keyMatch[1],
   };
+}
+
+/**
+ * Read prismis config - tries lore [remote] first, falls back to local prismis
+ */
+function readPrismisConfig(): PrismisConfig {
+  const remoteConfig = readLoreRemoteConfig();
+  if (remoteConfig) {
+    return remoteConfig;
+  }
+  return readLocalPrismisConfig();
 }
 
 /**
@@ -122,7 +163,7 @@ export async function searchPrismis(
 ): Promise<PrismisSearchResult[]> {
   // Read config
   const config = readPrismisConfig();
-  const apiBase = `http://${config.host}:${DEFAULT_PORT}`;
+  const apiBase = config.url;
 
   // Check daemon is running
   await checkPrismisDaemon(apiBase);
