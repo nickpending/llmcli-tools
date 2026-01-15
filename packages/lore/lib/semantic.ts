@@ -1,7 +1,8 @@
 /**
- * lib/semantic.ts - Semantic search via Ollama embeddings
+ * lib/semantic.ts - Semantic search via local embeddings
  *
- * Query embedding and KNN search against sqlite-vec virtual table.
+ * Query embedding using @huggingface/transformers with nomic-embed-text-v1.5.
+ * KNN search against sqlite-vec virtual table.
  * Uses Bun's built-in SQLite with sqlite-vec extension.
  *
  * Note: macOS ships Apple's SQLite which disables extension loading.
@@ -10,7 +11,8 @@
 
 import { Database } from "bun:sqlite";
 import { homedir } from "os";
-import { existsSync, readFileSync } from "fs";
+import { existsSync } from "fs";
+import { pipeline } from "@huggingface/transformers";
 
 // Use Homebrew SQLite on macOS to enable extension loading
 // Must be called before any Database instances are created
@@ -32,120 +34,70 @@ export interface SemanticSearchOptions {
   limit?: number;
 }
 
-interface EmbeddingConfig {
-  endpoint: string;
-  model: string;
+const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
+
+interface EmbeddingPipeline {
+  (
+    text: string,
+    options?: { pooling?: string; normalize?: boolean },
+  ): Promise<{
+    data: Float32Array;
+  }>;
 }
 
-const DEFAULT_CONFIG: EmbeddingConfig = {
-  endpoint: "http://localhost:11434",
-  model: "nomic-embed-text",
-};
+// Cache the pipeline to avoid reloading on every query
+let cachedPipeline: EmbeddingPipeline | null = null;
 
 function getDatabasePath(): string {
   return `${homedir()}/.local/share/lore/lore.db`;
 }
 
-function getConfigPath(): string {
-  return `${homedir()}/.config/lore/config.toml`;
-}
-
 /**
- * Load embedding config from config.toml
- * Falls back to [llm].api_base if [embedding].endpoint not set
+ * Get or create the embedding pipeline
+ * Pipeline is cached after first load for performance
  */
-function loadEmbeddingConfig(): EmbeddingConfig {
-  const configPath = getConfigPath();
-
-  if (!existsSync(configPath)) {
-    return DEFAULT_CONFIG;
+async function getEmbeddingPipeline(): Promise<EmbeddingPipeline> {
+  if (cachedPipeline) {
+    return cachedPipeline;
   }
 
   try {
-    const content = readFileSync(configPath, "utf-8");
-
-    // Extract [embedding].endpoint first
-    const endpointMatch = content.match(
-      /\[embedding\][^[]*endpoint\s*=\s*"([^"]+)"/s,
-    );
-    if (endpointMatch) {
-      const modelMatch = content.match(
-        /\[embedding\][^[]*model\s*=\s*"([^"]+)"/s,
-      );
-      return {
-        endpoint: endpointMatch[1],
-        model: modelMatch?.[1] ?? DEFAULT_CONFIG.model,
-      };
-    }
-
-    // Fall back to [llm].api_base
-    const apiBaseMatch = content.match(/\[llm\][^[]*api_base\s*=\s*"([^"]+)"/s);
-    if (apiBaseMatch) {
-      const modelMatch = content.match(
-        /\[embedding\][^[]*model\s*=\s*"([^"]+)"/s,
-      );
-      return {
-        endpoint: apiBaseMatch[1],
-        model: modelMatch?.[1] ?? DEFAULT_CONFIG.model,
-      };
-    }
-
-    return DEFAULT_CONFIG;
-  } catch {
-    return DEFAULT_CONFIG;
-  }
-}
-
-/**
- * Check if Ollama is available at configured endpoint
- */
-export async function isOllamaAvailable(): Promise<boolean> {
-  const config = loadEmbeddingConfig();
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-
-    const response = await fetch(`${config.endpoint}/api/tags`, {
-      method: "GET",
-      signal: controller.signal,
+    const p = await pipeline("feature-extraction", MODEL_NAME, {
+      dtype: "fp32",
     });
-
-    clearTimeout(timeout);
-    return response.ok;
-  } catch {
-    return false;
+    cachedPipeline = p as unknown as EmbeddingPipeline;
+    return cachedPipeline;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to load embedding model: ${message}\n` +
+        `Note: First run downloads ~500MB model to ~/.cache/huggingface/hub`,
+    );
   }
 }
 
 /**
- * Embed a query string using Ollama
+ * Embed a query string using local transformers.js model
+ * Uses "search_query: " prefix as required by nomic-embed-text
  * @returns 768-dimensional embedding vector
  */
 export async function embedQuery(query: string): Promise<number[]> {
-  const config = loadEmbeddingConfig();
-  const url = `${config.endpoint}/api/embeddings`;
+  const embedder = await getEmbeddingPipeline();
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: config.model,
-      prompt: query,
-    }),
+  // nomic model requires "search_query: " prefix for queries
+  // (FastEmbed uses "search_document: " prefix during indexing)
+  const prefixedQuery = `search_query: ${query}`;
+  const output = await embedder(prefixedQuery, {
+    pooling: "mean",
+    normalize: true,
   });
 
-  if (!response.ok) {
-    throw new Error(
-      `Ollama API error: ${response.status} ${response.statusText}`,
-    );
-  }
+  // Output is a Tensor, convert to array
+  const embedding = Array.from(output.data as Float32Array);
 
-  const result = (await response.json()) as { embedding?: number[] };
-  const embedding = result.embedding;
-
-  if (!Array.isArray(embedding) || embedding.length !== 768) {
+  if (embedding.length !== 768) {
     throw new Error(
-      `Invalid embedding: expected 768 dims, got ${embedding?.length ?? 0}`,
+      `Invalid embedding: expected 768 dims, got ${embedding.length}`,
     );
   }
 

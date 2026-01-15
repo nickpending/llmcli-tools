@@ -31,7 +31,6 @@ import {
   captureNote,
   captureTeaching,
   semanticSearch,
-  isOllamaAvailable,
   hasEmbeddings,
   DOMAINS,
   type SearchResult,
@@ -250,10 +249,6 @@ async function handleSearch(args: string[]): Promise<void> {
   // Semantic path (default) - fail if unavailable
   if (!hasEmbeddings()) {
     fail("No embeddings found. Run lore-embed-all first.", 2);
-  }
-
-  if (!(await isOllamaAvailable())) {
-    fail("Ollama not available. Start Ollama or check SQLITE_VEC_PATH.", 2);
   }
 
   try {
