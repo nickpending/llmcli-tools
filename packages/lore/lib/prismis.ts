@@ -35,6 +35,7 @@ const PRISMIS_CONFIG_PATH = join(
 
 export interface PrismisSearchOptions {
   limit?: number;
+  source?: string;
 }
 
 interface PrismisConfig {
@@ -174,6 +175,10 @@ export async function searchPrismis(
     limit: String(options.limit ?? 20),
     compact: "true",
   });
+
+  if (options.source) {
+    params.set("source", options.source);
+  }
 
   const response = await fetch(`${apiBase}/api/search?${params}`, {
     headers: {
