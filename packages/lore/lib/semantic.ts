@@ -181,6 +181,8 @@ export async function semanticSearch(
     const params: (Uint8Array | string | number)[] = [queryBlob];
 
     if (options.source) {
+      // Filter by e.source (partition column) for KNN pre-filtering
+      // This filters BEFORE KNN, not after — critical for domain-specific search
       sql = `
         SELECT
           s.source,
@@ -192,7 +194,7 @@ export async function semanticSearch(
         JOIN search s ON e.doc_id = s.rowid
         WHERE e.embedding MATCH ?
           AND k = ?
-          AND s.source = ?
+          AND e.source = ?
         ORDER BY e.distance
         LIMIT ?
       `;
