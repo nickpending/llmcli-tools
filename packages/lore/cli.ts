@@ -26,6 +26,8 @@ import {
   listSources,
   list,
   listDomains,
+  info,
+  formatInfoHuman,
   captureTask,
   captureKnowledge,
   captureNote,
@@ -343,6 +345,39 @@ function handleList(args: string[]): void {
 }
 
 // ============================================================================
+// Info Command
+// ============================================================================
+
+function handleInfo(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showInfoHelp();
+  }
+
+  const human = hasFlag(args, "human");
+
+  try {
+    const result = info();
+
+    if (human) {
+      console.log(formatInfoHuman(result));
+    } else {
+      output({
+        success: true,
+        ...result,
+      });
+    }
+
+    console.error(
+      `✅ ${result.sources.length} sources, ${result.total_entries} total entries`,
+    );
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    fail(message, 2);
+  }
+}
+
+// ============================================================================
 // Capture Command
 // ============================================================================
 
@@ -512,6 +547,8 @@ Usage:
   lore search --sources                 List indexed sources
   lore list <domain>                    List domain entries
   lore list --domains                   List available domains
+  lore info                             Show indexed sources and counts
+  lore info --human                     Human-readable info
   lore capture task|knowledge|note|teaching  Capture knowledge
 
 Search Options:
@@ -649,6 +686,32 @@ Examples:
   process.exit(0);
 }
 
+function showInfoHelp(): void {
+  console.log(`
+lore info - Show indexed sources and counts
+
+Usage:
+  lore info                             Show all sources and counts
+  lore info --human                     Human-readable format
+
+Options:
+  --human           Human-readable format (default: JSON)
+  --help            Show this help
+
+Output Fields:
+  sources           Array of {name, count} for each indexed source
+  projects          Known projects (not yet implemented)
+  last_indexed      Most recent timestamp from indexed data
+  total_entries     Total number of indexed entries
+
+Examples:
+  lore info
+  lore info | jq '.sources | length'
+  lore info --human
+`);
+  process.exit(0);
+}
+
 function showCaptureHelp(): void {
   console.log(`
 lore capture - Capture knowledge
@@ -724,11 +787,14 @@ function main(): void {
     case "list":
       handleList(commandArgs);
       break;
+    case "info":
+      handleInfo(commandArgs);
+      break;
     case "capture":
       handleCapture(commandArgs);
       break;
     default:
-      fail(`Unknown command: ${command}. Use: search, list, or capture`);
+      fail(`Unknown command: ${command}. Use: search, list, info, or capture`);
   }
 }
 

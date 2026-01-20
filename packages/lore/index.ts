@@ -27,6 +27,14 @@ export {
   type ListResult,
 } from "./lib/list";
 
+// Info
+export {
+  info,
+  formatInfoHuman,
+  type SourceInfo,
+  type InfoOutput,
+} from "./lib/info";
+
 // Prismis integration
 export {
   searchPrismis,
