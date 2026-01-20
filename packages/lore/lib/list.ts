@@ -25,7 +25,9 @@ export type Domain =
   | "podcasts"
   | "interests"
   | "people"
-  | "habits";
+  | "habits"
+  | "teachings"
+  | "sessions";
 
 export const DOMAINS: Domain[] = [
   "development",
@@ -43,6 +45,8 @@ export const DOMAINS: Domain[] = [
   "interests",
   "people",
   "habits",
+  "teachings",
+  "sessions",
 ];
 
 // Domains that query the 'personal' source with type filter
