@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/lore",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Unified knowledge CLI - Search, list, and capture your indexed knowledge",
   "type": "module",
   "main": "./index.ts",

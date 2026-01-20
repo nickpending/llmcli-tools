@@ -35,6 +35,9 @@ export {
   type InfoOutput,
 } from "./lib/info";
 
+// Projects
+export { projects } from "./lib/projects";
+
 // Prismis integration
 export {
   searchPrismis,

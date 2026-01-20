@@ -8,6 +8,7 @@
 import { Database } from "bun:sqlite";
 import { homedir } from "os";
 import { existsSync } from "fs";
+import { projects as getProjects } from "./projects.js";
 
 export interface SourceInfo {
   name: string;
@@ -72,7 +73,7 @@ export function info(): InfoOutput {
 
     return {
       sources,
-      projects: [], // TODO: implement in task 1.3
+      projects: getProjects(),
       last_indexed,
       total_entries,
     };

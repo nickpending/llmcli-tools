@@ -28,6 +28,7 @@ import {
   listDomains,
   info,
   formatInfoHuman,
+  projects,
   captureTask,
   captureKnowledge,
   captureNote,
@@ -378,6 +379,31 @@ function handleInfo(args: string[]): void {
 }
 
 // ============================================================================
+// Projects Command
+// ============================================================================
+
+function handleProjects(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showProjectsHelp();
+  }
+
+  try {
+    const result = projects();
+
+    output({
+      success: true,
+      projects: result,
+    });
+
+    console.error(`✅ ${result.length} projects found`);
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    fail(message, 2);
+  }
+}
+
+// ============================================================================
 // Capture Command
 // ============================================================================
 
@@ -700,7 +726,7 @@ Options:
 
 Output Fields:
   sources           Array of {name, count} for each indexed source
-  projects          Known projects (not yet implemented)
+  projects          Known projects across all sources
   last_indexed      Most recent timestamp from indexed data
   total_entries     Total number of indexed entries
 
@@ -708,6 +734,35 @@ Examples:
   lore info
   lore info | jq '.sources | length'
   lore info --human
+`);
+  process.exit(0);
+}
+
+function showProjectsHelp(): void {
+  console.log(`
+lore projects - List all known projects
+
+Usage:
+  lore projects                         List all unique project names
+
+Options:
+  --help            Show this help
+
+Output:
+  JSON array of project names, sorted alphabetically.
+  Projects are extracted from metadata fields across all sources.
+
+Sources checked:
+  commits           project field
+  sessions          project field
+  tasks             project field
+  captures          context field
+  teachings         source field
+
+Examples:
+  lore projects
+  lore projects | jq -r '.projects[]'
+  lore projects | jq '.projects | length'
 `);
   process.exit(0);
 }
@@ -790,11 +845,16 @@ function main(): void {
     case "info":
       handleInfo(commandArgs);
       break;
+    case "projects":
+      handleProjects(commandArgs);
+      break;
     case "capture":
       handleCapture(commandArgs);
       break;
     default:
-      fail(`Unknown command: ${command}. Use: search, list, info, or capture`);
+      fail(
+        `Unknown command: ${command}. Use: search, list, info, projects, or capture`,
+      );
   }
 }
 
