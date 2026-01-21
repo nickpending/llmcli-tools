@@ -30,6 +30,8 @@ import {
   info,
   formatInfoHuman,
   projects,
+  about,
+  formatBriefAbout,
   captureTask,
   captureKnowledge,
   captureNote,
@@ -418,6 +420,55 @@ function handleProjects(args: string[]): void {
 }
 
 // ============================================================================
+// About Command
+// ============================================================================
+
+function handleAbout(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showAboutHelp();
+  }
+
+  const parsed = parseArgs(args);
+  const positional = getPositionalArgs(args);
+
+  if (positional.length === 0) {
+    fail("Missing project name. Use: lore about <project>");
+  }
+
+  const project = positional[0];
+  const brief = hasFlag(args, "brief");
+  const limit = parsed.has("limit")
+    ? parseInt(parsed.get("limit")!, 10)
+    : undefined;
+
+  try {
+    const result = about(project, { brief, limit });
+
+    if (brief) {
+      console.log(formatBriefAbout(result));
+    } else {
+      output({
+        success: true,
+        ...result,
+      });
+    }
+
+    const totalCount =
+      result.commits.count +
+      result.captures.count +
+      result.tasks.count +
+      result.teachings.count +
+      result.sessions.count;
+
+    console.error(`✅ ${totalCount} entries for project: ${project}`);
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    fail(message, 2);
+  }
+}
+
+// ============================================================================
 // Capture Command
 // ============================================================================
 
@@ -589,6 +640,8 @@ Usage:
   lore list --domains                   List available domains
   lore info                             Show indexed sources and counts
   lore info --human                     Human-readable info
+  lore about <project>                  Aggregate view of project knowledge
+  lore about <project> --brief          Compact project summary
   lore capture task|knowledge|note|teaching  Capture knowledge
 
 Search Options:
@@ -790,6 +843,51 @@ Examples:
   process.exit(0);
 }
 
+function showAboutHelp(): void {
+  console.log(`
+lore about - Show everything about a project
+
+Usage:
+  lore about <project>                  Aggregate view of project knowledge
+  lore about <project> --brief          Compact output
+
+Options:
+  --brief           Compact output (titles only)
+  --limit <n>       Results per source (default: 10)
+  --help            Show this help
+
+Sources queried:
+  commits           Git commits for project
+  captures          Quick captures in project context
+  tasks             Development tasks for project
+  teachings         Teachings from project
+  sessions          Claude Code sessions for project
+
+Output (JSON):
+  {
+    "project": "name",
+    "commits": [...],
+    "captures": [...],
+    "tasks": [...],
+    "teachings": [...],
+    "sessions": [...]
+  }
+
+Output (--brief):
+  commits (3):
+    project: hash - commit message
+
+  captures (2):
+    project: insight text
+
+Examples:
+  lore about momentum --brief
+  lore about lore | jq '.commits | length'
+  lore about momentum --limit 5
+`);
+  process.exit(0);
+}
+
 function showCaptureHelp(): void {
   console.log(`
 lore capture - Capture knowledge
@@ -871,12 +969,15 @@ function main(): void {
     case "projects":
       handleProjects(commandArgs);
       break;
+    case "about":
+      handleAbout(commandArgs);
+      break;
     case "capture":
       handleCapture(commandArgs);
       break;
     default:
       fail(
-        `Unknown command: ${command}. Use: search, list, info, projects, or capture`,
+        `Unknown command: ${command}. Use: search, list, info, projects, about, or capture`,
       );
   }
 }

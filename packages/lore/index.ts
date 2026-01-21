@@ -39,6 +39,14 @@ export {
 // Projects
 export { projects } from "./lib/projects";
 
+// About
+export {
+  about,
+  formatBriefAbout,
+  type AboutResult,
+  type AboutOptions,
+} from "./lib/about";
+
 // Prismis integration
 export {
   searchPrismis,
