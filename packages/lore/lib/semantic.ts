@@ -32,7 +32,20 @@ export interface SemanticResult {
 export interface SemanticSearchOptions {
   source?: string;
   limit?: number;
+  project?: string;
 }
+
+/**
+ * Maps source types to their project field name in metadata JSON.
+ * Different sources store project names in different fields.
+ */
+const PROJECT_FIELD: Record<string, string> = {
+  commits: "project",
+  sessions: "project",
+  tasks: "project",
+  captures: "context",
+  teachings: "source",
+};
 
 const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
 
@@ -222,6 +235,24 @@ export async function semanticSearch(
 
     const stmt = db.prepare(sql);
     const results = stmt.all(...params) as SemanticResult[];
+
+    // Post-filter by project if specified
+    // KNN WHERE clause doesn't support json_extract on joined metadata,
+    // so we filter after the query returns
+    if (options.project) {
+      return results.filter((result) => {
+        const field = PROJECT_FIELD[result.source];
+        if (!field) return false;
+
+        try {
+          const metadata = JSON.parse(result.metadata);
+          return metadata[field] === options.project;
+        } catch {
+          // Skip results with malformed metadata
+          return false;
+        }
+      });
+    }
 
     return results;
   } finally {

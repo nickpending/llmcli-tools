@@ -185,6 +185,7 @@ async function handleSearch(args: string[]): Promise<void> {
 
   const limit = parsed.has("limit") ? parseInt(parsed.get("limit")!, 10) : 20;
   const since = parsed.get("since");
+  const project = parsed.get("project");
 
   // Handle prismis passthrough
   if (source === "prismis") {
@@ -255,7 +256,7 @@ async function handleSearch(args: string[]): Promise<void> {
   }
 
   try {
-    const results = await semanticSearch(query, { source, limit });
+    const results = await semanticSearch(query, { source, limit, project });
     output({
       success: true,
       results,
@@ -581,6 +582,7 @@ Usage:
 Search Options:
   --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
+  --project <name>  Filter results by project
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
 
@@ -638,6 +640,7 @@ Usage:
 Options:
   --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
+  --project <name>  Filter results by project (post-filters KNN results)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
   --help            Show this help
@@ -665,6 +668,7 @@ Examples:
   lore search "authentication"
   lore search blogs "typescript patterns"
   lore search commits --since this-week "refactor"
+  lore search "authentication" --project=momentum --limit 5
   lore search --exact "def process_data"
   lore search prismis "kubernetes security"
   lore search atuin "docker build"
