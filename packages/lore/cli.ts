@@ -26,6 +26,7 @@ import {
   listSources,
   list,
   listDomains,
+  formatBriefList,
   info,
   formatInfoHuman,
   projects,
@@ -34,6 +35,7 @@ import {
   captureNote,
   captureTeaching,
   semanticSearch,
+  formatBriefSearch,
   hasEmbeddings,
   DOMAINS,
   type SearchResult,
@@ -81,7 +83,7 @@ function parseArgs(args: string[]): Map<string, string> {
 }
 
 // Boolean flags that don't take values
-const BOOLEAN_FLAGS = new Set(["help", "sources", "domains", "exact"]);
+const BOOLEAN_FLAGS = new Set(["help", "sources", "domains", "exact", "brief"]);
 
 function getPositionalArgs(args: string[]): string[] {
   const result: string[] = [];
@@ -255,14 +257,21 @@ async function handleSearch(args: string[]): Promise<void> {
     fail("No embeddings found. Run lore-embed-all first.", 2);
   }
 
+  const brief = hasFlag(args, "brief");
+
   try {
     const results = await semanticSearch(query, { source, limit, project });
-    output({
-      success: true,
-      results,
-      count: results.length,
-      mode: "semantic",
-    });
+
+    if (brief) {
+      console.log(formatBriefSearch(results));
+    } else {
+      output({
+        success: true,
+        results,
+        count: results.length,
+        mode: "semantic",
+      });
+    }
     console.error(
       `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (semantic)`,
     );
@@ -320,11 +329,14 @@ function handleList(args: string[]): void {
     : undefined;
   const format = parsed.get("format") || "json";
   const project = parsed.get("project");
+  const brief = hasFlag(args, "brief");
 
   try {
     const result = list(domain, { limit, project });
 
-    if (format === "human") {
+    if (brief) {
+      console.log(formatBriefList(result));
+    } else if (format === "human") {
       console.log(formatHumanOutput(result));
     } else if (format === "jsonl") {
       for (const entry of result.entries) {
@@ -583,6 +595,7 @@ Search Options:
   --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
   --project <name>  Filter results by project
+  --brief           Compact output (titles only)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
 
@@ -593,6 +606,7 @@ Passthrough Sources:
 List Options:
   --limit <n>       Maximum entries
   --format <fmt>    Output format: json (default), jsonl, human
+  --brief           Compact output (titles only)
   --domains         List available domains
 
 Capture Types:
@@ -641,6 +655,7 @@ Options:
   --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
   --project <name>  Filter results by project (post-filters KNN results)
+  --brief           Compact output (titles only)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --sources         List indexed sources with counts
   --help            Show this help
@@ -688,6 +703,7 @@ Options:
   --limit <n>       Maximum entries (default: all)
   --format <fmt>    Output format: json (default), jsonl, human
   --project <name>  Filter by project name
+  --brief           Compact output (titles only)
   --domains         List available domains
   --help            Show this help
 

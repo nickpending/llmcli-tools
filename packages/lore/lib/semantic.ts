@@ -259,3 +259,90 @@ export async function semanticSearch(
     db.close();
   }
 }
+
+/**
+ * Extract project from result metadata
+ */
+function extractProjectFromMetadata(metadata: string, source: string): string {
+  const field = PROJECT_FIELD[source];
+  if (!field) return "unknown";
+
+  try {
+    const parsed = JSON.parse(metadata);
+    return parsed[field] || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Extract identifier from semantic result
+ */
+function extractIdentifierFromResult(result: SemanticResult): string {
+  try {
+    const metadata = JSON.parse(result.metadata);
+
+    switch (result.source) {
+      case "commits":
+        return metadata.sha?.substring(0, 7) || "";
+      case "sessions":
+        return metadata.session_id?.substring(0, 8) || "";
+      default:
+        return metadata.id || "";
+    }
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Get the best display text for a result
+ * Commits use content (commit message), others use title
+ */
+function getDisplayText(result: SemanticResult): string {
+  if (result.source === "commits") {
+    return result.content || result.title;
+  }
+  return result.title;
+}
+
+/**
+ * Format semantic search results as brief, compact output
+ * Groups by source type, one line per result
+ */
+export function formatBriefSearch(results: SemanticResult[]): string {
+  if (results.length === 0) {
+    return "(no results)";
+  }
+
+  // Group results by source
+  const grouped = new Map<string, SemanticResult[]>();
+  results.forEach((result) => {
+    const existing = grouped.get(result.source) || [];
+    existing.push(result);
+    grouped.set(result.source, existing);
+  });
+
+  const sections: string[] = [];
+
+  // Format each source group
+  grouped.forEach((sourceResults, source) => {
+    const lines = [`${source} (${sourceResults.length}):`];
+
+    sourceResults.forEach((r) => {
+      const project = extractProjectFromMetadata(r.metadata, r.source);
+      const identifier = extractIdentifierFromResult(r);
+      const displayText = getDisplayText(r);
+
+      const line = identifier
+        ? `  ${project}: ${identifier} - ${displayText}`
+        : `  ${project}: ${displayText}`;
+
+      lines.push(line);
+    });
+
+    sections.push(lines.join("\n"));
+  });
+
+  return sections.join("\n\n");
+}

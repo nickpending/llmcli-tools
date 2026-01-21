@@ -20,6 +20,7 @@ export {
 export {
   list,
   listDomains,
+  formatBriefList,
   DOMAINS,
   type Domain,
   type ListOptions,
@@ -70,6 +71,7 @@ export {
 // Semantic search
 export {
   semanticSearch,
+  formatBriefSearch,
   embedQuery,
   hasEmbeddings,
   type SemanticResult,

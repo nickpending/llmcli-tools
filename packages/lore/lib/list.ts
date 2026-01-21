@@ -209,3 +209,61 @@ export function list(domain: Domain, options: ListOptions = {}): ListResult {
 export function listDomains(): Domain[] {
   return [...DOMAINS];
 }
+
+/**
+ * Extract project name from entry metadata
+ */
+function extractProjectFromEntry(entry: ListEntry, domain: string): string {
+  const field = PROJECT_FIELD[domain];
+  if (!field) return "unknown";
+  return (entry.metadata[field] as string) || "unknown";
+}
+
+/**
+ * Extract identifier from entry based on domain type
+ */
+function extractIdentifier(entry: ListEntry, domain: string): string {
+  const metadata = entry.metadata;
+
+  switch (domain) {
+    case "commits":
+      return (metadata.sha as string)?.substring(0, 7) || "";
+    case "sessions":
+      return (metadata.session_id as string)?.substring(0, 8) || "";
+    default:
+      return (metadata.id as string) || "";
+  }
+}
+
+/**
+ * Get the best display text for an entry
+ * Commits use content (commit message), others use title
+ */
+function getDisplayText(entry: ListEntry, domain: string): string {
+  if (domain === "commits") {
+    return entry.content || entry.title;
+  }
+  return entry.title;
+}
+
+/**
+ * Format list result as brief, compact output
+ * One line per entry: "  project: identifier - title"
+ */
+export function formatBriefList(result: ListResult): string {
+  const lines = [`${result.domain} (${result.count}):`];
+
+  result.entries.forEach((entry) => {
+    const project = extractProjectFromEntry(entry, result.domain);
+    const identifier = extractIdentifier(entry, result.domain);
+    const displayText = getDisplayText(entry, result.domain);
+
+    const line = identifier
+      ? `  ${project}: ${identifier} - ${displayText}`
+      : `  ${project}: ${displayText}`;
+
+    lines.push(line);
+  });
+
+  return lines.join("\n");
+}
