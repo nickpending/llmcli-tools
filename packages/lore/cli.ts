@@ -318,9 +318,10 @@ function handleList(args: string[]): void {
     ? parseInt(parsed.get("limit")!, 10)
     : undefined;
   const format = parsed.get("format") || "json";
+  const project = parsed.get("project");
 
   try {
-    const result = list(domain, { limit });
+    const result = list(domain, { limit, project });
 
     if (format === "human") {
       console.log(formatHumanOutput(result));
@@ -682,6 +683,7 @@ Usage:
 Options:
   --limit <n>       Maximum entries (default: all)
   --format <fmt>    Output format: json (default), jsonl, human
+  --project <name>  Filter by project name
   --domains         List available domains
   --help            Show this help
 
@@ -707,6 +709,7 @@ Available Domains:
 Examples:
   lore list development
   lore list commits --limit 10 --format human
+  lore list commits --project=momentum --limit 5
   lore list books --format jsonl
 `);
   process.exit(0);

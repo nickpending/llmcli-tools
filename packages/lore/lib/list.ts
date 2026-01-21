@@ -59,8 +59,18 @@ const PERSONAL_SUBTYPES: Partial<Record<Domain, string>> = {
   habits: "habit",
 };
 
+// Maps source to metadata field containing project name
+const PROJECT_FIELD: Record<string, string> = {
+  commits: "project",
+  sessions: "project",
+  tasks: "project",
+  captures: "context",
+  teachings: "source",
+};
+
 export interface ListOptions {
   limit?: number;
+  project?: string;
 }
 
 export interface ListEntry {
@@ -93,13 +103,27 @@ function queryBySource(
   db: Database,
   source: string,
   limit?: number,
+  project?: string,
 ): ListEntry[] {
-  const sql = limit
-    ? `SELECT title, content, metadata FROM search WHERE source = ? LIMIT ?`
-    : `SELECT title, content, metadata FROM search WHERE source = ?`;
+  let sql = "SELECT title, content, metadata FROM search WHERE source = ?";
+  const params: (string | number)[] = [source];
 
-  const stmt = limit ? db.prepare(sql) : db.prepare(sql);
-  const rows = (limit ? stmt.all(source, limit) : stmt.all(source)) as RawRow[];
+  // Add project filter if provided and source has a project field
+  if (project) {
+    const field = PROJECT_FIELD[source];
+    if (field) {
+      sql += ` AND json_extract(metadata, '$.${field}') = ?`;
+      params.push(project);
+    }
+  }
+
+  if (limit) {
+    sql += " LIMIT ?";
+    params.push(limit);
+  }
+
+  const stmt = db.prepare(sql);
+  const rows = stmt.all(...params) as RawRow[];
 
   return rows.map((row) => ({
     title: row.title,
@@ -166,7 +190,7 @@ export function list(domain: Domain, options: ListOptions = {}): ListResult {
     if (personalType) {
       entries = queryPersonalType(db, personalType, options.limit);
     } else {
-      entries = queryBySource(db, domain, options.limit);
+      entries = queryBySource(db, domain, options.limit, options.project);
     }
 
     return {
