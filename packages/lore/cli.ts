@@ -10,7 +10,7 @@
  * Usage:
  *   lore search <query>                   Search all sources
  *   lore search <source> <query>          Search specific source
- *   lore list <domain>                    List domain entries
+ *   lore list <source>                    List source entries
  *   lore capture task|knowledge|note|teaching  Capture knowledge
  *
  * Exit codes:
@@ -25,7 +25,6 @@ import {
   searchAtuin,
   listSources,
   list,
-  listDomains,
   formatBriefList,
   info,
   formatInfoHuman,
@@ -39,11 +38,11 @@ import {
   semanticSearch,
   formatBriefSearch,
   hasEmbeddings,
-  DOMAINS,
+  SOURCES,
   type SearchResult,
   type ListResult,
   type ListEntry,
-  type Domain,
+  type Source,
   type TaskInput,
   type KnowledgeInput,
   type NoteInput,
@@ -289,7 +288,7 @@ async function handleSearch(args: string[]): Promise<void> {
 // ============================================================================
 
 function formatHumanOutput(result: ListResult): string {
-  const lines: string[] = [`${result.domain} (${result.count} entries):`, ""];
+  const lines: string[] = [`${result.source} (${result.count} entries):`, ""];
 
   for (const entry of result.entries) {
     lines.push(`  ${entry.title}`);
@@ -309,21 +308,23 @@ function handleList(args: string[]): void {
   const parsed = parseArgs(args);
   const positional = getPositionalArgs(args);
 
-  // Handle --domains flag
+  // Handle --domains flag (deprecated)
   if (hasFlag(args, "domains")) {
-    output({ success: true, domains: listDomains() });
-    console.error(`✅ ${DOMAINS.length} domains available`);
+    console.error("⚠️  --domains is deprecated. Use 'lore sources' instead.");
+    const sources = listSources();
+    output({ success: true, sources });
+    console.error(`✅ ${SOURCES.length} sources available`);
     process.exit(0);
   }
 
   if (positional.length === 0) {
-    fail(`Missing domain. Available: ${DOMAINS.join(", ")}`);
+    fail(`Missing source. Available: ${SOURCES.join(", ")}`);
   }
 
-  const domain = positional[0] as Domain;
+  const source = positional[0] as Source;
 
-  if (!DOMAINS.includes(domain)) {
-    fail(`Invalid domain: ${domain}. Available: ${DOMAINS.join(", ")}`);
+  if (!SOURCES.includes(source)) {
+    fail(`Invalid source: ${source}. Available: ${SOURCES.join(", ")}`);
   }
 
   const limit = parsed.has("limit")
@@ -334,7 +335,7 @@ function handleList(args: string[]): void {
   const brief = hasFlag(args, "brief");
 
   try {
-    const result = list(domain, { limit, project });
+    const result = list(source, { limit, project });
 
     if (brief) {
       console.log(formatBriefList(result));
@@ -347,13 +348,13 @@ function handleList(args: string[]): void {
     } else {
       output({
         success: true,
-        domain: result.domain,
+        source: result.source,
         entries: result.entries,
         count: result.count,
       });
     }
 
-    console.error(`✅ ${result.count} entries in ${domain}`);
+    console.error(`✅ ${result.count} entries in ${source}`);
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -466,6 +467,50 @@ function handleAbout(args: string[]): void {
     const message = error instanceof Error ? error.message : "Unknown error";
     fail(message, 2);
   }
+}
+
+// ============================================================================
+// Sources Command
+// ============================================================================
+
+function handleSources(args: string[]): void {
+  if (hasFlag(args, "help")) {
+    showSourcesHelp();
+  }
+
+  try {
+    const sources = listSources();
+    output({
+      success: true,
+      sources,
+    });
+    console.error(`✅ ${sources.length} sources indexed`);
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    fail(message, 2);
+  }
+}
+
+function showSourcesHelp(): void {
+  console.log(`
+lore sources - List all indexed sources with counts
+
+Usage:
+  lore sources                          List all sources with entry counts
+
+Options:
+  --help            Show this help
+
+Output:
+  JSON array of {source, count} objects, sorted by count descending.
+
+Examples:
+  lore sources
+  lore sources | jq '.[0]'
+  lore sources | jq -r '.[] | "\\(.source): \\(.count)"'
+`);
+  process.exit(0);
 }
 
 // ============================================================================
@@ -635,9 +680,8 @@ Philosophy:
 Usage:
   lore search <query>                   Search all sources
   lore search <source> <query>          Search specific source
-  lore search --sources                 List indexed sources
-  lore list <domain>                    List domain entries
-  lore list --domains                   List available domains
+  lore sources                          List indexed sources with counts
+  lore list <source>                    List source entries
   lore info                             Show indexed sources and counts
   lore info --human                     Human-readable info
   lore about <project>                  Aggregate view of project knowledge
@@ -650,7 +694,6 @@ Search Options:
   --project <name>  Filter results by project
   --brief           Compact output (titles only)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
-  --sources         List indexed sources with counts
 
 Passthrough Sources:
   prismis           Semantic search via prismis daemon (requires prismis-daemon running)
@@ -660,7 +703,7 @@ List Options:
   --limit <n>       Maximum entries
   --format <fmt>    Output format: json (default), jsonl, human
   --brief           Compact output (titles only)
-  --domains         List available domains
+  --project <name>  Filter by project name
 
 Capture Types:
   task              Log task completion
@@ -688,6 +731,7 @@ Capture Types:
 Examples:
   lore search "authentication"
   lore search blogs "typescript patterns"
+  lore sources
   lore list development
   lore list commits --limit 10 --format human
   lore capture knowledge --context=lore --text="Unified CLI works" --type=learning
@@ -702,7 +746,6 @@ lore search - Search indexed knowledge
 Usage:
   lore search <query>                   Search all sources
   lore search <source> <query>          Search specific source
-  lore search --sources                 List indexed sources
 
 Options:
   --exact           Use FTS5 text search (bypasses semantic search)
@@ -710,7 +753,6 @@ Options:
   --project <name>  Filter results by project (post-filters KNN results)
   --brief           Compact output (titles only)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
-  --sources         List indexed sources with counts
   --help            Show this help
 
 Indexed Sources:
@@ -725,12 +767,16 @@ Indexed Sources:
   readmes           Project README files
   sessions          Claude Code session transcripts
   tasks             Logged development tasks
+  teachings         Teaching moments
 
 Passthrough Sources:
   prismis           Semantic search via prismis daemon
                     (requires prismis-daemon running)
   atuin             Shell history search
                     (queries ~/.local/share/atuin/history.db directly)
+
+See also:
+  lore sources      List all sources with entry counts
 
 Examples:
   lore search "authentication"
@@ -746,21 +792,19 @@ Examples:
 
 function showListHelp(): void {
   console.log(`
-lore list - List domain entries
+lore list - List source entries
 
 Usage:
-  lore list <domain>                    List entries in domain
-  lore list --domains                   List available domains
+  lore list <source>                    List entries in source
 
 Options:
   --limit <n>       Maximum entries (default: all)
   --format <fmt>    Output format: json (default), jsonl, human
   --project <name>  Filter by project name
   --brief           Compact output (titles only)
-  --domains         List available domains
   --help            Show this help
 
-Available Domains:
+Available Sources:
   blogs             Blog posts
   books             Books read
   captures          Quick captures
@@ -773,11 +817,14 @@ Available Domains:
   movies            Movies watched
   obsidian          Obsidian notes
   people            People/contacts
-  personal          Personal data aggregate
   podcasts          Podcasts listened
   readmes           Project READMEs
   sessions          Claude Code sessions
   tasks             Development tasks
+  teachings         Teaching moments
+
+See also:
+  lore sources      List all sources with entry counts
 
 Examples:
   lore list development
@@ -963,6 +1010,9 @@ function main(): void {
     case "list":
       handleList(commandArgs);
       break;
+    case "sources":
+      handleSources(commandArgs);
+      break;
     case "info":
       handleInfo(commandArgs);
       break;
@@ -977,7 +1027,7 @@ function main(): void {
       break;
     default:
       fail(
-        `Unknown command: ${command}. Use: search, list, info, projects, about, or capture`,
+        `Unknown command: ${command}. Use: search, list, sources, info, projects, about, or capture`,
       );
   }
 }

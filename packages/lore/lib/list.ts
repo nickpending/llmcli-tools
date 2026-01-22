@@ -1,7 +1,7 @@
 /**
- * lib/list.ts - Domain listing functions
+ * lib/list.ts - Source listing functions
  *
- * Browse indexed domains without search queries.
+ * Browse indexed sources without search queries.
  * Uses Bun's built-in SQLite for zero external dependencies.
  */
 
@@ -9,8 +9,8 @@ import { Database } from "bun:sqlite";
 import { homedir } from "os";
 import { existsSync } from "fs";
 
-// Domain types - sources that can be listed
-export type Domain =
+// Source types - data sources that can be listed
+export type Source =
   | "development"
   | "tasks"
   | "events"
@@ -29,7 +29,7 @@ export type Domain =
   | "teachings"
   | "sessions";
 
-export const DOMAINS: Domain[] = [
+export const SOURCES: Source[] = [
   "development",
   "tasks",
   "events",
@@ -49,8 +49,8 @@ export const DOMAINS: Domain[] = [
   "sessions",
 ];
 
-// Domains that query the 'personal' source with type filter
-const PERSONAL_SUBTYPES: Partial<Record<Domain, string>> = {
+// Sources that query the 'personal' source with type filter
+const PERSONAL_SUBTYPES: Partial<Record<Source, string>> = {
   books: "book",
   movies: "movie",
   podcasts: "podcast",
@@ -80,7 +80,7 @@ export interface ListEntry {
 }
 
 export interface ListResult {
-  domain: Domain;
+  source: Source;
   entries: ListEntry[];
   count: number;
 }
@@ -160,17 +160,17 @@ function queryPersonalType(
 }
 
 /**
- * List all entries in a domain
+ * List all entries in a source
  *
- * @param domain - The domain to list (development, tasks, blogs, etc.)
+ * @param source - The source to list (development, tasks, blogs, etc.)
  * @param options - Optional limit
  * @returns ListResult with entries and count
- * @throws Error if database doesn't exist or domain is invalid
+ * @throws Error if database doesn't exist or source is invalid
  */
-export function list(domain: Domain, options: ListOptions = {}): ListResult {
-  if (!DOMAINS.includes(domain)) {
+export function list(source: Source, options: ListOptions = {}): ListResult {
+  if (!SOURCES.includes(source)) {
     throw new Error(
-      `Invalid domain: ${domain}. Valid domains: ${DOMAINS.join(", ")}`,
+      `Invalid source: ${source}. Valid sources: ${SOURCES.join(", ")}`,
     );
   }
 
@@ -185,16 +185,16 @@ export function list(domain: Domain, options: ListOptions = {}): ListResult {
   try {
     let entries: ListEntry[];
 
-    // Check if this is a personal subtype domain
-    const personalType = PERSONAL_SUBTYPES[domain];
+    // Check if this is a personal subtype source
+    const personalType = PERSONAL_SUBTYPES[source];
     if (personalType) {
       entries = queryPersonalType(db, personalType, options.limit);
     } else {
-      entries = queryBySource(db, domain, options.limit, options.project);
+      entries = queryBySource(db, source, options.limit, options.project);
     }
 
     return {
-      domain,
+      source,
       entries,
       count: entries.length,
     };
@@ -204,28 +204,28 @@ export function list(domain: Domain, options: ListOptions = {}): ListResult {
 }
 
 /**
- * Get available domains
+ * Get available sources
  */
-export function listDomains(): Domain[] {
-  return [...DOMAINS];
+export function listSources(): Source[] {
+  return [...SOURCES];
 }
 
 /**
  * Extract project name from entry metadata
  */
-function extractProjectFromEntry(entry: ListEntry, domain: string): string {
-  const field = PROJECT_FIELD[domain];
+function extractProjectFromEntry(entry: ListEntry, source: string): string {
+  const field = PROJECT_FIELD[source];
   if (!field) return "unknown";
   return (entry.metadata[field] as string) || "unknown";
 }
 
 /**
- * Extract identifier from entry based on domain type
+ * Extract identifier from entry based on source type
  */
-function extractIdentifier(entry: ListEntry, domain: string): string {
+function extractIdentifier(entry: ListEntry, source: string): string {
   const metadata = entry.metadata;
 
-  switch (domain) {
+  switch (source) {
     case "commits":
       return (metadata.sha as string)?.substring(0, 7) || "";
     case "sessions":
@@ -239,8 +239,8 @@ function extractIdentifier(entry: ListEntry, domain: string): string {
  * Get the best display text for an entry
  * Commits use content (commit message), others use title
  */
-function getDisplayText(entry: ListEntry, domain: string): string {
-  if (domain === "commits") {
+function getDisplayText(entry: ListEntry, source: string): string {
+  if (source === "commits") {
     return entry.content || entry.title;
   }
   return entry.title;
@@ -251,12 +251,12 @@ function getDisplayText(entry: ListEntry, domain: string): string {
  * One line per entry: "  project: identifier - title"
  */
 export function formatBriefList(result: ListResult): string {
-  const lines = [`${result.domain} (${result.count}):`];
+  const lines = [`${result.source} (${result.count}):`];
 
   result.entries.forEach((entry) => {
-    const project = extractProjectFromEntry(entry, result.domain);
-    const identifier = extractIdentifier(entry, result.domain);
-    const displayText = getDisplayText(entry, result.domain);
+    const project = extractProjectFromEntry(entry, result.source);
+    const identifier = extractIdentifier(entry, result.source);
+    const displayText = getDisplayText(entry, result.source);
 
     const line = identifier
       ? `  ${project}: ${identifier} - ${displayText}`

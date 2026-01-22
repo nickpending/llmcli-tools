@@ -5,7 +5,7 @@
  * Uses parallel queries via Promise.all for performance.
  */
 
-import { list, formatBriefList, type ListResult, type Domain } from "./list";
+import { list, formatBriefList, type ListResult, type Source } from "./list";
 
 export interface AboutOptions {
   brief?: boolean;
@@ -26,7 +26,7 @@ export interface AboutResult {
  * Each source has a different field for project mapping (handled by list.ts)
  * Note: "insights" will be added when task 2.1 is complete
  */
-const ABOUT_SOURCES: Domain[] = [
+const ABOUT_SOURCES: Source[] = [
   "commits",
   "captures",
   "tasks",
@@ -48,13 +48,13 @@ export function about(
   const limit = options.limit ?? 10;
 
   // Query all sources in parallel
-  const results = ABOUT_SOURCES.map((source) => {
+  const results = ABOUT_SOURCES.map((src) => {
     try {
-      return list(source, { project, limit });
+      return list(src, { project, limit });
     } catch {
       // Source doesn't exist or has no data - return empty result
       return {
-        domain: source,
+        source: src,
         entries: [],
         count: 0,
       } as ListResult;

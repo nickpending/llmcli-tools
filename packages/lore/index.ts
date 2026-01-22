@@ -19,10 +19,9 @@ export {
 // List
 export {
   list,
-  listDomains,
   formatBriefList,
-  DOMAINS,
-  type Domain,
+  SOURCES,
+  type Source,
   type ListOptions,
   type ListEntry,
   type ListResult,
