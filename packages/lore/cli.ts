@@ -332,10 +332,11 @@ function handleList(args: string[]): void {
     : undefined;
   const format = parsed.get("format") || "json";
   const project = parsed.get("project");
+  const type = parsed.get("type");
   const brief = hasFlag(args, "brief");
 
   try {
-    const result = list(source, { limit, project });
+    const result = list(source, { limit, project, type });
 
     if (brief) {
       console.log(formatBriefList(result));
@@ -801,6 +802,7 @@ Options:
   --limit <n>       Maximum entries (default: all)
   --format <fmt>    Output format: json (default), jsonl, human
   --project <name>  Filter by project name
+  --type <type>     Filter captures by type (learning, gotcha, preference, decision)
   --brief           Compact output (titles only)
   --help            Show this help
 
@@ -830,6 +832,7 @@ Examples:
   lore list development
   lore list commits --limit 10 --format human
   lore list commits --project=momentum --limit 5
+  lore list captures --type=learning --limit 5
   lore list books --format jsonl
 `);
   process.exit(0);

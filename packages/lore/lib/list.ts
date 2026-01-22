@@ -71,6 +71,7 @@ const PROJECT_FIELD: Record<string, string> = {
 export interface ListOptions {
   limit?: number;
   project?: string;
+  type?: string;
 }
 
 export interface ListEntry {
@@ -104,6 +105,7 @@ function queryBySource(
   source: string,
   limit?: number,
   project?: string,
+  type?: string,
 ): ListEntry[] {
   let sql = "SELECT title, content, metadata FROM search WHERE source = ?";
   const params: (string | number)[] = [source];
@@ -115,6 +117,12 @@ function queryBySource(
       sql += ` AND json_extract(metadata, '$.${field}') = ?`;
       params.push(project);
     }
+  }
+
+  // Add type filter if provided (captures source only)
+  if (type && source === "captures") {
+    sql += ` AND json_extract(metadata, '$.type') = ?`;
+    params.push(type);
   }
 
   if (limit) {
@@ -190,7 +198,13 @@ export function list(source: Source, options: ListOptions = {}): ListResult {
     if (personalType) {
       entries = queryPersonalType(db, personalType, options.limit);
     } else {
-      entries = queryBySource(db, source, options.limit, options.project);
+      entries = queryBySource(
+        db,
+        source,
+        options.limit,
+        options.project,
+        options.type,
+      );
     }
 
     return {
