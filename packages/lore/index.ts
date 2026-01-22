@@ -66,12 +66,15 @@ export {
   captureTask,
   captureNote,
   captureTeaching,
+  captureInsight,
   type CaptureResult,
   type KnowledgeInput,
   type KnowledgeCaptureType,
   type TaskInput,
   type NoteInput,
   type TeachingInput,
+  type InsightInput,
+  type InsightType,
   type CaptureEvent,
 } from "./lib/capture";
 

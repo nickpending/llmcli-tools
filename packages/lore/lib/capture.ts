@@ -57,6 +57,22 @@ export interface TeachingInput {
   source?: string;
 }
 
+export type InsightType =
+  | "decision"
+  | "pattern"
+  | "preference"
+  | "problem"
+  | "tool"
+  | "summary";
+
+export interface InsightInput {
+  session_id: string;
+  project: string;
+  insight_type: InsightType;
+  text: string;
+  source: "auto";
+}
+
 interface TaskEvent {
   event: "captured";
   type: "task";
@@ -110,7 +126,25 @@ interface TeachingEvent {
   };
 }
 
-type CaptureEvent = TaskEvent | KnowledgeEvent | NoteEvent | TeachingEvent;
+interface InsightEvent {
+  event: "captured";
+  type: "insight";
+  timestamp: string;
+  data: {
+    session_id: string;
+    project: string;
+    insight_type: InsightType;
+    text: string;
+    source: "auto";
+  };
+}
+
+type CaptureEvent =
+  | TaskEvent
+  | KnowledgeEvent
+  | NoteEvent
+  | TeachingEvent
+  | InsightEvent;
 
 function getLogPath(): string {
   const dataHome =
@@ -241,6 +275,42 @@ export function captureTeaching(input: TeachingInput): CaptureResult {
       confidence: input.confidence,
       text: input.text,
       source: input.source || "manual",
+    },
+  };
+
+  return writeEvent(event);
+}
+
+const VALID_INSIGHT_TYPES: InsightType[] = [
+  "decision",
+  "pattern",
+  "preference",
+  "problem",
+  "tool",
+  "summary",
+];
+
+/**
+ * Capture an auto-extracted insight from llm-summarize
+ */
+export function captureInsight(input: InsightInput): CaptureResult {
+  if (!VALID_INSIGHT_TYPES.includes(input.insight_type)) {
+    return {
+      success: false,
+      error: `Invalid insight_type: ${input.insight_type}. Must be one of: ${VALID_INSIGHT_TYPES.join(", ")}`,
+    };
+  }
+
+  const event: InsightEvent = {
+    event: "captured",
+    type: "insight",
+    timestamp: "",
+    data: {
+      session_id: input.session_id,
+      project: input.project,
+      insight_type: input.insight_type,
+      text: input.text,
+      source: input.source,
     },
   };
 
