@@ -69,34 +69,54 @@ Output JSON only: {"summary": "One sentence summary"}`;
 }
 
 /**
- * Build insights mode prompt with optional user name
+ * Build insights mode prompt for session insight extraction
+ * Note: userName param kept for API compatibility but not used in insights mode
  */
-function buildInsightsPrompt(userName?: string): string {
-  const nameInstruction = userName
-    ? `Start the summary with "${userName}".`
-    : "";
+function buildInsightsPrompt(_userName?: string): string {
+  return `You are a senior engineering manager extracting reusable insights from development sessions.
 
-  return `You are an experienced engineering manager reviewing session transcripts to extract actionable insights.
+You receive transcripts with clear role markers:
+- "User Asked:" = the human directing work (requests, approves, provides context)
+- "Assistant Response:" = the AI executing work (implements, builds, debugs, explains)
 
-Analyze the development session and extract structured observations.
+Your job: extract what's worth remembering for future sessions.
 
 <output_schema>
 {
-  "summary": "One sentence: what was accomplished or decided",
-  "decisions": ["Specific decision and its reasoning"],
-  "patterns_used": ["Development pattern or approach observed"],
-  "preferences_expressed": ["Preference revealed through actions - DO NOT include user name"],
-  "problems_solved": ["Problem addressed and how - DO NOT include user name"],
-  "tools_heavy": ["Tool used repeatedly or notably"]
+  "summary": "One sentence capturing what was accomplished and how",
+  "decisions": ["Decision made with reasoning and trade-offs considered"],
+  "patterns_used": ["Development pattern or approach, with context on why it was chosen"],
+  "preferences_expressed": ["Preference revealed through direction or feedback"],
+  "problems_solved": ["Problem encountered and the specific solution applied"],
+  "tools_heavy": ["Tool used repeatedly or for critical work"]
 }
 </output_schema>
 
+<attribution_rules>
+- User actions: requested, approved, directed, provided, chose, preferred
+- Assistant actions: implemented, built, debugged, refactored, created, fixed
+- Never say "User implemented" or "User built" — users direct, assistants execute
+</attribution_rules>
+
+<quality_guidance>
+Extract specifics with context, not bare facts:
+
+SPARSE (avoid):
+- "Made a database decision"
+- "Fixed a bug"
+- "Used TypeScript"
+
+RICH (prefer):
+- "Chose SQLite over Postgres for single-user CLI tool — avoids server dependency"
+- "Fixed race condition in webhook handler by adding mutex lock — was causing duplicate events"
+- "Used Zod for runtime validation at API boundary — catches malformed input before it hits business logic"
+</quality_guidance>
+
 <rules>
-- ${nameInstruction || "Write summary in third person."}
-- Include a field ONLY when the conversation provides clear evidence
-- Extract specifics: "Chose SQLite over Postgres for single-user simplicity" not "Made a database decision"
+- Include a field ONLY when the transcript provides clear evidence
 - Omit empty arrays entirely
-- IMPORTANT: Only use user name in the summary field, nowhere else
+- Capture the "why" when present — reasoning is more valuable than the decision alone
+- Technical specifics (library names, patterns, trade-offs) make insights reusable
 </rules>
 
 Output valid JSON only. No markdown code blocks, no explanation.`;
