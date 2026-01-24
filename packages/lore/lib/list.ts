@@ -128,6 +128,9 @@ function queryBySource(
     params.push(type);
   }
 
+  // Order by timestamp descending (most recent first)
+  sql += " ORDER BY json_extract(metadata, '$.timestamp') DESC";
+
   if (limit) {
     sql += " LIMIT ?";
     params.push(limit);
