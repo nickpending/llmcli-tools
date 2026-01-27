@@ -73,6 +73,14 @@ export interface InsightInput {
   source: "auto";
 }
 
+export interface LearningInput {
+  topic: string; // "spanish", "guitar", "kubernetes"
+  persona: string; // "marcus", "elena", etc.
+  progress: string; // "Covered verb conjugations, struggles with subjunctive"
+  goal?: string; // "conversational in 3 months"
+  session_summary?: string; // Longer form session notes
+}
+
 interface TaskEvent {
   event: "captured";
   type: "task";
@@ -139,12 +147,26 @@ interface InsightEvent {
   };
 }
 
+interface LearningEvent {
+  event: "captured";
+  type: "learning";
+  timestamp: string;
+  data: {
+    topic: string;
+    persona: string;
+    progress: string;
+    goal?: string;
+    session_summary?: string;
+  };
+}
+
 type CaptureEvent =
   | TaskEvent
   | KnowledgeEvent
   | NoteEvent
   | TeachingEvent
-  | InsightEvent;
+  | InsightEvent
+  | LearningEvent;
 
 function getLogPath(): string {
   const dataHome =
@@ -311,6 +333,33 @@ export function captureInsight(input: InsightInput): CaptureResult {
       insight_type: input.insight_type,
       text: input.text,
       source: input.source,
+    },
+  };
+
+  return writeEvent(event);
+}
+
+/**
+ * Capture a learning session progress
+ */
+export function captureLearning(input: LearningInput): CaptureResult {
+  if (!input.topic || !input.persona || !input.progress) {
+    return {
+      success: false,
+      error: "Missing required fields: topic, persona, progress",
+    };
+  }
+
+  const event: LearningEvent = {
+    event: "captured",
+    type: "learning",
+    timestamp: "",
+    data: {
+      topic: input.topic,
+      persona: input.persona,
+      progress: input.progress,
+      goal: input.goal,
+      session_summary: input.session_summary,
     },
   };
 

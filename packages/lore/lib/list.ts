@@ -28,7 +28,8 @@ export type Source =
   | "habits"
   | "teachings"
   | "sessions"
-  | "insights";
+  | "insights"
+  | "learnings";
 
 export const SOURCES: Source[] = [
   "development",
@@ -49,6 +50,7 @@ export const SOURCES: Source[] = [
   "teachings",
   "sessions",
   "insights",
+  "learnings",
 ];
 
 // Sources that query the 'personal' source with type filter
@@ -69,6 +71,7 @@ const PROJECT_FIELD: Record<string, string> = {
   captures: "context",
   teachings: "source",
   insights: "project",
+  learnings: "topic",
 };
 
 export interface ListOptions {

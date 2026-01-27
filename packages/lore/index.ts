@@ -67,6 +67,7 @@ export {
   captureNote,
   captureTeaching,
   captureInsight,
+  captureLearning,
   type CaptureResult,
   type KnowledgeInput,
   type KnowledgeCaptureType,
@@ -75,6 +76,7 @@ export {
   type TeachingInput,
   type InsightInput,
   type InsightType,
+  type LearningInput,
   type CaptureEvent,
 } from "./lib/capture";
 
