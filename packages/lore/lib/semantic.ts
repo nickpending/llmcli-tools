@@ -36,15 +36,17 @@ export interface SemanticSearchOptions {
 }
 
 /**
- * Maps source types to their project field name in metadata JSON.
- * Different sources store project names in different fields.
+ * Maps source types to their project/topic field name in metadata JSON.
+ * Project-based domains use "project", topic-based domains use "topic".
  */
 const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
   tasks: "project",
-  captures: "context",
-  teachings: "source",
+  insights: "project",
+  captures: "topic",
+  teachings: "topic",
+  learnings: "topic",
 };
 
 const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";

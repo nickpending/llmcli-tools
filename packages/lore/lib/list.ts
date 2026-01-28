@@ -63,14 +63,15 @@ const PERSONAL_SUBTYPES: Partial<Record<Source, string>> = {
   habits: "habit",
 };
 
-// Maps source to metadata field containing project name
+// Maps source to metadata field for --project filter
+// Project-based domains use "project", topic-based domains use "topic"
 const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
   tasks: "project",
-  captures: "context",
-  teachings: "source",
   insights: "project",
+  captures: "topic",
+  teachings: "topic",
   learnings: "topic",
 };
 

@@ -9,12 +9,15 @@ import { Database } from "bun:sqlite";
 import { homedir } from "os";
 import { existsSync } from "fs";
 
+// Project-based domains use "project", topic-based domains use "topic"
 const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
   tasks: "project",
-  captures: "context",
-  teachings: "source",
+  insights: "project",
+  captures: "topic",
+  teachings: "topic",
+  learnings: "topic",
 };
 
 function getDatabasePath(): string {

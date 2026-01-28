@@ -74,10 +74,9 @@ export interface InsightInput {
 }
 
 export interface LearningInput {
-  topic: string; // "spanish", "guitar", "kubernetes"
+  topic: string; // "spanish", "guitar", "kubernetes" - the learning topic
   persona: string; // "marcus", "elena", etc.
   progress: string; // "Covered verb conjugations, struggles with subjunctive"
-  goal?: string; // "conversational in 3 months"
   session_summary?: string; // Longer form session notes
 }
 
@@ -152,10 +151,9 @@ interface LearningEvent {
   type: "learning";
   timestamp: string;
   data: {
-    topic: string;
+    topic: string; // Learning topic (spanish, guitar, etc.)
     persona: string;
     progress: string;
-    goal?: string;
     session_summary?: string;
   };
 }
@@ -358,7 +356,6 @@ export function captureLearning(input: LearningInput): CaptureResult {
       topic: input.topic,
       persona: input.persona,
       progress: input.progress,
-      goal: input.goal,
       session_summary: input.session_summary,
     },
   };
