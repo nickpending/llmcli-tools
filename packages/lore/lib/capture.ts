@@ -25,13 +25,13 @@ export type KnowledgeCaptureType =
   | "knowledge";
 
 export interface KnowledgeInput {
-  context: string;
-  text: string;
-  type: KnowledgeCaptureType;
+  topic: string;
+  content: string;
+  subtype: KnowledgeCaptureType;
 }
 
 export interface TaskInput {
-  project: string;
+  topic: string;
   name: string;
   problem: string;
   solution: string;
@@ -39,21 +39,21 @@ export interface TaskInput {
   discoveries?: string[];
   deviations?: string;
   pattern?: string;
-  keywords?: string[];
+  tags?: string[];
   tech?: string[];
   difficulty?: string;
 }
 
 export interface NoteInput {
-  text: string;
+  content: string;
   tags?: string[];
-  context?: string;
+  topic?: string;
 }
 
 export interface TeachingInput {
-  domain: string;
+  topic: string;
   confidence: string;
-  text: string;
+  content: string;
   source?: string;
 }
 
@@ -67,16 +67,16 @@ export type InsightType =
 
 export interface InsightInput {
   session_id: string;
-  project: string;
-  insight_type: InsightType;
-  text: string;
+  topic: string;
+  subtype: InsightType;
+  content: string;
   source: "auto";
 }
 
 export interface LearningInput {
   topic: string; // "spanish", "guitar", "kubernetes" - the learning topic
   persona: string; // "marcus", "elena", etc.
-  progress: string; // "Covered verb conjugations, struggles with subjunctive"
+  content: string; // "Covered verb conjugations, struggles with subjunctive"
   session_summary?: string; // Longer form session notes
 }
 
@@ -85,17 +85,17 @@ interface TaskEvent {
   type: "task";
   timestamp: string;
   data: {
-    project: string;
-    task_name: string;
-    problem_solved: string;
-    solution_pattern: string;
-    code_snippet?: string;
+    topic: string;
+    name: string;
+    problem: string;
+    solution: string;
+    code?: string;
     discoveries?: string[];
     deviations?: string;
-    reusable_pattern?: string;
-    keywords?: string[];
-    tech_used?: string[];
-    difficulty_notes?: string;
+    pattern?: string;
+    tags?: string[];
+    tech?: string[];
+    difficulty?: string;
   };
 }
 
@@ -104,9 +104,9 @@ interface KnowledgeEvent {
   type: "knowledge";
   timestamp: string;
   data: {
-    context: string;
-    capture: string;
-    type: KnowledgeCaptureType;
+    topic: string;
+    content: string;
+    subtype: KnowledgeCaptureType;
   };
 }
 
@@ -117,7 +117,7 @@ interface NoteEvent {
   data: {
     content: string;
     tags?: string[];
-    context?: string;
+    topic?: string;
   };
 }
 
@@ -126,9 +126,9 @@ interface TeachingEvent {
   type: "teaching";
   timestamp: string;
   data: {
-    domain: string;
+    topic: string;
     confidence: string;
-    text: string;
+    content: string;
     source: string;
   };
 }
@@ -139,9 +139,9 @@ interface InsightEvent {
   timestamp: string;
   data: {
     session_id: string;
-    project: string;
-    insight_type: InsightType;
-    text: string;
+    topic: string;
+    subtype: InsightType;
+    content: string;
     source: "auto";
   };
 }
@@ -153,7 +153,7 @@ interface LearningEvent {
   data: {
     topic: string; // Learning topic (spanish, guitar, etc.)
     persona: string;
-    progress: string;
+    content: string;
     session_summary?: string;
   };
 }
@@ -217,10 +217,10 @@ const VALID_KNOWLEDGE_TYPES: KnowledgeCaptureType[] = [
  * Capture a knowledge insight
  */
 export function captureKnowledge(input: KnowledgeInput): CaptureResult {
-  if (!VALID_KNOWLEDGE_TYPES.includes(input.type)) {
+  if (!VALID_KNOWLEDGE_TYPES.includes(input.subtype)) {
     return {
       success: false,
-      error: `Invalid type: ${input.type}. Must be one of: ${VALID_KNOWLEDGE_TYPES.join(", ")}`,
+      error: `Invalid subtype: ${input.subtype}. Must be one of: ${VALID_KNOWLEDGE_TYPES.join(", ")}`,
     };
   }
 
@@ -229,9 +229,9 @@ export function captureKnowledge(input: KnowledgeInput): CaptureResult {
     type: "knowledge",
     timestamp: "",
     data: {
-      context: input.context,
-      capture: input.text,
-      type: input.type,
+      topic: input.topic,
+      content: input.content,
+      subtype: input.subtype,
     },
   };
 
@@ -247,17 +247,17 @@ export function captureTask(input: TaskInput): CaptureResult {
     type: "task",
     timestamp: "",
     data: {
-      project: input.project,
-      task_name: input.name,
-      problem_solved: input.problem,
-      solution_pattern: input.solution,
-      code_snippet: input.code,
+      topic: input.topic,
+      name: input.name,
+      problem: input.problem,
+      solution: input.solution,
+      code: input.code,
       discoveries: input.discoveries,
       deviations: input.deviations,
-      reusable_pattern: input.pattern,
-      keywords: input.keywords,
-      tech_used: input.tech,
-      difficulty_notes: input.difficulty,
+      pattern: input.pattern,
+      tags: input.tags,
+      tech: input.tech,
+      difficulty: input.difficulty,
     },
   };
 
@@ -273,9 +273,9 @@ export function captureNote(input: NoteInput): CaptureResult {
     type: "note",
     timestamp: "",
     data: {
-      content: input.text,
+      content: input.content,
       tags: input.tags,
-      context: input.context,
+      topic: input.topic,
     },
   };
 
@@ -291,9 +291,9 @@ export function captureTeaching(input: TeachingInput): CaptureResult {
     type: "teaching",
     timestamp: "",
     data: {
-      domain: input.domain,
+      topic: input.topic,
       confidence: input.confidence,
-      text: input.text,
+      content: input.content,
       source: input.source || "manual",
     },
   };
@@ -314,10 +314,10 @@ const VALID_INSIGHT_TYPES: InsightType[] = [
  * Capture an auto-extracted insight from llm-summarize
  */
 export function captureInsight(input: InsightInput): CaptureResult {
-  if (!VALID_INSIGHT_TYPES.includes(input.insight_type)) {
+  if (!VALID_INSIGHT_TYPES.includes(input.subtype)) {
     return {
       success: false,
-      error: `Invalid insight_type: ${input.insight_type}. Must be one of: ${VALID_INSIGHT_TYPES.join(", ")}`,
+      error: `Invalid subtype: ${input.subtype}. Must be one of: ${VALID_INSIGHT_TYPES.join(", ")}`,
     };
   }
 
@@ -327,9 +327,9 @@ export function captureInsight(input: InsightInput): CaptureResult {
     timestamp: "",
     data: {
       session_id: input.session_id,
-      project: input.project,
-      insight_type: input.insight_type,
-      text: input.text,
+      topic: input.topic,
+      subtype: input.subtype,
+      content: input.content,
       source: input.source,
     },
   };
@@ -341,10 +341,10 @@ export function captureInsight(input: InsightInput): CaptureResult {
  * Capture a learning session progress
  */
 export function captureLearning(input: LearningInput): CaptureResult {
-  if (!input.topic || !input.persona || !input.progress) {
+  if (!input.topic || !input.persona || !input.content) {
     return {
       success: false,
-      error: "Missing required fields: topic, persona, progress",
+      error: "Missing required fields: topic, persona, content",
     };
   }
 
@@ -355,7 +355,7 @@ export function captureLearning(input: LearningInput): CaptureResult {
     data: {
       topic: input.topic,
       persona: input.persona,
-      progress: input.progress,
+      content: input.content,
       session_summary: input.session_summary,
     },
   };
