@@ -80,6 +80,23 @@ export interface LearningInput {
   session_summary?: string; // Longer form session notes
 }
 
+export type ObservationSubtype =
+  | "term"
+  | "style"
+  | "pattern"
+  | "preference"
+  | "context";
+
+export type ObservationConfidence = "inferred" | "stated" | "verified";
+
+export interface ObservationInput {
+  topic: string;
+  content: string;
+  subtype: ObservationSubtype;
+  confidence: ObservationConfidence;
+  source?: string;
+}
+
 interface TaskEvent {
   event: "captured";
   type: "task";
@@ -158,13 +175,27 @@ interface LearningEvent {
   };
 }
 
+interface ObservationEvent {
+  event: "captured";
+  type: "observation";
+  timestamp: string;
+  data: {
+    topic: string;
+    content: string;
+    subtype: ObservationSubtype;
+    confidence: ObservationConfidence;
+    source: string;
+  };
+}
+
 type CaptureEvent =
   | TaskEvent
   | KnowledgeEvent
   | NoteEvent
   | TeachingEvent
   | InsightEvent
-  | LearningEvent;
+  | LearningEvent
+  | ObservationEvent;
 
 function getLogPath(): string {
   const dataHome =
@@ -357,6 +388,54 @@ export function captureLearning(input: LearningInput): CaptureResult {
       persona: input.persona,
       content: input.content,
       session_summary: input.session_summary,
+    },
+  };
+
+  return writeEvent(event);
+}
+
+const VALID_OBSERVATION_SUBTYPES: ObservationSubtype[] = [
+  "term",
+  "style",
+  "pattern",
+  "preference",
+  "context",
+];
+
+const VALID_OBSERVATION_CONFIDENCE: ObservationConfidence[] = [
+  "inferred",
+  "stated",
+  "verified",
+];
+
+/**
+ * Capture a model observation about user patterns
+ */
+export function captureObservation(input: ObservationInput): CaptureResult {
+  if (!VALID_OBSERVATION_SUBTYPES.includes(input.subtype)) {
+    return {
+      success: false,
+      error: `Invalid subtype: ${input.subtype}. Must be one of: ${VALID_OBSERVATION_SUBTYPES.join(", ")}`,
+    };
+  }
+
+  if (!VALID_OBSERVATION_CONFIDENCE.includes(input.confidence)) {
+    return {
+      success: false,
+      error: `Invalid confidence: ${input.confidence}. Must be one of: ${VALID_OBSERVATION_CONFIDENCE.join(", ")}`,
+    };
+  }
+
+  const event: ObservationEvent = {
+    event: "captured",
+    type: "observation",
+    timestamp: "",
+    data: {
+      topic: input.topic,
+      content: input.content,
+      subtype: input.subtype,
+      confidence: input.confidence,
+      source: input.source || "auto",
     },
   };
 

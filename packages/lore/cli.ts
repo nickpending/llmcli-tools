@@ -35,6 +35,7 @@ import {
   captureKnowledge,
   captureNote,
   captureTeaching,
+  captureObservation,
   semanticSearch,
   formatBriefSearch,
   hasEmbeddings,
@@ -48,6 +49,9 @@ import {
   type NoteInput,
   type TeachingInput,
   type KnowledgeCaptureType,
+  type ObservationInput,
+  type ObservationSubtype,
+  type ObservationConfidence,
 } from "./index";
 
 // ============================================================================
@@ -521,14 +525,14 @@ Examples:
 function handleCaptureTask(args: string[]): void {
   const parsed = parseArgs(args);
 
-  const required = ["project", "name", "problem", "solution"];
+  const required = ["topic", "name", "problem", "solution"];
   const missing = required.filter((f) => !parsed.has(f));
   if (missing.length > 0) {
     fail(`Missing required fields: ${missing.join(", ")}`);
   }
 
   const input: TaskInput = {
-    project: parsed.get("project")!,
+    topic: parsed.get("topic")!,
     name: parsed.get("name")!,
     problem: parsed.get("problem")!,
     solution: parsed.get("solution")!,
@@ -536,7 +540,7 @@ function handleCaptureTask(args: string[]): void {
     discoveries: parseList(parsed.get("discoveries")),
     deviations: parsed.get("deviations"),
     pattern: parsed.get("pattern"),
-    keywords: parseList(parsed.get("keywords")),
+    tags: parseList(parsed.get("tags")),
     tech: parseList(parsed.get("tech")),
     difficulty: parsed.get("difficulty"),
   };
@@ -556,16 +560,16 @@ function handleCaptureTask(args: string[]): void {
 function handleCaptureKnowledge(args: string[]): void {
   const parsed = parseArgs(args);
 
-  const required = ["context", "text", "type"];
+  const required = ["topic", "text", "subtype"];
   const missing = required.filter((f) => !parsed.has(f));
   if (missing.length > 0) {
     fail(`Missing required fields: ${missing.join(", ")}`);
   }
 
   const input: KnowledgeInput = {
-    context: parsed.get("context")!,
-    text: parsed.get("text")!,
-    type: parsed.get("type")! as KnowledgeCaptureType,
+    topic: parsed.get("topic")!,
+    content: parsed.get("text")!,
+    subtype: parsed.get("subtype")! as KnowledgeCaptureType,
   };
 
   const result = captureKnowledge(input);
@@ -588,9 +592,9 @@ function handleCaptureNote(args: string[]): void {
   }
 
   const input: NoteInput = {
-    text: parsed.get("text")!,
+    content: parsed.get("text")!,
     tags: parseList(parsed.get("tags")),
-    context: parsed.get("context"),
+    topic: parsed.get("topic"),
   };
 
   const result = captureNote(input);
@@ -608,16 +612,16 @@ function handleCaptureNote(args: string[]): void {
 function handleCaptureTeaching(args: string[]): void {
   const parsed = parseArgs(args);
 
-  const required = ["domain", "confidence", "text"];
+  const required = ["topic", "confidence", "text"];
   const missing = required.filter((f) => !parsed.has(f));
   if (missing.length > 0) {
     fail(`Missing required fields: ${missing.join(", ")}`);
   }
 
   const input: TeachingInput = {
-    domain: parsed.get("domain")!,
+    topic: parsed.get("topic")!,
     confidence: parsed.get("confidence")!,
-    text: parsed.get("text")!,
+    content: parsed.get("text")!,
     source: parsed.get("source"),
   };
 
@@ -633,13 +637,44 @@ function handleCaptureTeaching(args: string[]): void {
   }
 }
 
+function handleCaptureObservation(args: string[]): void {
+  const parsed = parseArgs(args);
+
+  const required = ["topic", "subtype", "confidence", "text"];
+  const missing = required.filter((f) => !parsed.has(f));
+  if (missing.length > 0) {
+    fail(`Missing required fields: ${missing.join(", ")}`);
+  }
+
+  const input: ObservationInput = {
+    topic: parsed.get("topic")!,
+    content: parsed.get("text")!,
+    subtype: parsed.get("subtype")! as ObservationSubtype,
+    confidence: parsed.get("confidence")! as ObservationConfidence,
+    source: parsed.get("source"),
+  };
+
+  const result = captureObservation(input);
+  output(result);
+
+  if (result.success) {
+    console.error("✅ Observation logged");
+    process.exit(0);
+  } else {
+    console.error(`❌ ${result.error}`);
+    process.exit(2);
+  }
+}
+
 function handleCapture(args: string[]): void {
   if (hasFlag(args, "help")) {
     showCaptureHelp();
   }
 
   if (args.length === 0) {
-    fail("Missing capture type. Use: task, knowledge, or note");
+    fail(
+      "Missing capture type. Use: task, knowledge, note, teaching, or observation",
+    );
   }
 
   const captureType = args[0];
@@ -658,9 +693,12 @@ function handleCapture(args: string[]): void {
     case "teaching":
       handleCaptureTeaching(captureArgs);
       break;
+    case "observation":
+      handleCaptureObservation(captureArgs);
+      break;
     default:
       fail(
-        `Unknown capture type: ${captureType}. Use: task, knowledge, note, or teaching`,
+        `Unknown capture type: ${captureType}. Use: task, knowledge, note, teaching, or observation`,
       );
   }
 }
@@ -708,25 +746,32 @@ List Options:
 
 Capture Types:
   task              Log task completion
-    --project       Project name (required)
+    --topic         Project/topic name (required)
     --name          Task name (required)
     --problem       Problem solved (required)
     --solution      Solution pattern (required)
 
   knowledge         Log insight
-    --context       Context/project name (required)
+    --topic         Topic/context name (required)
     --text          Insight text (required)
-    --type          Type: decision, learning, gotcha, preference (required)
+    --subtype       Type: decision, learning, gotcha, preference (required)
 
   note              Quick note
     --text          Note content (required)
     --tags          Comma-separated tags
-    --context       Optional context
+    --topic         Optional topic/context
 
   teaching          Log teaching/learning
-    --domain        Subject area (required)
+    --topic         Subject area (required)
     --confidence    Certainty level (required)
     --text          Teaching content (required)
+    --source        Optional source identifier
+
+  observation       Log model observation
+    --topic         Observation topic (required)
+    --subtype       Type: term, style, pattern, preference, context (required)
+    --confidence    Level: inferred, stated, verified (required)
+    --text          Observation content (required)
     --source        Optional source identifier
 
 Examples:
@@ -735,7 +780,8 @@ Examples:
   lore sources
   lore list development
   lore list commits --limit 10 --format human
-  lore capture knowledge --context=lore --text="Unified CLI works" --type=learning
+  lore capture knowledge --topic=lore --text="Unified CLI works" --subtype=learning
+  lore capture observation --topic=vocabulary --subtype=term --confidence=stated --text="Uses unified schema"
 `);
   process.exit(0);
 }
@@ -947,12 +993,13 @@ Usage:
   lore capture knowledge                Log insight/learning
   lore capture note                     Quick note
   lore capture teaching                 Log teaching moment
+  lore capture observation              Log model observation
 
 Capture Types:
 
   task - Log completed development task
     Required:
-      --project       Project name
+      --topic         Project/topic name
       --name          Task name
       --problem       Problem solved
       --solution      Solution pattern
@@ -961,36 +1008,46 @@ Capture Types:
       --discoveries   Comma-separated discoveries
       --deviations    Deviation from plan
       --pattern       Pattern name
-      --keywords      Comma-separated keywords
+      --tags          Comma-separated tags
       --tech          Comma-separated technologies
       --difficulty    Difficulty level
 
   knowledge - Log insight or learning
     Required:
-      --context       Context/project name
+      --topic         Topic/context name
       --text          Insight text
-      --type          Type: decision, learning, gotcha, preference
+      --subtype       Type: decision, learning, gotcha, preference, project, conversation, knowledge
 
   note - Quick note capture
     Required:
       --text          Note content
     Optional:
       --tags          Comma-separated tags
-      --context       Optional context
+      --topic         Optional topic/context
 
   teaching - Log teaching or learning moment
     Required:
-      --domain        Subject area (e.g., typescript, architecture)
+      --topic         Subject area (e.g., typescript, architecture)
       --confidence    Certainty level (e.g., high, medium, low)
       --text          Teaching content
     Optional:
       --source        Source identifier (defaults to "manual")
 
+  observation - Log model observation about user patterns
+    Required:
+      --topic         Observation topic
+      --subtype       Type: term, style, pattern, preference, context
+      --confidence    Level: inferred, stated, verified
+      --text          Observation content
+    Optional:
+      --source        Source identifier (defaults to "auto")
+
 Examples:
-  lore capture task --project=lore --name="Add help" --problem="No subcommand help" --solution="Added per-command help functions"
-  lore capture knowledge --context=lore --text="Unified CLI works" --type=learning
+  lore capture task --topic=lore --name="Add help" --problem="No subcommand help" --solution="Added per-command help functions"
+  lore capture knowledge --topic=lore --text="Unified CLI works" --subtype=learning
   lore capture note --text="Remember to update docs" --tags=docs,todo
-  lore capture teaching --domain=patterns --confidence=high --text="Prefer composition over inheritance"
+  lore capture teaching --topic=patterns --confidence=high --text="Prefer composition over inheritance"
+  lore capture observation --topic=vocabulary --subtype=term --confidence=stated --text="Uses 'unified schema'"
 `);
   process.exit(0);
 }
