@@ -18,6 +18,7 @@ const PROJECT_FIELD: Record<string, string> = {
   captures: "topic",
   teachings: "topic",
   learnings: "topic",
+  observations: "topic",
 };
 
 function getDatabasePath(): string {

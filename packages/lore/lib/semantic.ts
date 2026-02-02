@@ -47,6 +47,7 @@ const PROJECT_FIELD: Record<string, string> = {
   captures: "topic",
   teachings: "topic",
   learnings: "topic",
+  observations: "topic",
 };
 
 const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
