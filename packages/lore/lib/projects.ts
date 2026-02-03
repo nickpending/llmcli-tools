@@ -14,7 +14,7 @@ const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
   tasks: "project",
-  insights: "project",
+  insights: "topic",
   captures: "topic",
   teachings: "topic",
   learnings: "topic",

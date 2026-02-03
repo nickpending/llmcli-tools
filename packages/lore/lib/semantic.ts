@@ -43,7 +43,7 @@ const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
   tasks: "project",
-  insights: "project",
+  insights: "topic",
   captures: "topic",
   teachings: "topic",
   learnings: "topic",
@@ -193,69 +193,41 @@ export async function semanticSearch(
 
     // KNN query - 1:1 mapping between search rows and embeddings
     // Content is pre-chunked at ingest time
+    // source/topic partition columns enable filtered KNN (filter BEFORE search)
     let sql: string;
     const params: (Uint8Array | string | number)[] = [queryBlob];
 
+    // Build KNN query with optional partition filters
+    const conditions = ["e.embedding MATCH ?", "k = ?"];
+    params.push(limit);
+
     if (options.source) {
-      // Filter by e.source (partition column) for KNN pre-filtering
-      // This filters BEFORE KNN, not after — critical for domain-specific search
-      sql = `
-        SELECT
-          s.source,
-          s.title,
-          s.content,
-          s.metadata,
-          e.distance
-        FROM embeddings e
-        JOIN search s ON e.doc_id = s.rowid
-        WHERE e.embedding MATCH ?
-          AND k = ?
-          AND e.source = ?
-        ORDER BY e.distance
-        LIMIT ?
-      `;
-      params.push(limit);
+      conditions.push("e.source = ?");
       params.push(options.source);
-      params.push(limit);
-    } else {
-      sql = `
-        SELECT
-          s.source,
-          s.title,
-          s.content,
-          s.metadata,
-          e.distance
-        FROM embeddings e
-        JOIN search s ON e.doc_id = s.rowid
-        WHERE e.embedding MATCH ?
-          AND k = ?
-        ORDER BY e.distance
-        LIMIT ?
-      `;
-      params.push(limit);
-      params.push(limit);
     }
+
+    if (options.project) {
+      conditions.push("e.topic = ?");
+      params.push(options.project);
+    }
+
+    sql = `
+      SELECT
+        s.source,
+        s.title,
+        s.content,
+        s.metadata,
+        e.distance
+      FROM embeddings e
+      JOIN search s ON e.doc_id = s.rowid
+      WHERE ${conditions.join("\n        AND ")}
+      ORDER BY e.distance
+      LIMIT ?
+    `;
+    params.push(limit);
 
     const stmt = db.prepare(sql);
     const results = stmt.all(...params) as SemanticResult[];
-
-    // Post-filter by project if specified
-    // KNN WHERE clause doesn't support json_extract on joined metadata,
-    // so we filter after the query returns
-    if (options.project) {
-      return results.filter((result) => {
-        const field = PROJECT_FIELD[result.source];
-        if (!field) return false;
-
-        try {
-          const metadata = JSON.parse(result.metadata);
-          return metadata[field] === options.project;
-        } catch {
-          // Skip results with malformed metadata
-          return false;
-        }
-      });
-    }
 
     return results;
   } finally {

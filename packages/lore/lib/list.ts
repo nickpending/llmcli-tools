@@ -71,7 +71,7 @@ const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
   tasks: "project",
-  insights: "project",
+  insights: "topic",
   captures: "topic",
   teachings: "topic",
   learnings: "topic",
@@ -161,23 +161,28 @@ function queryPersonalType(
   type: string,
   limit?: number,
 ): ListEntry[] {
-  // Query personal source, then filter by type in metadata
-  const sql = limit
-    ? `SELECT title, content, metadata FROM search WHERE source = 'personal' LIMIT ?`
-    : `SELECT title, content, metadata FROM search WHERE source = 'personal'`;
+  // Filter by type in SQL, not JS - avoids LIMIT truncation bug
+  let sql = `
+    SELECT title, content, metadata FROM search
+    WHERE source = 'personal'
+      AND json_extract(metadata, '$.type') = ?
+    ORDER BY json_extract(metadata, '$.timestamp') DESC
+  `;
+  const params: (string | number)[] = [type];
+
+  if (limit) {
+    sql += " LIMIT ?";
+    params.push(limit);
+  }
 
   const stmt = db.prepare(sql);
-  const rows = (limit ? stmt.all(limit * 10) : stmt.all()) as RawRow[]; // Over-fetch for filtering
+  const rows = stmt.all(...params) as RawRow[];
 
-  const filtered = rows
-    .map((row) => ({
-      title: row.title,
-      content: row.content,
-      metadata: JSON.parse(row.metadata || "{}"),
-    }))
-    .filter((entry) => entry.metadata.type === type);
-
-  return limit ? filtered.slice(0, limit) : filtered;
+  return rows.map((row) => ({
+    title: row.title,
+    content: row.content,
+    metadata: JSON.parse(row.metadata || "{}"),
+  }));
 }
 
 /**
