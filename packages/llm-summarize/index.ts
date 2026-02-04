@@ -18,8 +18,18 @@ import { join } from "path";
 // Types
 // ============================================================================
 
+export interface Extraction {
+  term: string;
+  type: "project" | "topic" | "tool" | "person";
+  confidence: "high" | "medium";
+}
+
 export interface SessionInsights {
   summary: string;
+  // Quick mode extraction fields
+  should_search?: boolean;
+  extractions?: Extraction[];
+  // Insights mode fields
   decisions?: string[];
   patterns_used?: string[];
   preferences_expressed?: string[];
@@ -59,13 +69,71 @@ export type SummarizeMode = "quick" | "insights";
 
 /**
  * Build quick mode prompt with optional user name
+ * Now includes context extraction for knowledge retrieval
  */
 function buildQuickPrompt(userName?: string): string {
-  const nameInstruction = userName ? `Start with "${userName}".` : "";
+  const name = userName || "User";
 
-  return `Summarize what the user is asking or doing in one sentence.
-${nameInstruction}
-Output JSON only: {"summary": "One sentence summary"}`;
+  return `You are a context classifier for knowledge retrieval. Analyze conversation context to determine what prior knowledge would be valuable.
+
+Input format:
+Project: <project name>
+Previous Assistant: <last assistant message>
+User Prompt: <current user message>
+
+Produce JSON with:
+1. summary: Brief description (1-2 sentences) of what the user is doing/asking. Start with "${name}".
+2. should_search: Whether to search the knowledge base
+3. extractions: Terms worth searching for
+
+should_search = true when:
+- References past work, decisions, discussions
+- Mentions project, tool, or person by name
+- Asks "what was...", "how did we...", "remember when..."
+- Technical domain benefits from prior learnings
+
+should_search = false when:
+- Greetings, acknowledgments ("ready", "thanks", "ok")
+- Simple commands ("run tests", "commit this")
+- Continuation signals ("yes", "do it", "go ahead")
+
+Extraction types:
+- project: Named codebase, repo, system (sable, lore, momentum)
+- topic: Domain, concept, technical area (hooks, authentication, Tier 2)
+- tool: Library, CLI, framework (llm-summarize, SQLite, Bun)
+- person: Named individual
+
+Confidence:
+- high: Explicitly stated
+- medium: Strongly implied
+
+Skip generic words. Only extract terms that yield useful knowledge results.
+
+<example>
+Project: sable
+Previous Assistant: I'll update the UserPromptSubmit hook to call llm-summarize.
+User Prompt: What does Lore return for project queries?
+
+{"summary": "${name} is asking about Lore's return format for project queries", "should_search": true, "extractions": [{"term": "Lore", "type": "project", "confidence": "high"}, {"term": "project queries", "type": "topic", "confidence": "high"}]}
+</example>
+
+<example>
+Project: sable
+Previous Assistant: The extraction prompt is ready. Should I add it?
+User Prompt: yes do it
+
+{"summary": "${name} is confirming to proceed with the extraction prompt", "should_search": false, "extractions": []}
+</example>
+
+<example>
+Project: sable
+Previous Assistant: Starting new session.
+User Prompt: What was the issue we hit with the stop hook last time?
+
+{"summary": "${name} is asking about a previous issue with the stop hook", "should_search": true, "extractions": [{"term": "stop hook", "type": "topic", "confidence": "high"}, {"term": "sable", "type": "project", "confidence": "medium"}]}
+</example>
+
+Output valid JSON only. No markdown, no explanation.`;
 }
 
 /**
