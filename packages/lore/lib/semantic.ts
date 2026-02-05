@@ -4,22 +4,12 @@
  * Query embedding using @huggingface/transformers with nomic-embed-text-v1.5.
  * KNN search against sqlite-vec virtual table.
  * Uses Bun's built-in SQLite with sqlite-vec extension.
- *
- * Note: macOS ships Apple's SQLite which disables extension loading.
- * We use Homebrew's SQLite via setCustomSQLite() to enable sqlite-vec.
  */
 
 import { Database } from "bun:sqlite";
-import { homedir } from "os";
 import { existsSync } from "fs";
 import { pipeline } from "@huggingface/transformers";
-
-// Use Homebrew SQLite on macOS to enable extension loading
-// Must be called before any Database instances are created
-const HOMEBREW_SQLITE = "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib";
-if (existsSync(HOMEBREW_SQLITE)) {
-  Database.setCustomSQLite(HOMEBREW_SQLITE);
-}
+import { getDatabasePath, openDatabase } from "./db.js";
 
 export interface SemanticResult {
   source: string;
@@ -51,6 +41,7 @@ const PROJECT_FIELD: Record<string, string> = {
 };
 
 const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
+const EMBEDDING_DIM = 768;
 
 interface EmbeddingPipeline {
   (
@@ -63,10 +54,6 @@ interface EmbeddingPipeline {
 
 // Cache the pipeline to avoid reloading on every query
 let cachedPipeline: EmbeddingPipeline | null = null;
-
-function getDatabasePath(): string {
-  return `${homedir()}/.local/share/lore/lore.db`;
-}
 
 /**
  * Get or create the embedding pipeline
@@ -111,9 +98,9 @@ export async function embedQuery(query: string): Promise<number[]> {
   // Output is a Tensor, convert to array
   const embedding = Array.from(output.data as Float32Array);
 
-  if (embedding.length !== 768) {
+  if (embedding.length !== EMBEDDING_DIM) {
     throw new Error(
-      `Invalid embedding: expected 768 dims, got ${embedding.length}`,
+      `Invalid embedding: expected ${EMBEDDING_DIM} dims, got ${embedding.length}`,
     );
   }
 
@@ -121,33 +108,79 @@ export async function embedQuery(query: string): Promise<number[]> {
 }
 
 /**
+ * Embed a document string using local transformers.js model
+ * Uses "search_document: " prefix as required by nomic-embed-text
+ * @returns 768-dimensional embedding vector
+ */
+export async function embedDocument(text: string): Promise<number[]> {
+  const embedder = await getEmbeddingPipeline();
+
+  const prefixedText = `search_document: ${text}`;
+  const output = await embedder(prefixedText, {
+    pooling: "mean",
+    normalize: true,
+  });
+
+  const embedding = Array.from(output.data as Float32Array);
+
+  if (embedding.length !== EMBEDDING_DIM) {
+    throw new Error(
+      `Invalid embedding: expected ${EMBEDDING_DIM} dims, got ${embedding.length}`,
+    );
+  }
+
+  return embedding;
+}
+
+/**
+ * Batch embed multiple documents
+ * More efficient than individual calls when embedding several documents
+ * @returns array of 768-dimensional embedding vectors
+ */
+export async function embedDocuments(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
+
+  const embedder = await getEmbeddingPipeline();
+  const results: number[][] = [];
+
+  // Process one at a time (transformers.js doesn't batch well)
+  // But we benefit from cached pipeline
+  for (const text of texts) {
+    const prefixedText = `search_document: ${text}`;
+    const output = await embedder(prefixedText, {
+      pooling: "mean",
+      normalize: true,
+    });
+
+    const embedding = Array.from(output.data as Float32Array);
+
+    if (embedding.length !== EMBEDDING_DIM) {
+      throw new Error(
+        `Invalid embedding: expected ${EMBEDDING_DIM} dims, got ${embedding.length}`,
+      );
+    }
+
+    results.push(embedding);
+  }
+
+  return results;
+}
+
+/**
  * Check if embeddings table has any data
  */
 export function hasEmbeddings(): boolean {
-  const dbPath = getDatabasePath();
-
-  if (!existsSync(dbPath)) {
-    return false;
-  }
-
-  const db = new Database(dbPath, { readonly: true });
-
   try {
-    // Load sqlite-vec extension
-    const vecPath = process.env.SQLITE_VEC_PATH;
-    if (!vecPath) {
-      return false;
+    const db = openDatabase(true);
+    try {
+      const stmt = db.prepare("SELECT COUNT(*) as count FROM embeddings");
+      const result = stmt.get() as { count: number };
+      return result.count > 0;
+    } finally {
+      db.close();
     }
-
-    db.loadExtension(vecPath);
-
-    const stmt = db.prepare("SELECT COUNT(*) as count FROM embeddings");
-    const result = stmt.get() as { count: number };
-    return result.count > 0;
   } catch {
     return false;
-  } finally {
-    db.close();
   }
 }
 
@@ -166,29 +199,13 @@ export async function semanticSearch(
   query: string,
   options: SemanticSearchOptions = {},
 ): Promise<SemanticResult[]> {
-  const dbPath = getDatabasePath();
-
-  if (!existsSync(dbPath)) {
-    throw new Error(`Database not found: ${dbPath}. Run lore-db-init first.`);
-  }
-
   // Get query embedding
   const queryEmbedding = await embedQuery(query);
   const queryBlob = serializeEmbedding(queryEmbedding);
 
-  const db = new Database(dbPath, { readonly: true });
+  const db = openDatabase(true);
 
   try {
-    // Load sqlite-vec extension
-    const vecPath = process.env.SQLITE_VEC_PATH;
-    if (!vecPath) {
-      throw new Error(
-        'SQLITE_VEC_PATH not set. Get path with: python3 -c "import sqlite_vec; print(sqlite_vec.loadable_path())"',
-      );
-    }
-
-    db.loadExtension(vecPath);
-
     const limit = options.limit ?? 20;
 
     // KNN query - 1:1 mapping between search rows and embeddings
@@ -321,3 +338,6 @@ export function formatBriefSearch(results: SemanticResult[]): string {
 
   return sections.join("\n\n");
 }
+
+// Export constants and helpers for realtime.ts
+export { MODEL_NAME, EMBEDDING_DIM, serializeEmbedding, getDatabasePath };

@@ -93,3 +93,6 @@ export {
   type SemanticResult,
   type SemanticSearchOptions,
 } from "./lib/semantic";
+
+// Real-time indexing
+export { indexAndEmbed } from "./lib/realtime";

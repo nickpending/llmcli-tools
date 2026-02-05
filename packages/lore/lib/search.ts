@@ -28,6 +28,20 @@ function getDatabasePath(): string {
 }
 
 /**
+ * Escape a query for safe FTS5 MATCH
+ * Wraps terms in double quotes to prevent FTS5 syntax interpretation
+ * (e.g., "real-time" being parsed as column:term)
+ */
+function escapeFts5Query(query: string): string {
+  // Split on whitespace, wrap each term in quotes, rejoin
+  return query
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => `"${term.replace(/"/g, '""')}"`)
+    .join(" ");
+}
+
+/**
  * Search the Lore FTS5 database
  *
  * @param query - FTS5 search query (supports AND, OR, NOT, phrases)
@@ -51,7 +65,7 @@ export function search(
     const limit = options.limit ?? 20;
 
     const conditions: string[] = ["search MATCH ?"];
-    const params: (string | number)[] = [query];
+    const params: (string | number)[] = [escapeFts5Query(query)];
 
     if (options.source) {
       conditions.push("source = ?");

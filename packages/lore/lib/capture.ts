@@ -12,6 +12,7 @@ import { homedir } from "os";
 export interface CaptureResult {
   success: boolean;
   error?: string;
+  event?: CaptureEvent;
   [key: string]: unknown;
 }
 
@@ -220,12 +221,15 @@ function writeEvent(event: CaptureEvent): CaptureResult {
   ensureLogDirectory();
 
   const logPath = getLogPath();
-  const eventWithTimestamp = { ...event, timestamp: getTimestamp() };
+  const eventWithTimestamp = {
+    ...event,
+    timestamp: getTimestamp(),
+  } as CaptureEvent;
   const jsonLine = JSON.stringify(eventWithTimestamp) + "\n";
 
   try {
     appendFileSync(logPath, jsonLine, "utf8");
-    return { success: true };
+    return { success: true, event: eventWithTimestamp };
   } catch (error) {
     return {
       success: false,

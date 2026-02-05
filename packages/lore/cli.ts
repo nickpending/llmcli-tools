@@ -36,6 +36,7 @@ import {
   captureNote,
   captureTeaching,
   captureObservation,
+  indexAndEmbed,
   semanticSearch,
   formatBriefSearch,
   hasEmbeddings,
@@ -522,7 +523,7 @@ Examples:
 // Capture Command
 // ============================================================================
 
-function handleCaptureTask(args: string[]): void {
+async function handleCaptureTask(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
 
   const required = ["topic", "name", "problem", "solution"];
@@ -546,18 +547,26 @@ function handleCaptureTask(args: string[]): void {
   };
 
   const result = captureTask(input);
-  output(result);
 
-  if (result.success) {
-    console.error("✅ Task logged");
-    process.exit(0);
+  if (result.success && result.event) {
+    try {
+      await indexAndEmbed([result.event]);
+      output(result);
+      console.error("✅ Task logged and indexed");
+      process.exit(0);
+    } catch (error) {
+      output(result);
+      console.error(`✅ Task logged (indexing failed: ${error})`);
+      process.exit(0);
+    }
   } else {
+    output(result);
     console.error(`❌ ${result.error}`);
     process.exit(2);
   }
 }
 
-function handleCaptureKnowledge(args: string[]): void {
+async function handleCaptureKnowledge(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
 
   const required = ["topic", "text", "subtype"];
@@ -573,18 +582,26 @@ function handleCaptureKnowledge(args: string[]): void {
   };
 
   const result = captureKnowledge(input);
-  output(result);
 
-  if (result.success) {
-    console.error("✅ Knowledge logged");
-    process.exit(0);
+  if (result.success && result.event) {
+    try {
+      await indexAndEmbed([result.event]);
+      output(result);
+      console.error("✅ Knowledge logged and indexed");
+      process.exit(0);
+    } catch (error) {
+      output(result);
+      console.error(`✅ Knowledge logged (indexing failed: ${error})`);
+      process.exit(0);
+    }
   } else {
+    output(result);
     console.error(`❌ ${result.error}`);
     process.exit(1);
   }
 }
 
-function handleCaptureNote(args: string[]): void {
+async function handleCaptureNote(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
 
   if (!parsed.has("text")) {
@@ -598,18 +615,26 @@ function handleCaptureNote(args: string[]): void {
   };
 
   const result = captureNote(input);
-  output(result);
 
-  if (result.success) {
-    console.error("✅ Note logged");
-    process.exit(0);
+  if (result.success && result.event) {
+    try {
+      await indexAndEmbed([result.event]);
+      output(result);
+      console.error("✅ Note logged and indexed");
+      process.exit(0);
+    } catch (error) {
+      output(result);
+      console.error(`✅ Note logged (indexing failed: ${error})`);
+      process.exit(0);
+    }
   } else {
+    output(result);
     console.error(`❌ ${result.error}`);
     process.exit(2);
   }
 }
 
-function handleCaptureTeaching(args: string[]): void {
+async function handleCaptureTeaching(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
 
   const required = ["topic", "confidence", "text"];
@@ -626,18 +651,26 @@ function handleCaptureTeaching(args: string[]): void {
   };
 
   const result = captureTeaching(input);
-  output(result);
 
-  if (result.success) {
-    console.error("✅ Teaching logged");
-    process.exit(0);
+  if (result.success && result.event) {
+    try {
+      await indexAndEmbed([result.event]);
+      output(result);
+      console.error("✅ Teaching logged and indexed");
+      process.exit(0);
+    } catch (error) {
+      output(result);
+      console.error(`✅ Teaching logged (indexing failed: ${error})`);
+      process.exit(0);
+    }
   } else {
+    output(result);
     console.error(`❌ ${result.error}`);
     process.exit(2);
   }
 }
 
-function handleCaptureObservation(args: string[]): void {
+async function handleCaptureObservation(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
 
   const required = ["topic", "subtype", "confidence", "text"];
@@ -655,18 +688,26 @@ function handleCaptureObservation(args: string[]): void {
   };
 
   const result = captureObservation(input);
-  output(result);
 
-  if (result.success) {
-    console.error("✅ Observation logged");
-    process.exit(0);
+  if (result.success && result.event) {
+    try {
+      await indexAndEmbed([result.event]);
+      output(result);
+      console.error("✅ Observation logged and indexed");
+      process.exit(0);
+    } catch (error) {
+      output(result);
+      console.error(`✅ Observation logged (indexing failed: ${error})`);
+      process.exit(0);
+    }
   } else {
+    output(result);
     console.error(`❌ ${result.error}`);
     process.exit(2);
   }
 }
 
-function handleCapture(args: string[]): void {
+async function handleCapture(args: string[]): Promise<void> {
   if (hasFlag(args, "help")) {
     showCaptureHelp();
   }
@@ -682,19 +723,19 @@ function handleCapture(args: string[]): void {
 
   switch (captureType) {
     case "task":
-      handleCaptureTask(captureArgs);
+      await handleCaptureTask(captureArgs);
       break;
     case "knowledge":
-      handleCaptureKnowledge(captureArgs);
+      await handleCaptureKnowledge(captureArgs);
       break;
     case "note":
-      handleCaptureNote(captureArgs);
+      await handleCaptureNote(captureArgs);
       break;
     case "teaching":
-      handleCaptureTeaching(captureArgs);
+      await handleCaptureTeaching(captureArgs);
       break;
     case "observation":
-      handleCaptureObservation(captureArgs);
+      await handleCaptureObservation(captureArgs);
       break;
     default:
       fail(
@@ -1052,7 +1093,7 @@ Examples:
   process.exit(0);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
   // Show global help only when no args or help is first arg
@@ -1065,7 +1106,7 @@ function main(): void {
 
   switch (command) {
     case "search":
-      handleSearch(commandArgs);
+      await handleSearch(commandArgs);
       break;
     case "list":
       handleList(commandArgs);
@@ -1083,7 +1124,7 @@ function main(): void {
       handleAbout(commandArgs);
       break;
     case "capture":
-      handleCapture(commandArgs);
+      await handleCapture(commandArgs);
       break;
     default:
       fail(
