@@ -161,11 +161,13 @@ function buildMetadata(event: CaptureEvent): string {
   const timestamp = event.timestamp;
   const date = timestamp ? timestamp.substring(0, 10) : "";
 
+  const content = getContentForEmbedding(event);
   const metadata: Record<string, unknown> = {
     topic: data.topic || "general",
     timestamp,
     date,
-    content: getContentForEmbedding(event),
+    content,
+    content_hash: hashContent(content),
   };
 
   // Add type-specific fields
