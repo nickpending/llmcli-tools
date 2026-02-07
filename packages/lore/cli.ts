@@ -38,10 +38,12 @@ import {
   captureObservation,
   indexAndEmbed,
   semanticSearch,
+  hybridSearch,
   formatBriefSearch,
   hasEmbeddings,
   SOURCES,
   type SearchResult,
+  type HybridResult,
   type ListResult,
   type ListEntry,
   type Source,
@@ -89,7 +91,14 @@ function parseArgs(args: string[]): Map<string, string> {
 }
 
 // Boolean flags that don't take values
-const BOOLEAN_FLAGS = new Set(["help", "sources", "domains", "exact", "brief"]);
+const BOOLEAN_FLAGS = new Set([
+  "help",
+  "sources",
+  "domains",
+  "exact",
+  "semantic",
+  "brief",
+]);
 
 function getPositionalArgs(args: string[]): string[] {
   const result: string[] = [];
@@ -157,6 +166,7 @@ async function handleSearch(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
   const positional = getPositionalArgs(args);
   const exact = hasFlag(args, "exact");
+  const semanticOnly = hasFlag(args, "semantic");
 
   // Handle --sources flag
   if (hasFlag(args, "sources")) {
@@ -258,33 +268,70 @@ async function handleSearch(args: string[]): Promise<void> {
     return;
   }
 
-  // Semantic path (default) - fail if unavailable
+  // Check embeddings for semantic/hybrid modes
   if (!hasEmbeddings()) {
     fail("No embeddings found. Run lore-embed-all first.", 2);
   }
 
   const brief = hasFlag(args, "brief");
 
+  // Semantic-only path (explicit --semantic)
+  if (semanticOnly) {
+    try {
+      const results = await semanticSearch(query, { source, limit, project });
+
+      if (brief) {
+        console.log(formatBriefSearch(results));
+      } else {
+        output({
+          success: true,
+          results,
+          count: results.length,
+          mode: "semantic",
+        });
+      }
+      console.error(
+        `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (semantic)`,
+      );
+      process.exit(0);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      fail(`Semantic search failed: ${message}`, 2);
+    }
+    return;
+  }
+
+  // Hybrid path (default) - combines vector + keyword
   try {
-    const results = await semanticSearch(query, { source, limit, project });
+    const results = await hybridSearch(query, {
+      source,
+      limit,
+      project,
+      since,
+    });
 
     if (brief) {
-      console.log(formatBriefSearch(results));
+      // Format hybrid results for brief output (reuse semantic formatter)
+      const asSemanticResults = results.map((r) => ({
+        ...r,
+        distance: 1 - r.score, // Convert score back to distance-like for formatter
+      }));
+      console.log(formatBriefSearch(asSemanticResults));
     } else {
       output({
         success: true,
         results,
         count: results.length,
-        mode: "semantic",
+        mode: "hybrid",
       });
     }
     console.error(
-      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (semantic)`,
+      `✅ ${results.length} result${results.length !== 1 ? "s" : ""} found (hybrid)`,
     );
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    fail(`Semantic search failed: ${message}`, 2);
+    fail(`Hybrid search failed: ${message}`, 2);
   }
 }
 
@@ -832,13 +879,17 @@ function showSearchHelp(): void {
 lore search - Search indexed knowledge
 
 Usage:
-  lore search <query>                   Search all sources
+  lore search <query>                   Search all sources (hybrid by default)
   lore search <source> <query>          Search specific source
 
+Search Modes:
+  (default)         Hybrid search (vector + keyword merged, 0.7/0.3 weighting)
+  --exact           FTS5 keyword search only
+  --semantic        Vector search only
+
 Options:
-  --exact           Use FTS5 text search (bypasses semantic search)
   --limit <n>       Maximum results (default: 20)
-  --project <name>  Filter results by project (post-filters KNN results)
+  --project <name>  Filter results by project/topic
   --brief           Compact output (titles only)
   --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --help            Show this help
@@ -867,11 +918,12 @@ See also:
   lore sources      List all sources with entry counts
 
 Examples:
-  lore search "authentication"
+  lore search "authentication"                      # hybrid (default)
+  lore search --exact "def process_data"            # keyword only
+  lore search --semantic "login flow concepts"      # vector only
   lore search blogs "typescript patterns"
   lore search commits --since this-week "refactor"
   lore search "authentication" --project=momentum --limit 5
-  lore search --exact "def process_data"
   lore search prismis "kubernetes security"
   lore search atuin "docker build"
 `);

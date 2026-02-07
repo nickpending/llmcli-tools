@@ -87,11 +87,14 @@ export {
 // Semantic search
 export {
   semanticSearch,
+  hybridSearch,
   formatBriefSearch,
   embedQuery,
   hasEmbeddings,
   type SemanticResult,
   type SemanticSearchOptions,
+  type HybridResult,
+  type HybridSearchOptions,
 } from "./lib/semantic";
 
 // Real-time indexing

@@ -10,8 +10,10 @@ import { Database } from "bun:sqlite";
 import { existsSync } from "fs";
 import { pipeline } from "@huggingface/transformers";
 import { getDatabasePath, openDatabase } from "./db.js";
+import { search as keywordSearch, type SearchResult } from "./search.js";
 
 export interface SemanticResult {
+  rowid: number;
   source: string;
   title: string;
   content: string;
@@ -230,6 +232,7 @@ export async function semanticSearch(
 
     sql = `
       SELECT
+        s.rowid,
         s.source,
         s.title,
         s.content,
@@ -250,6 +253,139 @@ export async function semanticSearch(
   } finally {
     db.close();
   }
+}
+
+/**
+ * Result from hybrid search with fused score
+ */
+export interface HybridResult {
+  rowid: number;
+  source: string;
+  title: string;
+  content: string;
+  metadata: string;
+  score: number;
+  vectorScore: number;
+  textScore: number;
+}
+
+export interface HybridSearchOptions {
+  source?: string;
+  limit?: number;
+  project?: string;
+  since?: string;
+  vectorWeight?: number;
+  textWeight?: number;
+}
+
+/**
+ * Normalize BM25 rank to 0-1 score (higher = better match)
+ * FTS5 rank is negative (more negative = better match)
+ */
+function bm25RankToScore(rank: number): number {
+  // rank is negative, more negative = better
+  // Convert to positive score: 1 - (1 / (1 + |rank|))
+  // rank = -15 → score = 0.94
+  // rank = -1 → score = 0.50
+  // rank = -0.1 → score = 0.09
+  return 1 - 1 / (1 + Math.abs(rank));
+}
+
+/**
+ * Normalize vector distance to 0-1 score (higher = better match)
+ * Cosine distance is 0-2 (0 = identical, 2 = opposite)
+ */
+function distanceToScore(distance: number): number {
+  // distance 0 = score 1, distance 2 = score 0
+  return Math.max(0, 1 - distance / 2);
+}
+
+/**
+ * Perform hybrid search combining vector and keyword results
+ * Runs both searches in parallel, merges by rowid, fuses scores
+ *
+ * @param query - Search query
+ * @param options - Search options including optional weight tuning
+ * @returns Results sorted by fused score (0.7 vector + 0.3 keyword by default)
+ */
+export async function hybridSearch(
+  query: string,
+  options: HybridSearchOptions = {},
+): Promise<HybridResult[]> {
+  const vectorWeight = options.vectorWeight ?? 0.7;
+  const textWeight = options.textWeight ?? 0.3;
+  const limit = options.limit ?? 20;
+
+  // Fetch more results from each search to ensure good merge coverage
+  const fetchLimit = Math.max(limit * 2, 50);
+
+  // Run both searches in parallel
+  const [vectorResults, keywordResults] = await Promise.all([
+    semanticSearch(query, {
+      source: options.source,
+      limit: fetchLimit,
+      project: options.project,
+    }),
+    Promise.resolve(
+      keywordSearch(query, {
+        source: options.source,
+        limit: fetchLimit,
+        since: options.since,
+      }),
+    ),
+  ]);
+
+  // Merge by rowid
+  const merged = new Map<number, HybridResult>();
+
+  // Add vector results
+  for (const r of vectorResults) {
+    const vectorScore = distanceToScore(r.distance);
+    merged.set(r.rowid, {
+      rowid: r.rowid,
+      source: r.source,
+      title: r.title,
+      content: r.content,
+      metadata: r.metadata,
+      vectorScore,
+      textScore: 0,
+      score: vectorWeight * vectorScore,
+    });
+  }
+
+  // Merge keyword results
+  for (const r of keywordResults) {
+    const textScore = bm25RankToScore(r.rank);
+    const existing = merged.get(r.rowid);
+
+    if (existing) {
+      // Update with keyword score
+      existing.textScore = textScore;
+      existing.score =
+        vectorWeight * existing.vectorScore + textWeight * textScore;
+      // Use keyword content (has snippets with highlights)
+      existing.content = r.content;
+    } else {
+      // New entry from keyword only
+      merged.set(r.rowid, {
+        rowid: r.rowid,
+        source: r.source,
+        title: r.title,
+        content: r.content,
+        metadata: r.metadata,
+        vectorScore: 0,
+        textScore,
+        score: textWeight * textScore,
+      });
+    }
+  }
+
+  // Sort by fused score (descending) and limit
+  const results = Array.from(merged.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return results;
 }
 
 /**

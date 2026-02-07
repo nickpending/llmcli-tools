@@ -10,6 +10,7 @@ import { homedir } from "os";
 import { existsSync } from "fs";
 
 export interface SearchResult {
+  rowid: number;
   source: string;
   title: string;
   content: string;
@@ -82,7 +83,7 @@ export function search(
     params.push(limit);
 
     const sql = `
-      SELECT source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, rank
+      SELECT rowid, source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, rank
       FROM search
       WHERE ${conditions.join(" AND ")}
       ORDER BY rank
