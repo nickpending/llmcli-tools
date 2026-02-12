@@ -97,5 +97,8 @@ export {
   type HybridSearchOptions,
 } from "./lib/semantic";
 
+// Types
+export { LoreType, LORE_TYPES, isValidLoreType } from "./lib/types";
+
 // Real-time indexing
 export { indexAndEmbed } from "./lib/realtime";

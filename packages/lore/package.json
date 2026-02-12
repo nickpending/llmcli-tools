@@ -20,6 +20,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "build": "tsc --noEmit false --outDir dist --declaration",
+    "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
   "keywords": [
