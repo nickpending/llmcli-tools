@@ -113,7 +113,7 @@ function getSourceForEvent(event: CaptureEvent): string {
     case "learning":
       return "learnings";
     case "task":
-      return "tasks";
+      return "flux";
     case "note":
       return "captures";
     default:

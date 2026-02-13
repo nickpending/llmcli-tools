@@ -16,7 +16,7 @@ export interface AboutResult {
   project: string;
   commits: ListResult;
   captures: ListResult;
-  tasks: ListResult;
+  flux: ListResult;
   teachings: ListResult;
   sessions: ListResult;
 }
@@ -29,7 +29,7 @@ export interface AboutResult {
 const ABOUT_SOURCES: Source[] = [
   "commits",
   "captures",
-  "tasks",
+  "flux",
   "teachings",
   "sessions",
 ];
@@ -65,7 +65,7 @@ export function about(
     project,
     commits: results[0],
     captures: results[1],
-    tasks: results[2],
+    flux: results[2],
     teachings: results[3],
     sessions: results[4],
   };
@@ -85,8 +85,8 @@ export function formatBriefAbout(result: AboutResult): string {
   if (result.captures.count > 0) {
     sections.push(formatBriefList(result.captures));
   }
-  if (result.tasks.count > 0) {
-    sections.push(formatBriefList(result.tasks));
+  if (result.flux.count > 0) {
+    sections.push(formatBriefList(result.flux));
   }
   if (result.teachings.count > 0) {
     sections.push(formatBriefList(result.teachings));

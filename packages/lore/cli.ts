@@ -510,7 +510,7 @@ function handleAbout(args: string[]): void {
     const totalCount =
       result.commits.count +
       result.captures.count +
-      result.tasks.count +
+      result.flux.count +
       result.teachings.count +
       result.sessions.count;
 
@@ -1048,7 +1048,7 @@ Options:
 Sources queried:
   commits           Git commits for project
   captures          Quick captures in project context
-  tasks             Development tasks for project
+  flux              Flux items for project
   teachings         Teachings from project
   sessions          Claude Code sessions for project
 
@@ -1057,7 +1057,7 @@ Output (JSON):
     "project": "name",
     "commits": [...],
     "captures": [...],
-    "tasks": [...],
+    "flux": [...],
     "teachings": [...],
     "sessions": [...]
   }

@@ -12,7 +12,7 @@ import { existsSync } from "fs";
 // Source types - data sources that can be listed
 export type Source =
   | "development"
-  | "tasks"
+  | "flux"
   | "events"
   | "blogs"
   | "commits"
@@ -34,7 +34,7 @@ export type Source =
 
 export const SOURCES: Source[] = [
   "development",
-  "tasks",
+  "flux",
   "events",
   "blogs",
   "commits",
@@ -70,7 +70,7 @@ const PERSONAL_SUBTYPES: Partial<Record<Source, string>> = {
 const PROJECT_FIELD: Record<string, string> = {
   commits: "project",
   sessions: "project",
-  tasks: "project",
+  flux: "project",
   insights: "topic",
   captures: "topic",
   teachings: "topic",
