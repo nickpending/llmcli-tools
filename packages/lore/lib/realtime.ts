@@ -87,13 +87,15 @@ function insertSearchEntry(db: Database, event: CaptureEvent): number {
   const title = buildTitle(event);
   const content = getContentForEmbedding(event);
   const metadata = buildMetadata(event);
+  const data = event.data as Record<string, unknown>;
+  const topic = String(data.topic || "");
 
   const stmt = db.prepare(`
-    INSERT INTO search (source, title, content, metadata)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO search (source, title, content, metadata, topic)
+    VALUES (?, ?, ?, ?, ?)
   `);
 
-  const result = stmt.run(source, title, content, metadata);
+  const result = stmt.run(source, title, content, metadata, topic);
   return Number(result.lastInsertRowid);
 }
 
@@ -147,10 +149,13 @@ function buildTitle(event: CaptureEvent): string {
 
 /**
  * Extract content for embedding from event
+ * Concatenates topic+content for richer embeddings (matches lore-embed-all)
  */
 function getContentForEmbedding(event: CaptureEvent): string {
   const data = event.data as Record<string, unknown>;
-  return String(data.content || data.text || "");
+  const content = String(data.content || data.text || "");
+  const topic = String(data.topic || "").trim();
+  return topic ? `${topic} ${content}`.trim() : content;
 }
 
 /**
@@ -255,13 +260,40 @@ function insertEmbedding(
   const source = getSourceForEvent(event);
   const data = event.data as Record<string, unknown>;
   const topic = String(data.topic || "");
+  const type = extractType(event);
 
   const embeddingBlob = serializeEmbedding(embedding);
 
   const stmt = db.prepare(`
-    INSERT INTO embeddings (doc_id, chunk_idx, source, topic, embedding)
-    VALUES (?, 0, ?, ?, ?)
+    INSERT INTO embeddings (doc_id, chunk_idx, source, topic, type, embedding)
+    VALUES (?, 0, ?, ?, ?, ?)
   `);
 
-  stmt.run(docId, source, topic, embeddingBlob);
+  stmt.run(docId, source, topic, type, embeddingBlob);
+}
+
+/**
+ * Extract type value for embeddings partition column
+ */
+function extractType(event: CaptureEvent): string {
+  const data = event.data as Record<string, unknown>;
+
+  switch (event.type) {
+    case "knowledge":
+      return String(data.subtype || "general");
+    case "teaching":
+      return "teaching";
+    case "observation":
+      return String(data.subtype || "pattern");
+    case "insight":
+      return String(data.subtype || "insight");
+    case "learning":
+      return "learning";
+    case "task":
+      return "task";
+    case "note":
+      return "note";
+    default:
+      return "general";
+  }
 }
