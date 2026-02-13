@@ -56,6 +56,7 @@ import {
   type ObservationSubtype,
   type ObservationConfidence,
 } from "./index";
+import { isValidLoreType, LORE_TYPES } from "./lib/types";
 
 // ============================================================================
 // Argument Parsing
@@ -204,6 +205,17 @@ async function handleSearch(args: string[]): Promise<void> {
   const limit = parsed.has("limit") ? parseInt(parsed.get("limit")!, 10) : 20;
   const since = parsed.get("since");
   const project = parsed.get("project");
+  const type = parseList(parsed.get("type"));
+
+  // Validate type values against LoreType enum
+  if (type) {
+    const invalid = type.filter((t) => !isValidLoreType(t));
+    if (invalid.length > 0) {
+      fail(
+        `Invalid type: ${invalid.join(", ")}. Valid types: ${LORE_TYPES.join(", ")}`,
+      );
+    }
+  }
 
   // Handle prismis passthrough
   if (source === "prismis") {
@@ -250,7 +262,7 @@ async function handleSearch(args: string[]): Promise<void> {
   // FTS5 path (explicit --exact only)
   if (exact) {
     try {
-      const results = search(query, { source, limit, since });
+      const results = search(query, { source, limit, since, type });
       output({
         success: true,
         results,
@@ -278,7 +290,12 @@ async function handleSearch(args: string[]): Promise<void> {
   // Semantic-only path (explicit --semantic)
   if (semanticOnly) {
     try {
-      const results = await semanticSearch(query, { source, limit, project });
+      const results = await semanticSearch(query, {
+        source,
+        limit,
+        project,
+        type,
+      });
 
       if (brief) {
         console.log(formatBriefSearch(results));
@@ -308,6 +325,7 @@ async function handleSearch(args: string[]): Promise<void> {
       limit,
       project,
       since,
+      type,
     });
 
     if (brief) {
@@ -817,6 +835,7 @@ Usage:
 
 Search Options:
   --exact           Use FTS5 text search (bypasses semantic search)
+  --type <types>    Filter by knowledge type (gotcha, decision, learning, etc.)
   --limit <n>       Maximum results (default: 20)
   --project <name>  Filter results by project
   --brief           Compact output (titles only)
@@ -864,6 +883,8 @@ Capture Types:
 
 Examples:
   lore search "authentication"
+  lore search --type=gotcha "sable"
+  lore search --type=gotcha,decision "lore"
   lore search blogs "typescript patterns"
   lore sources
   lore list development
@@ -888,6 +909,10 @@ Search Modes:
   --semantic        Vector search only
 
 Options:
+  --type <types>    Filter by knowledge type (pre-filters before search)
+                    Comma-separated: --type=gotcha,decision
+                    Valid: gotcha, decision, pattern, learning, preference,
+                           term, style, teaching, task, todo, idea
   --limit <n>       Maximum results (default: 20)
   --project <name>  Filter results by project/topic
   --brief           Compact output (titles only)
@@ -919,6 +944,8 @@ See also:
 
 Examples:
   lore search "authentication"                      # hybrid (default)
+  lore search --type=gotcha "sable"                 # filter by type
+  lore search --type=gotcha,decision "lore"         # multiple types
   lore search --exact "def process_data"            # keyword only
   lore search --semantic "login flow concepts"      # vector only
   lore search blogs "typescript patterns"

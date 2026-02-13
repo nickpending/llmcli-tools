@@ -22,6 +22,7 @@ export interface SearchOptions {
   source?: string;
   limit?: number;
   since?: string;
+  type?: string | string[];
 }
 
 function getDatabasePath(): string {
@@ -71,6 +72,18 @@ export function search(
     if (options.source) {
       conditions.push("source = ?");
       params.push(options.source);
+    }
+
+    if (options.type) {
+      const types = Array.isArray(options.type) ? options.type : [options.type];
+      const typeClauses = types.map(
+        () =>
+          "(json_extract(metadata, '$.type') = ? OR json_extract(metadata, '$.subtype') = ?)",
+      );
+      conditions.push(`(${typeClauses.join(" OR ")})`);
+      types.forEach((t) => {
+        params.push(t, t);
+      });
     }
 
     if (options.since) {

@@ -25,6 +25,7 @@ export interface SemanticSearchOptions {
   source?: string;
   limit?: number;
   project?: string;
+  type?: string | string[];
 }
 
 /**
@@ -230,6 +231,13 @@ export async function semanticSearch(
       params.push(options.project);
     }
 
+    if (options.type) {
+      const types = Array.isArray(options.type) ? options.type : [options.type];
+      const placeholders = types.map(() => "?").join(", ");
+      conditions.push(`e.type IN (${placeholders})`);
+      params.push(...types);
+    }
+
     sql = `
       SELECT
         s.rowid,
@@ -274,6 +282,7 @@ export interface HybridSearchOptions {
   limit?: number;
   project?: string;
   since?: string;
+  type?: string | string[];
   vectorWeight?: number;
   textWeight?: number;
 }
@@ -325,12 +334,14 @@ export async function hybridSearch(
       source: options.source,
       limit: fetchLimit,
       project: options.project,
+      type: options.type,
     }),
     Promise.resolve(
       keywordSearch(query, {
         source: options.source,
         limit: fetchLimit,
         since: options.since,
+        type: options.type,
       }),
     ),
   ]);
