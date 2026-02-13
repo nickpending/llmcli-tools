@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/llm-summarize",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Structured session insight extraction for knowledge systems",
   "type": "module",
   "main": "./index.ts",

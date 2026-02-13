@@ -30,6 +30,8 @@ export interface SessionInsights {
   should_search?: boolean;
   extractions?: Extraction[];
   // Insights mode fields
+  current_focus?: string;
+  next_steps?: string[];
   decisions?: string[];
   patterns_used?: string[];
   preferences_expressed?: string[];
@@ -39,6 +41,7 @@ export interface SessionInsights {
 
 export interface SummarizeResult {
   insights?: SessionInsights;
+  rawText?: string;
   error?: string;
   model?: string;
   tokens_used?: number;
@@ -58,6 +61,8 @@ export interface SummarizeOptions {
   mode?: "quick" | "insights";
   /** User name to include in summary (e.g., "Rudy") */
   userName?: string;
+  /** Override the system prompt (bypasses mode-based prompt selection) */
+  systemPrompt?: string;
 }
 
 export type ProviderType = "anthropic" | "openai" | "ollama";
@@ -152,6 +157,8 @@ Your job: extract what's worth remembering for future sessions.
 <output_schema>
 {
   "summary": "One sentence capturing what was accomplished and how",
+  "current_focus": "What work is actively in progress — the specific task, feature, or thread (omit if session was exploratory with no clear focus)",
+  "next_steps": ["What should happen when work resumes — concrete actions, not vague intentions"],
   "decisions": ["Decision made with reasoning and trade-offs considered"],
   "patterns_used": ["Development pattern or approach, with context on why it was chosen"],
   "preferences_expressed": ["Preference revealed through direction or feedback"],
@@ -421,12 +428,14 @@ async function callAnthropic(
 
     if (!insights) {
       return {
+        rawText: content,
         error: `Failed to parse response as JSON: ${content.slice(0, 200)}`,
       };
     }
 
     return {
       insights,
+      rawText: content,
       model,
       tokens_used: result.usage?.output_tokens,
     };
@@ -487,12 +496,14 @@ async function callOpenAI(
 
     if (!insights) {
       return {
+        rawText: content,
         error: `Failed to parse response as JSON: ${content.slice(0, 200)}`,
       };
     }
 
     return {
       insights,
+      rawText: content,
       model,
       tokens_used: result.usage?.completion_tokens,
     };
@@ -554,12 +565,14 @@ async function callOllama(
 
     if (!insights) {
       return {
+        rawText: content,
         error: `Failed to parse response as JSON: ${content.slice(0, 200)}`,
       };
     }
 
     return {
       insights,
+      rawText: content,
       model,
       tokens_used: result.eval_count,
     };
@@ -597,7 +610,7 @@ export async function summarize(
   const apiKey = config.apiKey;
   const mode: SummarizeMode = options?.mode || "insights";
   const userName = options?.userName;
-  const systemPrompt = getPromptForMode(mode, userName);
+  const systemPrompt = options?.systemPrompt || getPromptForMode(mode, userName);
 
   // Validate config
   if (!provider) {
