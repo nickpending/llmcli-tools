@@ -19,7 +19,7 @@ export interface SearchResult {
 }
 
 export interface SearchOptions {
-  source?: string;
+  source?: string | string[];
   limit?: number;
   since?: string;
   type?: string | string[];
@@ -70,8 +70,17 @@ export function search(
     const params: (string | number)[] = [escapeFts5Query(query)];
 
     if (options.source) {
-      conditions.push("source = ?");
-      params.push(options.source);
+      const sources = Array.isArray(options.source)
+        ? options.source
+        : [options.source];
+      if (sources.length === 1) {
+        conditions.push("source = ?");
+        params.push(sources[0]);
+      } else {
+        const placeholders = sources.map(() => "?").join(", ");
+        conditions.push(`source IN (${placeholders})`);
+        params.push(...sources);
+      }
     }
 
     if (options.type) {

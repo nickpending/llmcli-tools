@@ -22,7 +22,7 @@ export interface SemanticResult {
 }
 
 export interface SemanticSearchOptions {
-  source?: string;
+  source?: string | string[];
   limit?: number;
   project?: string;
   type?: string | string[];
@@ -222,8 +222,17 @@ export async function semanticSearch(
     params.push(limit);
 
     if (options.source) {
-      conditions.push("e.source = ?");
-      params.push(options.source);
+      const sources = Array.isArray(options.source)
+        ? options.source
+        : [options.source];
+      if (sources.length === 1) {
+        conditions.push("e.source = ?");
+        params.push(sources[0]);
+      } else {
+        const placeholders = sources.map(() => "?").join(", ");
+        conditions.push(`e.source IN (${placeholders})`);
+        params.push(...sources);
+      }
     }
 
     if (options.project) {
@@ -278,7 +287,7 @@ export interface HybridResult {
 }
 
 export interface HybridSearchOptions {
-  source?: string;
+  source?: string | string[];
   limit?: number;
   project?: string;
   since?: string;

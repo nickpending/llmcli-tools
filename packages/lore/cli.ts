@@ -217,6 +217,22 @@ async function handleSearch(args: string[]): Promise<void> {
     }
   }
 
+  // Parse --source flag (comma-separated list)
+  const sourceFilter = parseList(parsed.get("source"));
+
+  // Validate source filter values against SOURCES constant
+  if (sourceFilter) {
+    const invalid = sourceFilter.filter((s) => !SOURCES.includes(s as Source));
+    if (invalid.length > 0) {
+      fail(
+        `Invalid source: ${invalid.join(", ")}. Valid sources: ${SOURCES.join(", ")}`,
+      );
+    }
+  }
+
+  // Resolve effective source: --source flag takes precedence over positional arg
+  const effectiveSource: string | string[] | undefined = sourceFilter ?? source;
+
   // Handle prismis passthrough
   if (source === "prismis") {
     searchPrismis(query, { limit })
@@ -262,7 +278,12 @@ async function handleSearch(args: string[]): Promise<void> {
   // FTS5 path (explicit --exact only)
   if (exact) {
     try {
-      const results = search(query, { source, limit, since, type });
+      const results = search(query, {
+        source: effectiveSource,
+        limit,
+        since,
+        type,
+      });
       output({
         success: true,
         results,
@@ -291,7 +312,7 @@ async function handleSearch(args: string[]): Promise<void> {
   if (semanticOnly) {
     try {
       const results = await semanticSearch(query, {
-        source,
+        source: effectiveSource,
         limit,
         project,
         type,
@@ -321,7 +342,7 @@ async function handleSearch(args: string[]): Promise<void> {
   // Hybrid path (default) - combines vector + keyword
   try {
     const results = await hybridSearch(query, {
-      source,
+      source: effectiveSource,
       limit,
       project,
       since,
@@ -835,6 +856,7 @@ Usage:
 
 Search Options:
   --exact           Use FTS5 text search (bypasses semantic search)
+  --source <src>    Filter by source (comma-separated: captures,teachings)
   --type <types>    Filter by knowledge type (gotcha, decision, learning, etc.)
   --limit <n>       Maximum results (default: 20)
   --project <name>  Filter results by project
@@ -883,6 +905,8 @@ Capture Types:
 
 Examples:
   lore search "authentication"
+  lore search --source=captures "sable"
+  lore search --source=captures,teachings "schema"
   lore search --type=gotcha "sable"
   lore search --type=gotcha,decision "lore"
   lore search blogs "typescript patterns"
@@ -909,6 +933,8 @@ Search Modes:
   --semantic        Vector search only
 
 Options:
+  --source <src>    Filter by source (pre-filters before search)
+                    Comma-separated: --source=captures,teachings
   --type <types>    Filter by knowledge type (pre-filters before search)
                     Comma-separated: --type=gotcha,decision
                     Valid: gotcha, decision, pattern, learning, preference,
@@ -944,6 +970,9 @@ See also:
 
 Examples:
   lore search "authentication"                      # hybrid (default)
+  lore search --source=captures "sable"             # filter by source
+  lore search --source=captures,teachings "schema"  # multiple sources
+  lore search --source=flux --type=todo "sable"     # combined filters
   lore search --type=gotcha "sable"                 # filter by type
   lore search --type=gotcha,decision "lore"         # multiple types
   lore search --exact "def process_data"            # keyword only
