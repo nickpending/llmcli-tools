@@ -36,7 +36,6 @@ export interface SessionInsights {
   patterns_used?: string[];
   preferences_expressed?: string[];
   problems_solved?: string[];
-  tools_heavy?: string[];
 }
 
 export interface SummarizeResult {
@@ -146,55 +145,52 @@ Output valid JSON only. No markdown, no explanation.`;
  * Note: userName param kept for API compatibility but not used in insights mode
  */
 function buildInsightsPrompt(_userName?: string): string {
-  return `You are a senior engineering manager extracting reusable insights from development sessions.
+  return `You are an engineering knowledge extractor. Given a development session transcript, extract reusable insights as structured JSON.
 
-You receive transcripts with clear role markers:
-- "User Asked:" = the human directing work (requests, approves, provides context)
-- "Assistant Response:" = the AI executing work (implements, builds, debugs, explains)
+Transcripts use role markers:
+- "User Asked:" = the human (directs, decides, provides context)
+- "Assistant Response:" = the AI (implements, builds, debugs)
 
-Your job: extract what's worth remembering for future sessions.
+<output_format>
+Return a JSON object with these fields. Include a field ONLY when the transcript provides clear evidence. Omit empty arrays entirely.
 
-<output_schema>
 {
-  "summary": "One sentence capturing what was accomplished and how",
-  "current_focus": "What work is actively in progress — the specific task, feature, or thread (omit if session was exploratory with no clear focus)",
-  "next_steps": ["What should happen when work resumes — concrete actions, not vague intentions"],
-  "decisions": ["Decision made with reasoning and trade-offs considered"],
-  "patterns_used": ["Development pattern or approach, with context on why it was chosen"],
-  "preferences_expressed": ["Preference revealed through direction or feedback"],
-  "problems_solved": ["Problem encountered and the specific solution applied"],
-  "tools_heavy": ["Tool used repeatedly or for critical work"]
+  "summary": "One sentence: what was accomplished and the key outcome",
+  "current_focus": "The specific task, feature, or problem actively being worked on (omit if exploratory)",
+  "next_steps": ["Concrete action to take when work resumes — name the actual task"],
+  "decisions": ["Decision made — rationale and what alternatives were considered"],
+  "patterns_used": ["Technique or approach applied — why it was chosen over alternatives"],
+  "preferences_expressed": ["User preference revealed through direction, correction, or explicit statement"],
+  "problems_solved": ["Problem encountered — root cause identified and specific fix applied"]
 }
-</output_schema>
+</output_format>
 
-<attribution_rules>
-- User actions: requested, approved, directed, provided, chose, preferred
-- Assistant actions: implemented, built, debugged, refactored, created, fixed
-- Never say "User implemented" or "User built" — users direct, assistants execute
-</attribution_rules>
+<quality_rules>
+Every value MUST be a complete sentence with context. Never output bare nouns, short phrases, or sentence fragments.
 
-<quality_guidance>
-Extract specifics with context, not bare facts:
+BAD (will be rejected):
+- "SQLite"
+- "detached worker"
+- "Fixed bug"
+- "Continue working"
 
-SPARSE (avoid):
-- "Made a database decision"
-- "Fixed a bug"
-- "Used TypeScript"
+GOOD (specific, contextual, reusable):
+- "Chose SQLite over Postgres for single-user CLI — no server dependency needed"
+- "Used detached worker pattern to avoid blocking the stop hook during LLM calls"
+- "Fixed state file writing to wrong directory — was using read-only data path instead of persistent home"
+- "Wire up the webhook endpoint to the event processor and verify with integration test"
 
-RICH (prefer):
-- "Chose SQLite over Postgres for single-user CLI tool — avoids server dependency"
-- "Fixed race condition in webhook handler by adding mutex lock — was causing duplicate events"
-- "Used Zod for runtime validation at API boundary — catches malformed input before it hits business logic"
-</quality_guidance>
+For next_steps specifically: never say "Continue from current position" or "Resume work" — name the actual task to be done.
+</quality_rules>
 
-<rules>
-- Include a field ONLY when the transcript provides clear evidence
-- Omit empty arrays entirely
-- Capture the "why" when present — reasoning is more valuable than the decision alone
-- Technical specifics (library names, patterns, trade-offs) make insights reusable
-</rules>
+<attribution>
+Users direct and decide. Assistants implement and execute.
+- User: requested, approved, directed, chose, preferred, corrected
+- Assistant: implemented, built, debugged, refactored, created, fixed
+- Never say "User implemented" or "User built"
+</attribution>
 
-Output valid JSON only. No markdown code blocks, no explanation.`;
+Output valid JSON only. No markdown, no code blocks, no explanation.`;
 }
 
 /**
@@ -610,7 +606,8 @@ export async function summarize(
   const apiKey = config.apiKey;
   const mode: SummarizeMode = options?.mode || "insights";
   const userName = options?.userName;
-  const systemPrompt = options?.systemPrompt || getPromptForMode(mode, userName);
+  const systemPrompt =
+    options?.systemPrompt || getPromptForMode(mode, userName);
 
   // Validate config
   if (!provider) {
