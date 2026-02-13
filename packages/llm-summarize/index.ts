@@ -145,52 +145,57 @@ Output valid JSON only. No markdown, no explanation.`;
  * Note: userName param kept for API compatibility but not used in insights mode
  */
 function buildInsightsPrompt(_userName?: string): string {
-  return `You are an engineering knowledge extractor. Given a development session transcript, extract reusable insights as structured JSON.
+  return `You are a session state extractor. Given a development conversation, produce a JSON snapshot of the session's current state.
 
-Transcripts use role markers:
-- "User Asked:" = the human (directs, decides, provides context)
-- "Assistant Response:" = the AI (implements, builds, debugs)
+<instructions>
+1. Read the conversation in the <transcript> section
+2. Ignore the <previous_state> section — it is background context only, not part of this session
+3. Extract ONLY what happened in the transcript
+4. Produce a JSON object with the fields described below
+</instructions>
 
-<output_format>
-Return a JSON object with these fields. Include a field ONLY when the transcript provides clear evidence. Omit empty arrays entirely.
+<fields>
+- summary: One sentence describing what was accomplished this session
+- current_focus: The specific task or feature being worked on (omit if exploratory)
+- next_steps: Array of concrete next actions. Name the specific task.
+- decisions: Array of decisions made this session, each with rationale
+- patterns_used: Array of techniques or approaches applied, each with context
+- preferences_expressed: Array of user preferences revealed through direction or correction
+- problems_solved: Array of problems encountered with root cause and fix
+</fields>
 
-{
-  "summary": "One sentence: what was accomplished and the key outcome",
-  "current_focus": "The specific task, feature, or problem actively being worked on (omit if exploratory)",
-  "next_steps": ["Concrete action to take when work resumes — name the actual task"],
-  "decisions": ["Decision made — rationale and what alternatives were considered"],
-  "patterns_used": ["Technique or approach applied — why it was chosen over alternatives"],
-  "preferences_expressed": ["User preference revealed through direction, correction, or explicit statement"],
-  "problems_solved": ["Problem encountered — root cause identified and specific fix applied"]
-}
-</output_format>
+Include a field only when the transcript contains clear evidence. Omit empty arrays. Every value must be a complete sentence.
 
-<quality_rules>
-Every value MUST be a complete sentence with context. Never output bare nouns, short phrases, or sentence fragments.
+<example>
+<input>
+<previous_state>Focus: Building authentication system</previous_state>
+<transcript>
+User Asked: Let's use JWT instead of sessions for auth
+Assistant Response: Switched from express-session to jsonwebtoken. JWTs are stateless so we don't need Redis for session storage anymore. Updated the middleware to verify tokens on each request.
+User Asked: Make sure the tokens expire after 24 hours
+Assistant Response: Set expiresIn to 24h in the sign options. Also added a refresh token flow so users don't get logged out mid-work.
+</transcript>
+</input>
+<output>
+{"summary":"Implemented JWT-based authentication replacing session-based auth, with 24-hour token expiry and refresh token flow","current_focus":"Authentication system implementation","next_steps":["Test the refresh token flow with expired tokens","Add token revocation for logout"],"decisions":["Chose JWT over sessions — eliminates Redis dependency since tokens are stateless","Set 24-hour token expiry with refresh flow — balances security with user convenience"],"preferences_expressed":["User directed specific token expiry of 24 hours"]}
+</output>
+</example>
 
-BAD (will be rejected):
-- "SQLite"
-- "detached worker"
-- "Fixed bug"
-- "Continue working"
+<example>
+<input>
+<previous_state>Focus: Investigating test failures</previous_state>
+<transcript>
+User Asked: The CI is failing on the webhook tests
+Assistant Response: Found the issue — the test was using a hardcoded timestamp that expired. Changed it to use a relative timestamp. Also found that the webhook handler had a race condition where two events could arrive simultaneously and both pass the idempotency check. Added a mutex lock.
+User Asked: Good catch on the race condition
+</transcript>
+</input>
+<output>
+{"summary":"Fixed CI test failure caused by hardcoded timestamp and discovered a race condition in the webhook handler","current_focus":"Webhook test failures and handler reliability","problems_solved":["Fixed expired hardcoded timestamp in webhook tests — replaced with relative timestamp calculation","Fixed race condition in webhook handler where simultaneous events bypassed idempotency check — added mutex lock"],"next_steps":["Verify CI passes with the timestamp and mutex fixes"]}
+</output>
+</example>
 
-GOOD (specific, contextual, reusable):
-- "Chose SQLite over Postgres for single-user CLI — no server dependency needed"
-- "Used detached worker pattern to avoid blocking the stop hook during LLM calls"
-- "Fixed state file writing to wrong directory — was using read-only data path instead of persistent home"
-- "Wire up the webhook endpoint to the event processor and verify with integration test"
-
-For next_steps specifically: never say "Continue from current position" or "Resume work" — name the actual task to be done.
-</quality_rules>
-
-<attribution>
-Users direct and decide. Assistants implement and execute.
-- User: requested, approved, directed, chose, preferred, corrected
-- Assistant: implemented, built, debugged, refactored, created, fixed
-- Never say "User implemented" or "User built"
-</attribution>
-
-Output valid JSON only. No markdown, no code blocks, no explanation.`;
+Output valid JSON only.`;
 }
 
 /**
