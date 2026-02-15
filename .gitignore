@@ -17,6 +17,7 @@ config/secrets.*
 .workflow/
 .claude/
 .claudex/
+.sable/
 .mcp.json
 .playwright-mcp
 *.sqlite
