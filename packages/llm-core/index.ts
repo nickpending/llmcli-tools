@@ -34,14 +34,12 @@ export async function complete(
   throw new Error("Not implemented - task 2.3+");
 }
 
-export function extractJson<T>(text: string): T | null {
-  throw new Error("Not implemented - task 2.4");
-}
+// Retry logic (task 2.4)
+export { withRetry } from "./lib/retry";
+export type { RetryOptions } from "./lib/retry";
 
-export function isTruncated(result: CompleteResult): boolean {
-  throw new Error("Not implemented - task 2.4");
-}
+// Helpers (task 2.4)
+export { extractJson, isTruncated } from "./lib/helpers";
 
-export async function updatePricing(): Promise<{ updated: number }> {
-  throw new Error("Not implemented - task 2.4");
-}
+// Pricing (task 2.4)
+export { estimateCost, updatePricing } from "./lib/pricing";
