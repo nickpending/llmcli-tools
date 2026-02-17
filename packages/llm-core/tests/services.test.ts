@@ -8,17 +8,11 @@
  * module is loaded. This ensures CONFIG_DIR and SERVICES_PATH in services.ts
  * point to our temp dir, not the real ~/.config/llm-core/.
  *
- * Test ordering is intentional — the module-level cachedServices means:
- * - Error paths must run BEFORE a successful loadServices() call
- * - Once a successful call sets the cache, subsequent calls use it
- *
- * Order:
- *   1. Invalid TOML → throws (cache stays null)
- *   2. Delete file → first run generates defaults (cache gets set)
- *   3. resolveService/listServices tests → use the cache
+ * Each describe block resets the module cache via _resetServicesCache()
+ * so tests are order-independent.
  */
 
-import { describe, it, expect, mock, afterAll } from "bun:test";
+import { describe, it, expect, mock, beforeEach, afterAll } from "bun:test";
 import {
   mkdtempSync,
   rmSync,
@@ -34,10 +28,6 @@ const tempHome = mkdtempSync("/tmp/llm-core-test-");
 const configDir = join(tempHome, ".config", "llm-core");
 const servicesPath = join(configDir, "services.toml");
 
-// Pre-seed INVALID TOML so we can test error path before cache is set
-mkdirSync(configDir, { recursive: true });
-writeFileSync(servicesPath, "this is [broken toml = !!!", "utf-8");
-
 // Mock "os" BEFORE importing services.ts — the module evaluates
 // CONFIG_DIR/SERVICES_PATH using homedir() at load time
 mock.module("os", () => ({
@@ -45,44 +35,55 @@ mock.module("os", () => ({
 }));
 
 // Import AFTER mock is registered
-const { loadServices, resolveService, listServices } =
-  await import("/Users/rudy/development/projects/llmcli-tools/packages/llm-core/lib/services.ts");
+const { loadServices, resolveService, listServices, _resetServicesCache } =
+  await import(join(import.meta.dir, "../lib/services.ts"));
 
 afterAll(() => {
   rmSync(tempHome, { recursive: true, force: true });
 });
 
-// --- Error path: must run FIRST, before a successful loadServices() call ---
-
 describe("loadServices() error path", () => {
+  beforeEach(() => {
+    _resetServicesCache();
+    // Ensure config dir exists with invalid TOML
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(servicesPath, "this is [broken toml = !!!", "utf-8");
+  });
+
   it("throws with file path in message on invalid TOML", () => {
-    // File contains broken TOML — cachedServices is null going into this test
     expect(() => loadServices()).toThrow(servicesPath);
   });
 });
 
-// --- First-run: remove the broken file, test default generation ---
-
 describe("loadServices() first run", () => {
+  beforeEach(() => {
+    _resetServicesCache();
+    // Ensure config dir exists but no services file
+    mkdirSync(configDir, { recursive: true });
+    if (existsSync(servicesPath)) unlinkSync(servicesPath);
+  });
+
   it("generates default services.toml when no file exists", () => {
-    // Remove the broken file — cache is still null (error prevented cache set)
-    unlinkSync(servicesPath);
     expect(existsSync(servicesPath)).toBe(false);
 
     const map = loadServices();
 
-    // Default file was created
     expect(existsSync(servicesPath)).toBe(true);
-    // Returns valid service map with expected defaults
     expect(map.default_service).toBe("anthropic");
     expect(typeof map.services).toBe("object");
     expect(Object.keys(map.services)).toHaveLength(3);
   });
 });
 
-// --- Happy path: cache is now set from "first run" test above ---
-
 describe("loadServices() cached results", () => {
+  beforeEach(() => {
+    _resetServicesCache();
+    // Ensure default config exists
+    mkdirSync(configDir, { recursive: true });
+    if (existsSync(servicesPath)) unlinkSync(servicesPath);
+    loadServices(); // generates defaults and populates cache
+  });
+
   it("returns all 3 default services with correct endpoints", () => {
     const map = loadServices(); // hits cache
 
@@ -105,6 +106,13 @@ describe("loadServices() cached results", () => {
 });
 
 describe("resolveService()", () => {
+  beforeEach(() => {
+    _resetServicesCache();
+    mkdirSync(configDir, { recursive: true });
+    if (existsSync(servicesPath)) unlinkSync(servicesPath);
+    loadServices(); // populate with defaults
+  });
+
   it("returns correct config for a named service", () => {
     const svc = resolveService("openai");
     expect(svc.adapter).toBe("openai");
@@ -126,6 +134,13 @@ describe("resolveService()", () => {
 });
 
 describe("listServices()", () => {
+  beforeEach(() => {
+    _resetServicesCache();
+    mkdirSync(configDir, { recursive: true });
+    if (existsSync(servicesPath)) unlinkSync(servicesPath);
+    loadServices();
+  });
+
   it("returns all configured service names", () => {
     const names = listServices();
     expect(names).toContain("anthropic");

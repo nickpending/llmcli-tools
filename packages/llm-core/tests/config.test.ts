@@ -11,8 +11,9 @@
  */
 
 import { describe, it, expect, mock } from "bun:test";
+import { join } from "path";
 import { KeyNotFoundError, ConfigNotFoundError } from "@voidwire/apiconf";
-import type { ServiceConfig } from "/Users/rudy/development/projects/llmcli-tools/packages/llm-core/lib/types.ts";
+import type { ServiceConfig } from "../lib/types.ts";
 
 // Mock apiconf BEFORE importing config.ts
 mock.module("@voidwire/apiconf", () => ({
@@ -28,8 +29,7 @@ mock.module("@voidwire/apiconf", () => ({
   ConfigNotFoundError,
 }));
 
-const { loadApiKey } =
-  await import("/Users/rudy/development/projects/llmcli-tools/packages/llm-core/lib/config.ts");
+const { loadApiKey } = await import(join(import.meta.dir, "../lib/config.ts"));
 
 describe("loadApiKey()", () => {
   it("returns null when key_required is false (ollama pattern)", async () => {

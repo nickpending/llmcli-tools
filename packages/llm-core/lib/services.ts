@@ -40,6 +40,11 @@ key_required = false
 
 let cachedServices: ServiceMap | null = null;
 
+/** Reset cached services — test use only. */
+export function _resetServicesCache(): void {
+  cachedServices = null;
+}
+
 /**
  * Load and parse services.toml. Generates default config on first run.
  * Caches the result for subsequent calls.
