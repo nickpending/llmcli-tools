@@ -57,6 +57,8 @@ import {
   type ObservationConfidence,
 } from "./index";
 import { isValidLoreType, LORE_TYPES } from "./lib/types";
+import { runIndexer } from "./lib/indexer";
+import { indexers } from "./lib/indexers/index";
 
 // ============================================================================
 // Argument Parsing
@@ -99,6 +101,8 @@ const BOOLEAN_FLAGS = new Set([
   "exact",
   "semantic",
   "brief",
+  "list",
+  "rebuild",
 ]);
 
 function getPositionalArgs(args: string[]): string[] {
@@ -831,6 +835,63 @@ async function handleCapture(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// Index Command
+// ============================================================================
+
+async function handleIndex(args: string[]): Promise<void> {
+  if (hasFlag(args, "help")) {
+    showIndexHelp();
+  }
+
+  if (hasFlag(args, "list")) {
+    console.log("Registered indexers:");
+    const names = Object.keys(indexers);
+    if (names.length === 0) {
+      console.log("  (none)");
+    } else {
+      names.forEach((name) => console.log(`  - ${name}`));
+    }
+    process.exit(0);
+  }
+
+  const positional = getPositionalArgs(args);
+  const source = positional.length > 0 ? positional[0] : "all";
+  const rebuild = hasFlag(args, "rebuild");
+
+  try {
+    await runIndexer(source, rebuild, indexers);
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    fail(`Index failed: ${message}`, 2);
+  }
+}
+
+function showIndexHelp(): void {
+  console.log(`
+lore index - Run indexers to populate the search database
+
+Usage:
+  lore index                            Run all registered indexers
+  lore index <source>                   Run a specific indexer
+  lore index --rebuild                  Clear and rebuild all sources
+  lore index --list                     List registered indexers
+
+Options:
+  --rebuild         Clear existing entries before indexing
+  --list            Show registered indexers and exit
+  --help            Show this help
+
+Examples:
+  lore index --list
+  lore index obsidian
+  lore index --rebuild
+  lore index commits --rebuild
+`);
+  process.exit(0);
+}
+
+// ============================================================================
 // Help & Main
 // ============================================================================
 
@@ -853,6 +914,7 @@ Usage:
   lore about <project>                  Aggregate view of project knowledge
   lore about <project> --brief          Compact project summary
   lore capture task|knowledge|note|teaching  Capture knowledge
+  lore index [source] [--rebuild] [--list]  Run indexers
 
 Search Options:
   --exact           Use FTS5 text search (bypasses semantic search)
@@ -1234,9 +1296,12 @@ async function main(): Promise<void> {
     case "capture":
       await handleCapture(commandArgs);
       break;
+    case "index":
+      await handleIndex(commandArgs);
+      break;
     default:
       fail(
-        `Unknown command: ${command}. Use: search, list, sources, info, projects, about, or capture`,
+        `Unknown command: ${command}. Use: search, list, sources, info, projects, about, capture, or index`,
       );
   }
 }
