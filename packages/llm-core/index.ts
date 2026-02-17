@@ -19,21 +19,19 @@ export type {
   ProviderAdapter,
 } from "./lib/types";
 
-import type { CompleteOptions, CompleteResult, ServiceMap } from "./lib/types";
+import type { CompleteOptions, CompleteResult } from "./lib/types";
+
+// Service resolution (task 2.2)
+export { loadServices, resolveService, listServices } from "./lib/services";
+
+// Config / credential loading (task 2.2)
+export { loadApiKey } from "./lib/config";
 
 // Placeholder exports (implemented in subsequent tasks)
 export async function complete(
   options: CompleteOptions,
 ): Promise<CompleteResult> {
-  throw new Error("Not implemented - task 2.2+");
-}
-
-export function loadServices(): ServiceMap {
-  throw new Error("Not implemented - task 2.2");
-}
-
-export function listServices(): string[] {
-  throw new Error("Not implemented - task 2.2");
+  throw new Error("Not implemented - task 2.3+");
 }
 
 export function extractJson<T>(text: string): T | null {
