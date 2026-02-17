@@ -19,20 +19,14 @@ export type {
   ProviderAdapter,
 } from "./lib/types";
 
-import type { CompleteOptions, CompleteResult } from "./lib/types";
-
 // Service resolution (task 2.2)
 export { loadServices, resolveService, listServices } from "./lib/services";
 
 // Config / credential loading (task 2.2)
 export { loadApiKey } from "./lib/config";
 
-// Placeholder exports (implemented in subsequent tasks)
-export async function complete(
-  options: CompleteOptions,
-): Promise<CompleteResult> {
-  throw new Error("Not implemented - task 2.3+");
-}
+// Core orchestration (task 2.5)
+export { complete } from "./lib/core";
 
 // Retry logic (task 2.4)
 export { withRetry } from "./lib/retry";
