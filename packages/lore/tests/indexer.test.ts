@@ -29,7 +29,9 @@ function createTestDb(): Database {
       title,
       content,
       metadata,
-      topic
+      topic,
+      type,
+      timestamp
     )
   `);
   return db;

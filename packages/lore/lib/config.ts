@@ -23,6 +23,9 @@ export interface LoreConfig {
     blogs: string;
     projects: string;
     personal: string;
+    session_events?: string;
+    flux?: string;
+    flux_projects?: string;
   };
   database: {
     sqlite: string;
@@ -111,6 +114,16 @@ export function getConfig(): LoreConfig {
       blogs: resolvePath(paths.blogs as string),
       projects: resolvePath(paths.projects as string),
       personal: resolvePath(paths.personal as string),
+      session_events:
+        typeof paths.session_events === "string"
+          ? resolvePath(paths.session_events)
+          : undefined,
+      flux:
+        typeof paths.flux === "string" ? resolvePath(paths.flux) : undefined,
+      flux_projects:
+        typeof paths.flux_projects === "string"
+          ? resolvePath(paths.flux_projects)
+          : undefined,
     },
     database: {
       sqlite: resolvePath(database.sqlite as string),
