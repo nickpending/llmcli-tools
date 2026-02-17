@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "llcli-tools",
@@ -54,6 +55,17 @@
         "language-detect": "./cli.ts",
       },
     },
+    "packages/llm-core": {
+      "name": "@voidwire/llm-core",
+      "version": "0.1.0",
+      "bin": {
+        "llm-core": "./cli.ts",
+      },
+      "dependencies": {
+        "@voidwire/apiconf": "0.1.0",
+        "smol-toml": "1.6.0",
+      },
+    },
     "packages/llm-notify": {
       "name": "@voidwire/llm-notify",
       "version": "2.0.0",
@@ -63,19 +75,20 @@
     },
     "packages/llm-summarize": {
       "name": "@voidwire/llm-summarize",
-      "version": "3.2.0",
+      "version": "3.7.0",
       "bin": {
         "llm-summarize": "./cli.ts",
       },
     },
     "packages/lore": {
       "name": "@voidwire/lore",
-      "version": "0.1.8",
+      "version": "0.9.1",
       "bin": {
         "lore": "./cli.ts",
       },
       "dependencies": {
         "@huggingface/transformers": "^3.2.6",
+        "@iarna/toml": "^2.2.5",
       },
       "devDependencies": {
         "bun-types": "1.3.5",
@@ -191,6 +204,8 @@
     "@huggingface/jinja": ["@huggingface/jinja@0.5.3", "", {}, "sha512-asqfZ4GQS0hD876Uw4qiUb7Tr/V5Q+JZuo2L+BtdrD4U40QU58nIRq3ZSgAzJgT874VLjhGVacaYfrdpXtEvtA=="],
 
     "@huggingface/transformers": ["@huggingface/transformers@3.8.1", "", { "dependencies": { "@huggingface/jinja": "^0.5.3", "onnxruntime-node": "1.21.0", "onnxruntime-web": "1.22.0-dev.20250409-89f8206ba4", "sharp": "^0.34.1" } }, "sha512-tsTk4zVjImqdqjS8/AOZg2yNLd1z9S5v+7oUPpXaasDRwEDhB+xnglK1k5cad26lL5/ZIaeREgWWy0bs9y9pPA=="],
+
+    "@iarna/toml": ["@iarna/toml@2.2.5", "", {}, "sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg=="],
 
     "@iconify/types": ["@iconify/types@2.0.0", "", {}, "sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg=="],
 
@@ -450,6 +465,8 @@
 
     "@vitest/utils": ["@vitest/utils@1.2.0", "", { "dependencies": { "diff-sequences": "^29.6.3", "estree-walker": "^3.0.3", "loupe": "^2.3.7", "pretty-format": "^29.7.0" } }, "sha512-FyD5bpugsXlwVpTcGLDf3wSPYy8g541fQt14qtzo8mJ4LdEpDKZ9mQy2+qdJm2TZRpjY5JLXihXCgIxiRJgi5g=="],
 
+    "@voidwire/apiconf": ["@voidwire/apiconf@0.1.0", "", { "dependencies": { "smol-toml": "1.6.0" } }, "sha512-Lh3DRD61X5I4jDhSO/fssIk0OAeH8SfJPwKXlO6AXiNtJn8TaVE2IXZg5iUUl7Xm1uRmbNb+oqGw9HtsH7ykew=="],
+
     "@voidwire/argus-send": ["@voidwire/argus-send@workspace:packages/argus-send"],
 
     "@voidwire/expertise-update": ["@voidwire/expertise-update@workspace:packages/expertise-update"],
@@ -459,6 +476,8 @@
     "@voidwire/gitignore-check": ["@voidwire/gitignore-check@workspace:packages/gitignore-check"],
 
     "@voidwire/language-detect": ["@voidwire/language-detect@workspace:packages/language-detect"],
+
+    "@voidwire/llm-core": ["@voidwire/llm-core@workspace:packages/llm-core"],
 
     "@voidwire/llm-notify": ["@voidwire/llm-notify@workspace:packages/llm-notify"],
 
@@ -1220,7 +1239,11 @@
 
     "@headlessui/react/@floating-ui/react": ["@floating-ui/react@0.26.28", "", { "dependencies": { "@floating-ui/react-dom": "^2.1.2", "@floating-ui/utils": "^0.2.8", "tabbable": "^6.0.0" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-yORQuuAtVpiRjpMhdc0wJj06b9JFjrYF4qp96j++v2NBpbi6SEGF7donUJ3TMieerQ6qVkAv1tgr7L4r5roTqw=="],
 
+    "@voidwire/apiconf/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
+
     "@voidwire/expertise-update/@voidwire/lore": ["@voidwire/lore@0.1.2", "", { "bin": { "lore": "cli.ts" } }, "sha512-x4KprLCTl/4t5aFWJGu4IYSW/jbJahi993D76ZRjH2KNCzEkhgWfiMZ1vu4/1cX0Fl/OZMtd7e4FDcHb2ltpCA=="],
+
+    "@voidwire/llm-core/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
 
     "@zenuml/core/marked": ["marked@4.3.0", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-PRsaiG84bK+AMvxziE/lCFss8juXjNaWzVbN5tXAm4XjeaS9NAHhop+PjQxz2A9h8Q4M/xGmzP8vqNwy6JeK0A=="],
 
