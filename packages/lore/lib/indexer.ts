@@ -126,7 +126,7 @@ export function createIndexerContext(
   seenHashes: Set<string>,
 ): IndexerContext {
   const insertStmt = db.prepare(
-    "INSERT INTO search (source, title, content, metadata, topic) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO search (source, title, content, metadata, topic, type, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
 
   return {
@@ -158,6 +158,8 @@ export function createIndexerContext(
           chunk,
           JSON.stringify(entry.metadata || {}),
           entry.topic,
+          entry.type || "",
+          entry.timestamp || "",
         );
       }
     },

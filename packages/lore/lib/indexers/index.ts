@@ -6,7 +6,14 @@
  */
 
 import type { IndexerFunction } from "../indexer";
+import { indexEvents } from "./events";
+import { indexLearnings } from "./learnings";
+import { indexReadmes } from "./readmes";
+import { indexDevelopment } from "./development";
 
 export const indexers: Record<string, IndexerFunction> = {
-  // Populated by tasks 3.1, 3.2, 3.3
+  events: indexEvents,
+  learnings: indexLearnings,
+  readmes: indexReadmes,
+  development: indexDevelopment,
 };
