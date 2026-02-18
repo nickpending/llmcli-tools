@@ -40,6 +40,13 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
 
   const data = await response.json();
 
+  // Validate response shape
+  if (typeof data.response !== "string") {
+    throw new Error(
+      `Ollama API returned unexpected response shape: missing or non-string response field`,
+    );
+  }
+
   // Map done_reason to normalized finishReason
   let finishReason: "stop" | "max_tokens" | "error" = "stop";
   if (data.done_reason === "length") {

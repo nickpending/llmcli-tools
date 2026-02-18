@@ -30,10 +30,12 @@ export async function complete(
   // 3. Get provider adapter
   const adapter = getAdapter(service.adapter);
 
-  // 4. Build adapter request
-  const model = options.model || "";
+  // 4. Build adapter request — caller model > service default_model
+  const model = options.model || service.default_model || "";
   if (!model) {
-    throw new Error("Model name required in CompleteOptions");
+    throw new Error(
+      "Model name required: pass model in CompleteOptions or set default_model in services.toml",
+    );
   }
 
   const adapterRequest = {

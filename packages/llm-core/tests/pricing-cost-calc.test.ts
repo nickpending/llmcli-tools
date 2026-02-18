@@ -15,7 +15,7 @@
  *   Corrupt TOML: loadPricing() returns empty rates, estimateCost returns null
  */
 
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { join } from "path";
 
 // Valid TOML content with known pricing rates
@@ -36,7 +36,7 @@ mock.module("fs", () => ({
 }));
 
 // Import AFTER mock is registered
-const { estimateCost } = await import(
+const { estimateCost, _resetPricingCache } = await import(
   join(import.meta.dir, "../lib/pricing.ts")
 );
 
@@ -45,6 +45,11 @@ const { estimateCost } = await import(
 // ---------------------------------------------------------------------------
 
 describe("estimateCost math formula", () => {
+  // Reset cache before each test so the mocked fs is actually consulted.
+  // Earlier test files (core.test.ts) may have cached empty pricing data
+  // via their own import of pricing.ts through core.ts.
+  beforeEach(() => _resetPricingCache());
+
   it("calculates input cost only when output is zero", () => {
     // 1,000,000 input * $3.00/1M = $3.00, 0 output = $0.00
     const cost = estimateCost("claude-3-5-sonnet-20241022", 1_000_000, 0);

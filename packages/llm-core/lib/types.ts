@@ -26,6 +26,7 @@ export interface ServiceConfig {
   key?: string; // apiconf key name
   base_url: string;
   key_required?: boolean; // Default true, false for ollama
+  default_model?: string; // Used when caller doesn't specify a model
 }
 
 export interface ServiceMap {

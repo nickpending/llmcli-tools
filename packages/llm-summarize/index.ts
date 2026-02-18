@@ -47,7 +47,7 @@ export interface SummarizeResult {
 
 export interface SummarizeConfig {
   service?: string; // Named service from services.toml (optional, uses default_service)
-  model: string; // Model name — required by complete()
+  model?: string; // Model override — falls back to service default_model if omitted
   maxTokens: number; // Max output tokens
 }
 
@@ -257,18 +257,17 @@ function extractJson(raw: string): SessionInsights | null {
 /**
  * Load configuration for llm-summarize.
  *
- * Returns defaults suitable for llm-core's complete() function.
- * Service resolution (API keys, endpoints) is handled by llm-core
- * via ~/.config/llm-core/services.toml and apiconf.
+ * Service and model are resolved by llm-core from services.toml.
+ * Override service/model here only when llm-summarize needs to
+ * differ from the default_service and its default_model.
  *
  * To configure:
- *   1. Set up apiconf: ~/.config/apiconf/config.toml
- *   2. Set up services: ~/.config/llm-core/services.toml
- *   3. Optionally override model/maxTokens via SummarizeOptions
+ *   1. Set up services: ~/.config/llm-core/services.toml (with default_model per service)
+ *   2. Set up API keys: ~/.config/apiconf/config.toml (for cloud services)
+ *   3. Optionally override service/model/maxTokens via SummarizeOptions
  */
 export function loadConfig(): SummarizeConfig {
   return {
-    model: "claude-3-5-haiku-20241022",
     maxTokens: 1024,
   };
 }
@@ -299,15 +298,8 @@ export async function summarize(
     const userName = options?.userName;
     const systemPrompt =
       options?.systemPrompt || getPromptForMode(mode, userName);
+    // Model resolution: options.model > config.model > service default_model (in llm-core)
     const model = options?.model || config.model;
-
-    // Validate model before calling complete() (which throws on empty model)
-    if (!model) {
-      return {
-        error:
-          "No model configured. Set model in loadConfig() or pass via options.model",
-      };
-    }
 
     const result = await complete({
       service: config.service,

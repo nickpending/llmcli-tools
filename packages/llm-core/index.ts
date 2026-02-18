@@ -17,3 +17,4 @@ export type {
 
 export { complete } from "./lib/core";
 export { loadServices, resolveService, listServices } from "./lib/services";
+export { extractJson, isTruncated } from "./lib/helpers";

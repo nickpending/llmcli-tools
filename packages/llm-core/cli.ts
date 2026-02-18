@@ -32,7 +32,7 @@ Usage:
 
 Options:
   --service NAME       Service name from services.toml (default: from config)
-  --model NAME         Model name (required for completion)
+  --model NAME         Model name (uses service default_model if omitted)
   --system PROMPT      System prompt
   --temperature NUM    0-1 (default: provider default)
   --max-tokens NUM     Max output tokens
@@ -99,12 +99,6 @@ async function main(): Promise<void> {
 
     if (!parsed.prompt) {
       process.stderr.write("Error: Prompt required\n\n");
-      printUsage();
-      process.exit(2);
-    }
-
-    if (!parsed.model) {
-      process.stderr.write("Error: --model required\n\n");
       printUsage();
       process.exit(2);
     }

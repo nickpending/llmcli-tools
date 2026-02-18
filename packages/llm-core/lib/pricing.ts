@@ -26,21 +26,33 @@ interface PricingRates {
   models: Record<string, { input: number; output: number }>;
 }
 
+let cachedPricing: PricingRates | null = null;
+
+/** Reset cached pricing — test use only. */
+export function _resetPricingCache(): void {
+  cachedPricing = null;
+}
+
 /**
  * Load pricing.toml if it exists, otherwise return empty rates.
  * Pricing is best-effort — if file missing or corrupt, cost returns null.
- * Follows same pattern as services.ts TOML loading (readFileSync + parseToml).
+ * Caches the result for subsequent calls (same pattern as services.ts).
  */
 function loadPricing(): PricingRates {
+  if (cachedPricing) return cachedPricing;
+
   if (!existsSync(PRICING_PATH)) {
-    return { models: {} };
+    cachedPricing = { models: {} };
+    return cachedPricing;
   }
 
   try {
     const content = readFileSync(PRICING_PATH, "utf-8");
-    return parseToml(content) as unknown as PricingRates;
+    cachedPricing = parseToml(content) as unknown as PricingRates;
+    return cachedPricing;
   } catch {
-    return { models: {} };
+    cachedPricing = { models: {} };
+    return cachedPricing;
   }
 }
 

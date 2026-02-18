@@ -23,12 +23,16 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
     ...(req.json && { response_format: { type: "json_object" } }),
   };
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (req.apiKey) {
+    headers["Authorization"] = `Bearer ${req.apiKey}`;
+  }
+
   const response = await fetch(`${req.baseUrl}/chat/completions`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${req.apiKey}`,
-    },
+    headers,
     body: JSON.stringify(body),
   });
 
@@ -38,6 +42,14 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
   }
 
   const data = await response.json();
+
+  // Validate response shape
+  if (!data.choices?.length || !data.choices[0].message) {
+    throw new Error(
+      `OpenAI API returned unexpected response shape: missing choices[0].message`,
+    );
+  }
+
   const choice = data.choices[0];
 
   // Map finish_reason to normalized finishReason
@@ -51,8 +63,8 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
   return {
     text: choice.message.content, // INV-001: verbatim extraction
     model: data.model,
-    tokensInput: data.usage.prompt_tokens,
-    tokensOutput: data.usage.completion_tokens,
+    tokensInput: data.usage?.prompt_tokens ?? 0,
+    tokensOutput: data.usage?.completion_tokens ?? 0,
     finishReason,
   };
 }

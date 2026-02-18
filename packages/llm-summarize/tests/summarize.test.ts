@@ -174,18 +174,14 @@ describe("summarize() error handling", () => {
     expect(result.insights).toBeUndefined();
   });
 
-  it("missing model → returns { error } before complete() is called", async () => {
-    let fetchCalled = false;
-    completeImpl = async () => {
-      fetchCalled = true;
-      return makeCompleteResult();
-    };
+  it("missing model → passes through to complete() which resolves from service default_model", async () => {
+    completeImpl = async () => makeCompleteResult();
 
-    // Config with empty model string
-    const result = await summarize("some text", { model: "", maxTokens: 1024 });
+    // No model in config, no model in options — llm-core resolves from default_model
+    const result = await summarize("some text", { maxTokens: 1024 });
 
-    expect(result.error).toMatch(/No model configured/);
-    expect(fetchCalled).toBe(false); // complete() must never be reached
+    // Should not error at the summarize layer — llm-core handles model resolution
+    expect(result.error).toBeUndefined();
   });
 });
 
@@ -194,14 +190,13 @@ describe("summarize() error handling", () => {
 // ---------------------------------------------------------------------------
 
 describe("loadConfig() defaults", () => {
-  it("returns model, maxTokens with sensible values; service is undefined", () => {
+  it("returns maxTokens with sensible value; model and service are undefined (resolved by llm-core)", () => {
     const config = loadConfig();
 
-    expect(typeof config.model).toBe("string");
-    expect(config.model.length).toBeGreaterThan(0);
     expect(typeof config.maxTokens).toBe("number");
     expect(config.maxTokens).toBeGreaterThan(0);
-    // service should be undefined — llm-core uses default_service from services.toml
+    // model and service are undefined — llm-core resolves from services.toml
+    expect(config.model).toBeUndefined();
     expect(config.service).toBeUndefined();
   });
 });
