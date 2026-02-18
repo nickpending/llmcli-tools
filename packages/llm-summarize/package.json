@@ -44,6 +44,6 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@voidwire/llm-core": "workspace:*"
+    "@voidwire/llm-core": "0.2.0"
   }
 }
