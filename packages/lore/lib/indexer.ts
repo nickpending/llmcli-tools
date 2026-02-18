@@ -150,8 +150,11 @@ export function createIndexerContext(
       // Chunk content if needed
       const chunks = chunkContent(entry.content);
 
-      // Insert each chunk
+      // Insert each chunk (dedup at chunk level)
       for (const chunk of chunks) {
+        const chunkHash = createHash("sha256").update(chunk).digest("hex");
+        if (seenHashes.has(chunkHash)) continue;
+        seenHashes.add(chunkHash);
         insertStmt.run(
           entry.source,
           entry.title,

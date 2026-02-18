@@ -135,6 +135,8 @@ export async function indexObsidian(ctx: IndexerContext): Promise<void> {
 
       const title = basename(filePath, ".md");
 
+      if (!content.trim()) continue;
+
       ctx.insert({
         source: "obsidian",
         title,

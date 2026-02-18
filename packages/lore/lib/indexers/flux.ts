@@ -12,7 +12,7 @@
  * Timestamp: captured date if present, otherwise empty
  */
 
-import { readdirSync, readFileSync, existsSync } from "fs";
+import { readdirSync, readFileSync, existsSync, statSync } from "fs";
 import { join, basename } from "path";
 import type { IndexerContext } from "../indexer";
 
@@ -82,6 +82,7 @@ function parseFluxFile(
   status: string,
 ): void {
   const raw = readFileSync(filePath, "utf-8");
+  const mtime = statSync(filePath).mtime;
   const lines = raw.split("\n");
 
   for (const line of lines) {
@@ -110,6 +111,11 @@ function parseFluxFile(
         /\s*captured::\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?/,
         "",
       );
+    }
+
+    // Fall back to file mtime if no captured date
+    if (!timestamp) {
+      timestamp = mtime.toISOString();
     }
 
     // Extract archived date if present (strip from description)
