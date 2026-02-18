@@ -79,10 +79,13 @@
       "bin": {
         "llm-summarize": "./cli.ts",
       },
+      "dependencies": {
+        "@voidwire/llm-core": "workspace:*",
+      },
     },
     "packages/lore": {
       "name": "@voidwire/lore",
-      "version": "0.9.1",
+      "version": "1.0.0",
       "bin": {
         "lore": "./cli.ts",
       },

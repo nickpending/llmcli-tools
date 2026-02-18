@@ -42,5 +42,8 @@
   },
   "engines": {
     "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "@voidwire/llm-core": "workspace:*"
   }
 }
