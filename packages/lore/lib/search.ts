@@ -6,8 +6,8 @@
  */
 
 import { Database } from "bun:sqlite";
-import { homedir } from "os";
 import { existsSync } from "fs";
+import { getDatabasePath } from "./db.js";
 
 export interface SearchResult {
   rowid: number;
@@ -24,10 +24,6 @@ export interface SearchOptions {
   limit?: number;
   since?: string;
   type?: string | string[];
-}
-
-function getDatabasePath(): string {
-  return `${homedir()}/.local/share/lore/lore.db`;
 }
 
 /**

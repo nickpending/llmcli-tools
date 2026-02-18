@@ -6,8 +6,8 @@
  */
 
 import { Database } from "bun:sqlite";
-import { homedir } from "os";
 import { existsSync } from "fs";
+import { getDatabasePath } from "./db.js";
 
 // Source types - data sources that can be listed
 export type Source =
@@ -83,11 +83,6 @@ export interface ListResult {
   source: Source;
   entries: ListEntry[];
   count: number;
-}
-
-// Database path following XDG spec
-function getDatabasePath(): string {
-  return `${homedir()}/.local/share/lore/lore.db`;
 }
 
 interface RawRow {
@@ -196,7 +191,7 @@ export function list(source: Source, options: ListOptions = {}): ListResult {
   const dbPath = getDatabasePath();
 
   if (!existsSync(dbPath)) {
-    throw new Error(`Database not found: ${dbPath}. Run lore-index-all first.`);
+    throw new Error(`Database not found: ${dbPath}. Run lore-db-init first.`);
   }
 
   const db = new Database(dbPath, { readonly: true });

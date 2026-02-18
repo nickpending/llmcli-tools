@@ -7,7 +7,7 @@
 
 import { Database } from "bun:sqlite";
 import { existsSync } from "fs";
-import { homedir } from "os";
+import { getConfig } from "./config";
 
 // Use Homebrew SQLite on macOS to enable extension loading
 // Must be called before any Database instances are created
@@ -20,7 +20,7 @@ if (existsSync(HOMEBREW_SQLITE)) {
  * Get the path to the lore database
  */
 export function getDatabasePath(): string {
-  return `${homedir()}/.local/share/lore/lore.db`;
+  return getConfig().database.sqlite;
 }
 
 /**

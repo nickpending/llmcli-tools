@@ -6,8 +6,8 @@
  */
 
 import { Database } from "bun:sqlite";
-import { homedir } from "os";
 import { existsSync } from "fs";
+import { getDatabasePath } from "./db.js";
 import { projects as getProjects } from "./projects.js";
 
 export interface SourceInfo {
@@ -20,10 +20,6 @@ export interface InfoOutput {
   projects: string[];
   last_indexed: string;
   total_entries: number;
-}
-
-function getDatabasePath(): string {
-  return `${homedir()}/.local/share/lore/lore.db`;
 }
 
 /**

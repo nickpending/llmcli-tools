@@ -23,12 +23,7 @@ import {
   EMBEDDING_DIM,
   serializeEmbedding,
 } from "./semantic.js";
-import {
-  hashContent,
-  getCachedEmbedding,
-  cacheEmbedding,
-  getMissingHashes,
-} from "./cache.js";
+import { hashContent, getCachedEmbedding, cacheEmbedding } from "./cache.js";
 import type { CaptureEvent } from "./capture.js";
 
 /**
@@ -182,12 +177,10 @@ function buildMetadata(event: CaptureEvent): string {
       break;
     case "teaching":
       metadata.confidence = data.confidence;
-      metadata.capture_source = data.source || "manual";
       break;
     case "observation":
       metadata.subtype = data.subtype;
       metadata.confidence = data.confidence;
-      metadata.capture_source = data.source || "auto";
       break;
     case "insight":
       metadata.subtype = data.subtype;

@@ -6,8 +6,8 @@
  */
 
 import { Database } from "bun:sqlite";
-import { homedir } from "os";
 import { existsSync } from "fs";
+import { getDatabasePath } from "./db.js";
 
 const PROJECT_SOURCES = [
   "commits",
@@ -19,10 +19,6 @@ const PROJECT_SOURCES = [
   "learnings",
   "observations",
 ];
-
-function getDatabasePath(): string {
-  return `${homedir()}/.local/share/lore/lore.db`;
-}
 
 /**
  * Get all unique project names across sources
