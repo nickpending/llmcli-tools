@@ -129,6 +129,10 @@ export function createIndexerContext(
     "INSERT INTO search (source, title, content, metadata, topic, type, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
 
+  // Separate sets: entry-level avoids re-chunking identical docs,
+  // chunk-level catches duplicate chunks across different documents
+  const seenEntryHashes = new Set<string>();
+
   return {
     db,
     config,
@@ -136,21 +140,19 @@ export function createIndexerContext(
     insert: (entry: IndexEntry) => {
       validateEntry(entry);
 
-      // Generate content hash for dedup
+      // Entry-level dedup: skip re-chunking identical documents
       const contentHash = createHash("sha256")
         .update(entry.content)
         .digest("hex");
-
-      // Skip if already indexed
-      if (seenHashes.has(contentHash)) {
+      if (seenEntryHashes.has(contentHash)) {
         return;
       }
-      seenHashes.add(contentHash);
+      seenEntryHashes.add(contentHash);
 
       // Chunk content if needed
       const chunks = chunkContent(entry.content);
 
-      // Insert each chunk (dedup at chunk level)
+      // Chunk-level dedup: skip duplicate chunks across documents
       for (const chunk of chunks) {
         const chunkHash = createHash("sha256").update(chunk).digest("hex");
         if (seenHashes.has(chunkHash)) continue;
