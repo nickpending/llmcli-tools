@@ -62,11 +62,11 @@ export function info(): InfoOutput {
     const totalResult = totalStmt.get() as { total: number };
     const total_entries = totalResult?.total ?? 0;
 
-    // Get last indexed timestamp from metadata
+    // Get last indexed timestamp from column
     const tsStmt = db.prepare(`
-      SELECT MAX(json_extract(metadata, '$.timestamp')) as ts
+      SELECT MAX(timestamp) as ts
       FROM search
-      WHERE json_extract(metadata, '$.timestamp') IS NOT NULL
+      WHERE timestamp IS NOT NULL AND timestamp != ''
     `);
     const tsResult = tsStmt.get() as { ts: string | null };
     const last_indexed = tsResult?.ts ?? new Date().toISOString();

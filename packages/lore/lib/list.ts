@@ -65,19 +65,6 @@ const PERSONAL_SUBTYPES: Partial<Record<Source, string>> = {
   habits: "habit",
 };
 
-// Maps source to metadata field for --project filter
-// Project-based domains use "project", topic-based domains use "topic"
-const PROJECT_FIELD: Record<string, string> = {
-  commits: "project",
-  sessions: "project",
-  flux: "project",
-  insights: "topic",
-  captures: "topic",
-  teachings: "topic",
-  learnings: "topic",
-  observations: "topic",
-};
-
 export interface ListOptions {
   limit?: number;
   project?: string;
@@ -87,6 +74,8 @@ export interface ListOptions {
 export interface ListEntry {
   title: string;
   content: string;
+  topic: string;
+  type: string;
   metadata: Record<string, unknown>;
 }
 
@@ -104,6 +93,8 @@ function getDatabasePath(): string {
 interface RawRow {
   title: string;
   content: string;
+  topic: string;
+  type: string;
   metadata: string;
 }
 
@@ -117,26 +108,24 @@ function queryBySource(
   project?: string,
   type?: string,
 ): ListEntry[] {
-  let sql = "SELECT title, content, metadata FROM search WHERE source = ?";
+  let sql =
+    "SELECT title, content, topic, type, metadata FROM search WHERE source = ?";
   const params: (string | number)[] = [source];
 
-  // Add project filter if provided and source has a project field
+  // Add project filter if provided — uses topic column directly
   if (project) {
-    const field = PROJECT_FIELD[source];
-    if (field) {
-      sql += ` AND json_extract(metadata, '$.${field}') = ?`;
-      params.push(project);
-    }
+    sql += " AND topic = ?";
+    params.push(project);
   }
 
-  // Add type filter if provided (captures source only)
-  if (type && source === "captures") {
-    sql += ` AND json_extract(metadata, '$.type') = ?`;
+  // Add type filter if provided — uses type column directly
+  if (type) {
+    sql += " AND type = ?";
     params.push(type);
   }
 
   // Order by timestamp descending (most recent first)
-  sql += " ORDER BY json_extract(metadata, '$.timestamp') DESC";
+  sql += " ORDER BY timestamp DESC";
 
   if (limit) {
     sql += " LIMIT ?";
@@ -149,6 +138,8 @@ function queryBySource(
   return rows.map((row) => ({
     title: row.title,
     content: row.content,
+    topic: row.topic,
+    type: row.type,
     metadata: JSON.parse(row.metadata || "{}"),
   }));
 }
@@ -163,10 +154,10 @@ function queryPersonalType(
 ): ListEntry[] {
   // Filter by type in SQL, not JS - avoids LIMIT truncation bug
   let sql = `
-    SELECT title, content, metadata FROM search
+    SELECT title, content, topic, type, metadata FROM search
     WHERE source = 'personal'
-      AND json_extract(metadata, '$.type') = ?
-    ORDER BY json_extract(metadata, '$.timestamp') DESC
+      AND type = ?
+    ORDER BY timestamp DESC
   `;
   const params: (string | number)[] = [type];
 
@@ -181,6 +172,8 @@ function queryPersonalType(
   return rows.map((row) => ({
     title: row.title,
     content: row.content,
+    topic: row.topic,
+    type: row.type,
     metadata: JSON.parse(row.metadata || "{}"),
   }));
 }
@@ -243,12 +236,10 @@ export function listSources(): Source[] {
 }
 
 /**
- * Extract project name from entry metadata
+ * Extract project name from entry
  */
-function extractProjectFromEntry(entry: ListEntry, source: string): string {
-  const field = PROJECT_FIELD[source];
-  if (!field) return "unknown";
-  return (entry.metadata[field] as string) || "unknown";
+function extractProjectFromEntry(entry: ListEntry, _source: string): string {
+  return entry.topic || "unknown";
 }
 
 /**

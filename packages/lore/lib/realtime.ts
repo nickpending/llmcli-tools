@@ -89,13 +89,23 @@ function insertSearchEntry(db: Database, event: CaptureEvent): number {
   const metadata = buildMetadata(event);
   const data = event.data as Record<string, unknown>;
   const topic = String(data.topic || "");
+  const type = extractType(event);
+  const timestamp = event.timestamp || new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO search (source, title, content, metadata, topic)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO search (source, title, content, metadata, topic, type, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const result = stmt.run(source, title, content, metadata, topic);
+  const result = stmt.run(
+    source,
+    title,
+    content,
+    metadata,
+    topic,
+    type,
+    timestamp,
+  );
   return Number(result.lastInsertRowid);
 }
 
@@ -163,19 +173,9 @@ function getContentForEmbedding(event: CaptureEvent): string {
  */
 function buildMetadata(event: CaptureEvent): string {
   const data = event.data as Record<string, unknown>;
-  const timestamp = event.timestamp;
-  const date = timestamp ? timestamp.substring(0, 10) : "";
+  const metadata: Record<string, unknown> = {};
 
-  const content = getContentForEmbedding(event);
-  const metadata: Record<string, unknown> = {
-    topic: data.topic || "general",
-    timestamp,
-    date,
-    content,
-    content_hash: hashContent(content),
-  };
-
-  // Add type-specific fields
+  // Add type-specific fields only (no topic, content, content_hash, date, timestamp)
   switch (event.type) {
     case "knowledge":
       metadata.subtype = data.subtype;

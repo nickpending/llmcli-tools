@@ -1,25 +1,24 @@
 /**
  * lib/projects.ts - List all known projects across sources
  *
- * Queries distinct project values from metadata fields, handling
- * different field names per source type.
+ * Queries distinct topic values from the topic column across
+ * project-scoped sources.
  */
 
 import { Database } from "bun:sqlite";
 import { homedir } from "os";
 import { existsSync } from "fs";
 
-// Project-based domains use "project", topic-based domains use "topic"
-const PROJECT_FIELD: Record<string, string> = {
-  commits: "project",
-  sessions: "project",
-  tasks: "project",
-  insights: "topic",
-  captures: "topic",
-  teachings: "topic",
-  learnings: "topic",
-  observations: "topic",
-};
+const PROJECT_SOURCES = [
+  "commits",
+  "sessions",
+  "flux",
+  "insights",
+  "captures",
+  "teachings",
+  "learnings",
+  "observations",
+];
 
 function getDatabasePath(): string {
   return `${homedir()}/.local/share/lore/lore.db`;
@@ -40,24 +39,20 @@ export function projects(): string[] {
   const db = new Database(dbPath, { readonly: true });
 
   try {
-    const allProjects = new Set<string>();
+    const placeholders = PROJECT_SOURCES.map(() => "?").join(", ");
+    const stmt = db.prepare(`
+      SELECT DISTINCT topic
+      FROM search
+      WHERE source IN (${placeholders})
+        AND topic IS NOT NULL
+        AND topic != ''
+    `);
+    const results = stmt.all(...PROJECT_SOURCES) as { topic: string }[];
 
-    for (const [source, field] of Object.entries(PROJECT_FIELD)) {
-      const stmt = db.prepare(`
-        SELECT DISTINCT json_extract(metadata, '$.${field}') as proj
-        FROM search
-        WHERE source = ? AND json_extract(metadata, '$.${field}') IS NOT NULL
-      `);
-      const results = stmt.all(source) as { proj: string | null }[];
-
-      for (const r of results) {
-        if (r.proj) {
-          allProjects.add(r.proj);
-        }
-      }
-    }
-
-    return Array.from(allProjects).sort();
+    return results
+      .map((r) => r.topic)
+      .filter(Boolean)
+      .sort();
   } finally {
     db.close();
   }

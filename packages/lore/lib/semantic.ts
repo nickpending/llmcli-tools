@@ -18,6 +18,7 @@ export interface SemanticResult {
   title: string;
   content: string;
   metadata: string;
+  topic: string;
   distance: number;
 }
 
@@ -27,21 +28,6 @@ export interface SemanticSearchOptions {
   project?: string;
   type?: string | string[];
 }
-
-/**
- * Maps source types to their project/topic field name in metadata JSON.
- * Project-based domains use "project", topic-based domains use "topic".
- */
-const PROJECT_FIELD: Record<string, string> = {
-  commits: "project",
-  sessions: "project",
-  tasks: "project",
-  insights: "topic",
-  captures: "topic",
-  teachings: "topic",
-  learnings: "topic",
-  observations: "topic",
-};
 
 const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
 const EMBEDDING_DIM = 768;
@@ -254,6 +240,7 @@ export async function semanticSearch(
         s.title,
         s.content,
         s.metadata,
+        s.topic,
         e.distance
       FROM embeddings e
       JOIN search s ON e.doc_id = s.rowid
@@ -281,6 +268,7 @@ export interface HybridResult {
   title: string;
   content: string;
   metadata: string;
+  topic: string;
   score: number;
   vectorScore: number;
   textScore: number;
@@ -367,6 +355,7 @@ export async function hybridSearch(
       title: r.title,
       content: r.content,
       metadata: r.metadata,
+      topic: r.topic,
       vectorScore,
       textScore: 0,
       score: vectorWeight * vectorScore,
@@ -393,6 +382,7 @@ export async function hybridSearch(
         title: r.title,
         content: r.content,
         metadata: r.metadata,
+        topic: r.topic,
         vectorScore: 0,
         textScore,
         score: textWeight * textScore,
@@ -406,21 +396,6 @@ export async function hybridSearch(
     .slice(0, limit);
 
   return results;
-}
-
-/**
- * Extract project from result metadata
- */
-function extractProjectFromMetadata(metadata: string, source: string): string {
-  const field = PROJECT_FIELD[source];
-  if (!field) return "unknown";
-
-  try {
-    const parsed = JSON.parse(metadata);
-    return parsed[field] || "unknown";
-  } catch {
-    return "unknown";
-  }
 }
 
 /**
@@ -478,7 +453,7 @@ export function formatBriefSearch(results: SemanticResult[]): string {
     const lines = [`${source} (${sourceResults.length}):`];
 
     sourceResults.forEach((r) => {
-      const project = extractProjectFromMetadata(r.metadata, r.source);
+      const project = r.topic || "unknown";
       const identifier = extractIdentifierFromResult(r);
       const displayText = getDisplayText(r);
 

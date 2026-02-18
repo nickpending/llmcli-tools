@@ -15,6 +15,7 @@ export interface SearchResult {
   title: string;
   content: string;
   metadata: string;
+  topic: string;
   rank: number;
 }
 
@@ -85,19 +86,16 @@ export function search(
 
     if (options.type) {
       const types = Array.isArray(options.type) ? options.type : [options.type];
-      const typeClauses = types.map(
-        () =>
-          "(json_extract(metadata, '$.type') = ? OR json_extract(metadata, '$.subtype') = ?)",
-      );
+      const typeClauses = types.map(() => "type = ?");
       conditions.push(`(${typeClauses.join(" OR ")})`);
       types.forEach((t) => {
-        params.push(t, t);
+        params.push(t);
       });
     }
 
     if (options.since) {
       conditions.push(
-        "json_extract(metadata, '$.date') IS NOT NULL AND json_extract(metadata, '$.date') != 'unknown' AND json_extract(metadata, '$.date') >= ?",
+        "timestamp IS NOT NULL AND timestamp != '' AND timestamp >= ?",
       );
       params.push(options.since);
     }
@@ -105,7 +103,7 @@ export function search(
     params.push(limit);
 
     const sql = `
-      SELECT rowid, source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, rank
+      SELECT rowid, source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, topic, rank
       FROM search
       WHERE ${conditions.join(" AND ")}
       ORDER BY rank
