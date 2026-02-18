@@ -25,14 +25,13 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   delays: [1000, 2000, 4000],
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isTransientError(error: any): boolean {
+function isTransientError(error: unknown): boolean {
   // Network errors (fetch failures, DNS, connection refused)
   if (error instanceof TypeError) return true;
 
   // HTTP status code errors — check for (status) pattern in message
-  if (error.message) {
-    const msg: string = error.message;
+  if (error instanceof Error && error.message) {
+    const msg = error.message;
     // Transient HTTP status codes: 429 (rate limit), 5xx (server errors)
     const transientCodes = [429, 500, 502, 503, 504];
     for (const code of transientCodes) {
@@ -52,8 +51,7 @@ export async function withRetry<T>(
   options: Partial<RetryOptions> = {},
 ): Promise<T> {
   const opts = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt < opts.maxAttempts; attempt++) {
     try {

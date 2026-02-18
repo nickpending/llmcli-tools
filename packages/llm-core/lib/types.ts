@@ -6,7 +6,8 @@ export interface CompleteOptions {
   systemPrompt?: string; // System instructions
   temperature?: number; // 0-1
   maxTokens?: number; // Max output tokens
-  json?: boolean; // Hint for JSON output mode
+  /** Hint for JSON output mode. Only effective for OpenAI (response_format). Silently ignored by Anthropic and Ollama. */
+  json?: boolean;
 }
 
 export interface CompleteResult {

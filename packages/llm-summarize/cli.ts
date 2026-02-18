@@ -2,26 +2,14 @@
 /**
  * llm-summarize CLI
  *
- * Philosophy:
- * - Structured session insight extraction for knowledge systems
- * - Multi-provider support (Anthropic, OpenAI, Ollama)
- * - Deterministic JSON output for tooling integration
- * - Config-driven - no hardcoded defaults
+ * Structured session insight extraction for knowledge systems.
+ * Uses @voidwire/llm-core for LLM transport — services configured
+ * via ~/.config/llm-core/services.toml, API keys via apiconf.
  *
  * Usage:
  *   llm-summarize <text>
  *   llm-summarize --stdin
  *   echo "text" | llm-summarize --stdin
- *
- * Config: ~/.config/llm/config.toml
- *   [llm]
- *   provider = "ollama"
- *   model = "Qwen2.5:3b"
- *   api_base = "https://ollama.example.com"
- *   max_tokens = 1024
- *
- * Secrets: ~/.config/llm/.env
- *   ANTHROPIC_API_KEY=sk-ant-...
  *
  * Exit codes:
  *   0 - Success
@@ -56,18 +44,13 @@ function printUsage(): void {
   console.error(`
 llm-summarize - Extract structured insights from session transcripts
 
-Philosophy:
-  Structured session insight extraction for knowledge systems.
-  Config-driven - specify exact provider/model.
-  JSON output for tooling integration.
-
 Usage: llm-summarize [options] <text>
        llm-summarize --stdin
 
 Options:
   --mode <mode>         Summarization mode: quick or insights (default: insights)
-  --model <name>        Override model from config
-  --max-tokens <n>      Max output tokens (default: from config or 1024)
+  --model <name>        Override model (default: claude-3-5-haiku-20241022)
+  --max-tokens <n>      Max output tokens (default: 1024)
   --stdin               Read text from stdin
   -h, --help            Show this help
 
@@ -75,26 +58,10 @@ Modes:
   quick     - Fast one-liner summary (for user prompts)
   insights  - Full SessionInsights extraction (for responses)
 
-Config file: ~/.config/llm/config.toml
-  [llm]
-  provider = "ollama"
-  model = "Qwen2.5:3b"
-  api_base = "https://ollama.example.com"
-  max_tokens = 1024
-
-Secrets file: ~/.config/llm/.env
-  ANTHROPIC_API_KEY=sk-ant-...
-  OPENAI_API_KEY=sk-...
-
-Environment overrides:
-  LLM_PROVIDER          Override provider
-  LLM_MODEL             Override model
-  LLM_API_KEY           Override API key
-
-Supported providers:
-  anthropic - Claude models (claude-3-5-haiku-latest, claude-sonnet-4-20250514)
-  openai    - GPT models (gpt-4.1-mini, gpt-4o)
-  ollama    - Local models (Qwen2.5:3b, llama3.2:3b, etc.) - no API key needed
+Configuration:
+  LLM transport is handled by @voidwire/llm-core.
+  Services: ~/.config/llm-core/services.toml
+  API keys: managed via apiconf (see @voidwire/apiconf)
 
 Output format:
   {
@@ -103,18 +70,14 @@ Output format:
       "decisions": ["Specific decisions with reasoning"],
       "patterns_used": ["Development patterns observed"],
       "preferences_expressed": ["User preferences revealed"],
-      "problems_solved": ["Problems addressed and how"],
-      "tools_heavy": ["Tools used notably"]
+      "problems_solved": ["Problems addressed and how"]
     },
-    "model": "qwen2.5:3b",
+    "model": "claude-3-5-haiku-20241022",
     "tokens_used": 150
   }
 
 Examples:
-  # Extract insights from session transcript
   cat session.txt | llm-summarize --stdin
-
-  # From clipboard
   pbpaste | llm-summarize --stdin
 `);
 }

@@ -17,8 +17,9 @@
 import { readFileSync, existsSync } from "fs";
 import { parse as parseToml } from "smol-toml";
 import { join } from "path";
+import { homedir } from "os";
 
-const CONFIG_DIR = join(process.env.HOME || "~", ".config", "llm-core");
+const CONFIG_DIR = join(homedir(), ".config", "llm-core");
 const PRICING_PATH = join(CONFIG_DIR, "pricing.toml");
 
 interface PricingRates {

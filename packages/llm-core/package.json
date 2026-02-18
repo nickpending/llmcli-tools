@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/llm-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared LLM transport layer with service-based routing",
   "type": "module",
   "main": "./index.ts",
