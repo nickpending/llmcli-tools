@@ -17,6 +17,10 @@ import { indexObservations } from "./observations";
 import { indexExplorations } from "./explorations";
 import { indexSessions } from "./sessions";
 import { indexFlux } from "./flux";
+import { indexObsidian } from "./obsidian";
+import { indexCommits } from "./commits";
+import { indexBlogs } from "./blogs";
+import { indexPersonal } from "./personal";
 
 export const indexers: Record<string, IndexerFunction> = {
   events: indexEvents,
@@ -30,4 +34,8 @@ export const indexers: Record<string, IndexerFunction> = {
   explorations: indexExplorations,
   sessions: indexSessions,
   flux: indexFlux,
+  obsidian: indexObsidian,
+  commits: indexCommits,
+  blogs: indexBlogs,
+  personal: indexPersonal,
 };

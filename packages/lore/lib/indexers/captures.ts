@@ -53,6 +53,16 @@ export async function indexCaptures(ctx: IndexerContext): Promise<void> {
         if (deviations) content += `\nDeviations: ${deviations}`;
         if (pattern) content += `\nPattern: ${pattern}`;
 
+        const techTags: string[] = [];
+        if (event.data?.tech) techTags.push(`Tech: ${event.data.tech}`);
+        if (event.data?.tags) {
+          const tags = Array.isArray(event.data.tags)
+            ? event.data.tags
+            : [event.data.tags];
+          techTags.push(`Tags: ${tags.join(", ")}`);
+        }
+        if (techTags.length > 0) content += `\n${techTags.join("\n")}`;
+
         title = `[completion] ${topic}: ${name}`;
         type = "completion";
 
