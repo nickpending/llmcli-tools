@@ -24,6 +24,7 @@ export interface LoreConfig {
     projects: string;
     personal: string;
     session_events?: string;
+    sable_events?: string;
     flux?: string;
     flux_projects?: string;
   };
@@ -117,6 +118,10 @@ export function getConfig(): LoreConfig {
       session_events:
         typeof paths.session_events === "string"
           ? resolvePath(paths.session_events)
+          : undefined,
+      sable_events:
+        typeof paths.sable_events === "string"
+          ? resolvePath(paths.sable_events)
           : undefined,
       flux:
         typeof paths.flux === "string" ? resolvePath(paths.flux) : undefined,

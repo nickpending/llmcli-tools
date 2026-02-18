@@ -27,16 +27,25 @@ interface SessionData {
 }
 
 export async function indexSessions(ctx: IndexerContext): Promise<void> {
-  const eventsDir = ctx.config.paths.session_events;
-  if (!eventsDir || !existsSync(eventsDir)) {
-    console.log("No session events directory found, skipping sessions");
+  // Collect event files from all configured directories
+  const eventDirs = [
+    ctx.config.paths.session_events,
+    ctx.config.paths.sable_events,
+  ].filter((d): d is string => !!d && existsSync(d));
+
+  if (eventDirs.length === 0) {
+    console.log("No session events directories found, skipping sessions");
     return;
   }
 
-  const eventFiles = readdirSync(eventsDir)
-    .filter((f) => f.endsWith(".jsonl"))
-    .sort()
-    .map((f) => join(eventsDir, f));
+  const eventFiles: string[] = [];
+  for (const dir of eventDirs) {
+    const files = readdirSync(dir)
+      .filter((f) => f.endsWith(".jsonl"))
+      .map((f) => join(dir, f));
+    eventFiles.push(...files);
+  }
+  eventFiles.sort();
 
   if (eventFiles.length === 0) {
     console.log("No session event files found, skipping sessions");
