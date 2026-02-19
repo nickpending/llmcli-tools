@@ -9,11 +9,22 @@ import { Database } from "bun:sqlite";
 import { existsSync } from "fs";
 import { getConfig } from "./config";
 
-// Use Homebrew SQLite on macOS to enable extension loading
+// Load custom SQLite from config to enable extension loading
 // Must be called before any Database instances are created
-const HOMEBREW_SQLITE = "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib";
-if (existsSync(HOMEBREW_SQLITE)) {
-  Database.setCustomSQLite(HOMEBREW_SQLITE);
+const config = getConfig();
+if (config.database.custom_sqlite) {
+  if (!existsSync(config.database.custom_sqlite)) {
+    throw new Error(
+      `database.custom_sqlite path does not exist: ${config.database.custom_sqlite}`,
+    );
+  }
+  Database.setCustomSQLite(config.database.custom_sqlite);
+} else {
+  throw new Error(
+    "database.custom_sqlite not set in ~/.config/lore/config.toml.\n" +
+      "Required for sqlite-vec extension loading.\n" +
+      'macOS: custom_sqlite = "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"',
+  );
 }
 
 /**

@@ -238,7 +238,10 @@ describe("blogs indexer", () => {
       ].join("\n") + "\n",
     );
 
-    const ctx = makeCtx(db, makeConfig({ blogs: blogsDir }));
+    const ctx = makeCtx(
+      db,
+      makeConfig({ blogs: blogsDir, blog_url: "https://example.com" }),
+    );
     await indexBlogs(ctx);
 
     const result = rows(db);
@@ -249,9 +252,9 @@ describe("blogs indexer", () => {
       "Tags: typescript, performance, caching",
     );
 
-    // URL derived from filename, not slug
+    // URL derived from config blog_url + filename
     const meta = JSON.parse(result[0].metadata as string);
-    expect(meta.url).toBe("https://labs.voidwire.info/posts/my-great-post/");
+    expect(meta.url).toBe("https://example.com/posts/my-great-post/");
 
     // Topic from categories
     expect(result[0].topic).toBe("engineering");

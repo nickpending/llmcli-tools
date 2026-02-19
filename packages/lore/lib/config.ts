@@ -7,8 +7,8 @@
  * Usage:
  *   import { getConfig } from "./config";
  *   const config = getConfig();
- *   console.log(config.paths.data);      // /Users/rudy/.local/share/lore
- *   console.log(config.database.sqlite);  // /Users/rudy/.local/share/lore/lore.db
+ *   console.log(config.paths.data);      // ~/.local/share/lore
+ *   console.log(config.database.sqlite);  // ~/.local/share/lore/lore.db
  */
 
 import { readFileSync } from "fs";
@@ -27,9 +27,11 @@ export interface LoreConfig {
     sable_events?: string;
     flux?: string;
     flux_projects?: string;
+    blog_url?: string;
   };
   database: {
     sqlite: string;
+    custom_sqlite?: string;
   };
 }
 
@@ -129,9 +131,14 @@ export function getConfig(): LoreConfig {
         typeof paths.flux_projects === "string"
           ? resolvePath(paths.flux_projects)
           : undefined,
+      blog_url: typeof paths.blog_url === "string" ? paths.blog_url : undefined,
     },
     database: {
       sqlite: resolvePath(database.sqlite as string),
+      custom_sqlite:
+        typeof database.custom_sqlite === "string"
+          ? resolvePath(database.custom_sqlite)
+          : undefined,
     },
   };
 

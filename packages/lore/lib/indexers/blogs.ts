@@ -42,6 +42,12 @@ export async function indexBlogs(ctx: IndexerContext): Promise<void> {
     return;
   }
 
+  if (!ctx.config.paths.blog_url) {
+    console.warn(
+      "WARNING: paths.blog_url not set in config.toml — blog post URLs will not be generated",
+    );
+  }
+
   const files = walkMarkdownFiles(postsDir);
 
   for (const filePath of files) {
@@ -117,9 +123,10 @@ export async function indexBlogs(ctx: IndexerContext): Promise<void> {
       // Topic from categories
       const topic = categories.length > 0 ? categories.join(" ") : "";
 
-      // URL from slug or filename
+      // URL from slug or filename — requires blog_url in config
+      const blogUrl = ctx.config.paths.blog_url;
       const urlSlug = slug || basename(filePath, ".md");
-      const url = `https://labs.voidwire.info/posts/${urlSlug}/`;
+      const url = blogUrl ? `${blogUrl}/posts/${urlSlug}/` : "";
 
       // Word count
       const wordCount = content.split(/\s+/).filter(Boolean).length;
