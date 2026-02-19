@@ -33,6 +33,10 @@ export interface LoreConfig {
     sqlite: string;
     custom_sqlite?: string;
   };
+  embedding: {
+    model: string;
+    dimensions: number;
+  };
 }
 
 let cachedConfig: LoreConfig | null = null;
@@ -81,9 +85,27 @@ export function getConfig(): LoreConfig {
       "Invalid config: missing [database] section in config.toml",
     );
   }
+  if (!parsed.embedding || typeof parsed.embedding !== "object") {
+    throw new Error(
+      "Invalid config: missing [embedding] section in config.toml",
+    );
+  }
 
   const paths = parsed.paths as Record<string, unknown>;
   const database = parsed.database as Record<string, unknown>;
+  const embedding = parsed.embedding as Record<string, unknown>;
+
+  // Validate required embedding fields
+  if (typeof embedding.model !== "string") {
+    throw new Error(
+      "Invalid config: embedding.model is missing or not a string",
+    );
+  }
+  if (typeof embedding.dimensions !== "number") {
+    throw new Error(
+      "Invalid config: embedding.dimensions is missing or not a number",
+    );
+  }
 
   // Validate required path fields
   const requiredPaths = [
@@ -140,7 +162,11 @@ export function getConfig(): LoreConfig {
           ? resolvePath(database.custom_sqlite)
           : undefined,
     },
+    embedding: {
+      model: embedding.model as string,
+      dimensions: embedding.dimensions as number,
+    },
   };
 
-  return cachedConfig;
+  return cachedConfig!;
 }

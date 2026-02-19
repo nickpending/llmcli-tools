@@ -11,6 +11,7 @@ import { existsSync } from "fs";
 import { pipeline } from "@huggingface/transformers";
 import { getDatabasePath, openDatabase } from "./db.js";
 import { search as keywordSearch, type SearchResult } from "./search.js";
+import { getConfig } from "./config.js";
 
 export interface SemanticResult {
   rowid: number;
@@ -30,8 +31,7 @@ export interface SemanticSearchOptions {
   since?: string;
 }
 
-const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
-const EMBEDDING_DIM = 768;
+const { model: MODEL_NAME, dimensions: EMBEDDING_DIM } = getConfig().embedding;
 
 interface EmbeddingPipeline {
   (
