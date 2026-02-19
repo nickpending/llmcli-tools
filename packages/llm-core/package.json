@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/llm-core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Shared LLM transport layer with service-based routing",
   "type": "module",
   "main": "./index.ts",
@@ -44,7 +44,7 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@voidwire/apiconf": "0.1.0",
+    "@voidwire/apiconf": "^0.1.0",
     "smol-toml": "1.6.0"
   }
 }
