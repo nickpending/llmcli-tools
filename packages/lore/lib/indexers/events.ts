@@ -10,16 +10,20 @@
  * Timestamp: last event timestamp per project
  */
 
-import { readFileSync, existsSync } from "fs";
-import type { IndexerContext } from "../indexer";
+import { readFileSync } from "fs";
+import { checkPath, type IndexerContext } from "../indexer";
 
 export async function indexEvents(ctx: IndexerContext): Promise<void> {
   const logPath = `${ctx.config.paths.data}/log.jsonl`;
-
-  if (!existsSync(logPath)) {
-    console.log("No log.jsonl found, skipping events");
+  if (
+    !checkPath(
+      "events",
+      "log.jsonl",
+      logPath,
+      "populated by Sable session hooks",
+    )
+  )
     return;
-  }
 
   const lines = readFileSync(logPath, "utf-8").split("\n").filter(Boolean);
   const projectData = new Map<

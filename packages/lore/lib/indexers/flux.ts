@@ -14,7 +14,7 @@
 
 import { readdirSync, readFileSync, existsSync, statSync } from "fs";
 import { join, basename } from "path";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 export async function indexFlux(ctx: IndexerContext): Promise<void> {
   const fluxDir = ctx.config.paths.flux;
@@ -22,7 +22,7 @@ export async function indexFlux(ctx: IndexerContext): Promise<void> {
   let found = false;
 
   // Pass 1: General flux files (no project association)
-  if (fluxDir && existsSync(fluxDir)) {
+  if (checkPath("flux", "paths.flux", fluxDir)) {
     found = true;
     const files = readdirSync(fluxDir).filter((f) => f.endsWith(".md"));
     for (const file of files) {
@@ -37,7 +37,7 @@ export async function indexFlux(ctx: IndexerContext): Promise<void> {
   }
 
   // Pass 2: Per-project flux files (active.md, later.md)
-  if (fluxProjectsDir && existsSync(fluxProjectsDir)) {
+  if (checkPath("flux", "paths.flux_projects", fluxProjectsDir)) {
     found = true;
     const projects = readdirSync(fluxProjectsDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
@@ -57,9 +57,7 @@ export async function indexFlux(ctx: IndexerContext): Promise<void> {
     }
   }
 
-  if (!found) {
-    console.log("No flux directories found, skipping flux");
-  }
+  if (!found) return;
 }
 
 function statusFromFilename(name: string): string {

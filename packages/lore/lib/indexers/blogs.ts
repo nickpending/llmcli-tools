@@ -13,7 +13,7 @@
 
 import { readdirSync, readFileSync, statSync, existsSync } from "fs";
 import { join, basename } from "path";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 function walkMarkdownFiles(dir: string, files: string[] = []): string[] {
   if (!existsSync(dir)) return files;
@@ -37,10 +37,7 @@ export async function indexBlogs(ctx: IndexerContext): Promise<void> {
   const blogsDir = ctx.config.paths.blogs;
   const postsDir = join(blogsDir, "content", "posts");
 
-  if (!existsSync(postsDir)) {
-    console.log(`Blog posts directory not found: ${postsDir}`);
-    return;
-  }
+  if (!checkPath("blogs", "content/posts", postsDir)) return;
 
   if (!ctx.config.paths.blog_url) {
     console.warn(

@@ -13,15 +13,11 @@
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 export async function indexCommits(ctx: IndexerContext): Promise<void> {
   const projectsDir = ctx.config.paths.projects;
-
-  if (!existsSync(projectsDir)) {
-    console.log(`Projects directory not found: ${projectsDir}`);
-    return;
-  }
+  if (!checkPath("commits", "paths.projects", projectsDir)) return;
 
   const projects = readdirSync(projectsDir, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory())

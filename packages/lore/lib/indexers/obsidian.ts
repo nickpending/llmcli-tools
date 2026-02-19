@@ -11,9 +11,9 @@
  * Timestamp: file mtime as ISO 8601
  */
 
-import { readdirSync, readFileSync, statSync, existsSync } from "fs";
+import { readdirSync, readFileSync, statSync } from "fs";
 import { join, basename, dirname } from "path";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 function walkMarkdownFiles(
   dir: string,
@@ -41,10 +41,7 @@ function walkMarkdownFiles(
 export async function indexObsidian(ctx: IndexerContext): Promise<void> {
   const obsidianDir = ctx.config.paths.obsidian;
 
-  if (!existsSync(obsidianDir)) {
-    console.log(`Obsidian directory not found: ${obsidianDir}`);
-    return;
-  }
+  if (!checkPath("obsidian", "paths.obsidian", obsidianDir)) return;
 
   const files = walkMarkdownFiles(obsidianDir, obsidianDir);
 

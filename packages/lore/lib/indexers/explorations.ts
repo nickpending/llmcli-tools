@@ -10,9 +10,9 @@
  * Timestamp: file mtime as ISO 8601
  */
 
-import { readdirSync, readFileSync, statSync, existsSync } from "fs";
+import { readdirSync, readFileSync, statSync } from "fs";
 import { join, basename, dirname } from "path";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 function walkMarkdownFiles(dir: string, files: string[] = []): string[] {
   const entries = readdirSync(dir, { withFileTypes: true });
@@ -33,10 +33,7 @@ function walkMarkdownFiles(dir: string, files: string[] = []): string[] {
 export async function indexExplorations(ctx: IndexerContext): Promise<void> {
   const explorationsDir = ctx.config.paths.explorations;
 
-  if (!existsSync(explorationsDir)) {
-    console.log(`Explorations directory not found: ${explorationsDir}`);
-    return;
-  }
+  if (!checkPath("explorations", "paths.explorations", explorationsDir)) return;
 
   const files = walkMarkdownFiles(explorationsDir);
 

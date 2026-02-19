@@ -10,9 +10,9 @@
  * Timestamp: first event timestamp per session
  */
 
-import { readdirSync, readFileSync, existsSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 interface SessionData {
   project: string;
@@ -27,16 +27,18 @@ interface SessionData {
 }
 
 export async function indexSessions(ctx: IndexerContext): Promise<void> {
-  // Collect event files from all configured directories
-  const eventDirs = [
-    ctx.config.paths.session_events,
-    ctx.config.paths.sable_events,
-  ].filter((d): d is string => !!d && existsSync(d));
-
-  if (eventDirs.length === 0) {
-    console.log("No session events directories found, skipping sessions");
-    return;
+  // Check each event directory individually for clear diagnostics
+  const eventDirs: string[] = [];
+  for (const { name, path } of [
+    { name: "session_events", path: ctx.config.paths.session_events },
+    { name: "sable_events", path: ctx.config.paths.sable_events },
+  ]) {
+    if (checkPath("sessions", name, path)) {
+      eventDirs.push(path);
+    }
   }
+
+  if (eventDirs.length === 0) return;
 
   const eventFiles: string[] = [];
   for (const dir of eventDirs) {

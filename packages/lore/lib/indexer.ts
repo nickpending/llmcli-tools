@@ -18,6 +18,7 @@
 
 import { Database } from "bun:sqlite";
 import { createHash } from "crypto";
+import { existsSync } from "fs";
 import { getConfig, type LoreConfig } from "./config";
 
 export interface IndexEntry {
@@ -38,6 +39,35 @@ export interface IndexerContext {
 }
 
 export type IndexerFunction = (ctx: IndexerContext) => Promise<void>;
+
+/**
+ * Check if a path is configured and exists on disk.
+ * Logs a specific reason when the check fails:
+ *   - "not configured" when path is undefined
+ *   - "not found: /path" or "not found — hint" when path doesn't exist
+ *
+ * Returns true (with type narrowing) if path exists.
+ */
+export function checkPath(
+  source: string,
+  name: string,
+  path: string | undefined,
+  hint?: string,
+): path is string {
+  if (!path) {
+    console.log(`${source}: ${name} not configured`);
+    return false;
+  }
+  if (!existsSync(path)) {
+    if (hint) {
+      console.log(`${source}: ${name} not found — ${hint}`);
+    } else {
+      console.log(`${source}: ${name} not found: ${path}`);
+    }
+    return false;
+  }
+  return true;
+}
 
 /**
  * Content chunking with overlap.

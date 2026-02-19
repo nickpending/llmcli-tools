@@ -12,7 +12,7 @@
 
 import { readFileSync, statSync, existsSync } from "fs";
 import { join } from "path";
-import type { IndexerContext } from "../indexer";
+import { checkPath, type IndexerContext } from "../indexer";
 
 function fileMtime(path: string): string {
   return statSync(path).mtime.toISOString();
@@ -27,10 +27,7 @@ function toISO(dateStr: string, fallback: string): string {
 export async function indexPersonal(ctx: IndexerContext): Promise<void> {
   const personalDir = ctx.config.paths.personal;
 
-  if (!existsSync(personalDir)) {
-    console.log(`Personal data directory not found: ${personalDir}`);
-    return;
-  }
+  if (!checkPath("personal", "paths.personal", personalDir)) return;
 
   // Books
   const booksPath = join(personalDir, "books.json");

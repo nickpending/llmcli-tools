@@ -10,15 +10,20 @@
  * Timestamp: event timestamp
  */
 
-import { readFileSync, existsSync } from "fs";
-import type { IndexerContext } from "../indexer";
+import { readFileSync } from "fs";
+import { checkPath, type IndexerContext } from "../indexer";
 
 export async function indexObservations(ctx: IndexerContext): Promise<void> {
   const logPath = `${ctx.config.paths.data}/log.jsonl`;
-  if (!existsSync(logPath)) {
-    console.log("No log.jsonl found, skipping observations");
+  if (
+    !checkPath(
+      "observations",
+      "log.jsonl",
+      logPath,
+      "populated by Sable session hooks",
+    )
+  )
     return;
-  }
 
   const lines = readFileSync(logPath, "utf-8").split("\n").filter(Boolean);
 
