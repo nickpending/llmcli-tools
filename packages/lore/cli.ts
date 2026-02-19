@@ -320,6 +320,7 @@ async function handleSearch(args: string[]): Promise<void> {
         limit,
         project,
         type,
+        since,
       });
 
       if (brief) {
@@ -428,10 +429,11 @@ function handleList(args: string[]): void {
   const format = parsed.get("format") || "json";
   const project = parsed.get("project");
   const type = parsed.get("type");
+  const since = parsed.get("since");
   const brief = hasFlag(args, "brief");
 
   try {
-    const result = list(source, { limit, project, type });
+    const result = list(source, { limit, project, type, since });
 
     if (brief) {
       console.log(formatBriefList(result));
@@ -934,6 +936,7 @@ List Options:
   --format <fmt>    Output format: json (default), jsonl, human
   --brief           Compact output (titles only)
   --project <name>  Filter by project name
+  --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
 
 Capture Types:
   task              Log task completion
@@ -1060,6 +1063,7 @@ Options:
   --format <fmt>    Output format: json (default), jsonl, human
   --project <name>  Filter by project name
   --type <type>     Filter captures by type (learning, gotcha, preference, decision)
+  --since <date>    Filter by date (today, yesterday, this-week, YYYY-MM-DD)
   --brief           Compact output (titles only)
   --help            Show this help
 

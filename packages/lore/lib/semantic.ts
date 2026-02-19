@@ -27,6 +27,7 @@ export interface SemanticSearchOptions {
   limit?: number;
   project?: string;
   type?: string | string[];
+  since?: string;
 }
 
 const MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5";
@@ -233,6 +234,12 @@ export async function semanticSearch(
       params.push(...types);
     }
 
+    if (options.since) {
+      conditions.push("e.timestamp != ''");
+      conditions.push("e.timestamp >= ?");
+      params.push(options.since);
+    }
+
     sql = `
       SELECT
         s.rowid,
@@ -332,6 +339,7 @@ export async function hybridSearch(
       limit: fetchLimit,
       project: options.project,
       type: options.type,
+      since: options.since,
     }),
     Promise.resolve(
       keywordSearch(query, {

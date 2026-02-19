@@ -69,6 +69,7 @@ export interface ListOptions {
   limit?: number;
   project?: string;
   type?: string;
+  since?: string;
 }
 
 export interface ListEntry {
@@ -102,6 +103,7 @@ function queryBySource(
   limit?: number,
   project?: string,
   type?: string,
+  since?: string,
 ): ListEntry[] {
   let sql =
     "SELECT title, content, topic, type, metadata FROM search WHERE source = ?";
@@ -117,6 +119,12 @@ function queryBySource(
   if (type) {
     sql += " AND type = ?";
     params.push(type);
+  }
+
+  // Add date filter if provided
+  if (since) {
+    sql += " AND timestamp IS NOT NULL AND timestamp != '' AND timestamp >= ?";
+    params.push(since);
   }
 
   // Order by timestamp descending (most recent first)
@@ -146,15 +154,19 @@ function queryPersonalType(
   db: Database,
   type: string,
   limit?: number,
+  since?: string,
 ): ListEntry[] {
   // Filter by type in SQL, not JS - avoids LIMIT truncation bug
-  let sql = `
-    SELECT title, content, topic, type, metadata FROM search
-    WHERE source = 'personal'
-      AND type = ?
-    ORDER BY timestamp DESC
-  `;
+  let sql =
+    "SELECT title, content, topic, type, metadata FROM search WHERE source = 'personal' AND type = ?";
   const params: (string | number)[] = [type];
+
+  if (since) {
+    sql += " AND timestamp IS NOT NULL AND timestamp != '' AND timestamp >= ?";
+    params.push(since);
+  }
+
+  sql += " ORDER BY timestamp DESC";
 
   if (limit) {
     sql += " LIMIT ?";
@@ -202,7 +214,12 @@ export function list(source: Source, options: ListOptions = {}): ListResult {
     // Check if this is a personal subtype source
     const personalType = PERSONAL_SUBTYPES[source];
     if (personalType) {
-      entries = queryPersonalType(db, personalType, options.limit);
+      entries = queryPersonalType(
+        db,
+        personalType,
+        options.limit,
+        options.since,
+      );
     } else {
       entries = queryBySource(
         db,
@@ -210,6 +227,7 @@ export function list(source: Source, options: ListOptions = {}): ListResult {
         options.limit,
         options.project,
         options.type,
+        options.since,
       );
     }
 
