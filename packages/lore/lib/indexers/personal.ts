@@ -13,6 +13,7 @@
 import { readFileSync, statSync, existsSync } from "fs";
 import { join } from "path";
 import { checkPath, type IndexerContext } from "../indexer";
+import { complete } from "@voidwire/llm-core";
 
 function fileMtime(path: string): string {
   return statSync(path).mtime.toISOString();
@@ -24,7 +25,39 @@ function toISO(dateStr: string, fallback: string): string {
   return s.includes("T") ? s : `${s.slice(0, 10)}T00:00:00Z`;
 }
 
+const ENRICH_SYSTEM_PROMPT = `Given a personal data entry, generate a rich searchable description. Include: related terms, synonyms, common alternative phrasings, and brief context. Keep it under 80 words. Output only the description, no headers or formatting.`;
+
+const ENRICH_TIMEOUT_MS = 10_000;
+
+let enrichmentDisabled = false;
+
+async function enrich(input: string): Promise<string | null> {
+  if (enrichmentDisabled) return null;
+  try {
+    const result = await Promise.race([
+      complete({
+        prompt: input,
+        systemPrompt: ENRICH_SYSTEM_PROMPT,
+        temperature: 0.3,
+        maxTokens: 150,
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Enrichment timed out")),
+          ENRICH_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+    return result.text.replace(/<\|[^|]+\|>/g, "").trim();
+  } catch (e) {
+    console.warn(`Enrichment failed, disabling for remaining entries: ${e}`);
+    enrichmentDisabled = true;
+    return null;
+  }
+}
+
 export async function indexPersonal(ctx: IndexerContext): Promise<void> {
+  enrichmentDisabled = false;
   const personalDir = ctx.config.paths.personal;
 
   if (!checkPath("personal", "paths.personal", personalDir)) return;
@@ -37,7 +70,11 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
       const books = JSON.parse(readFileSync(booksPath, "utf-8"));
       for (const book of books) {
         if (!book.title) continue;
-        const content = `${book.title} by ${book.author || "unknown"}\n${book.notes || ""}`;
+        let content = `${book.title} by ${book.author || "unknown"}\n${book.notes || ""}`;
+        const enriched = await enrich(
+          JSON.stringify({ title: book.title, author: book.author }),
+        );
+        if (enriched) content = enriched;
         const timestamp = book.date_read
           ? toISO(book.date_read, booksTs)
           : booksTs;
@@ -65,7 +102,14 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
       const people = JSON.parse(readFileSync(peoplePath, "utf-8"));
       for (const person of people) {
         if (!person.name) continue;
-        const content = `${person.name}\n${person.relationship || ""}\n${person.notes || ""}`;
+        let content = `${person.name}\n${person.relationship || ""}\n${person.notes || ""}`;
+        const enriched = await enrich(
+          JSON.stringify({
+            name: person.name,
+            relationship: person.relationship,
+          }),
+        );
+        if (enriched) content = enriched;
 
         ctx.insert({
           source: "personal",
@@ -91,9 +135,13 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
       for (const movie of movies) {
         if (!movie.title) continue;
         const year = movie.year || "";
-        const content = year
+        let content = year
           ? `${movie.title} (${year})\n${movie.notes || ""}`
           : `${movie.title}\n${movie.notes || ""}`;
+        const enriched = await enrich(
+          JSON.stringify({ title: movie.title, year: movie.year }),
+        );
+        if (enriched) content = enriched;
         const timestamp = movie.date_watched
           ? toISO(movie.date_watched, moviesTs)
           : moviesTs;
@@ -147,11 +195,14 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
       const interests = JSON.parse(readFileSync(interestsPath, "utf-8"));
       for (const interest of interests) {
         if (typeof interest !== "string" || !interest) continue;
+        let content = interest;
+        const enriched = await enrich(JSON.stringify({ name: interest }));
+        if (enriched) content = enriched;
 
         ctx.insert({
           source: "personal",
           title: `[interest] ${interest}`,
-          content: interest,
+          content,
           topic: "",
           type: "interest",
           timestamp: interestsTs,
@@ -173,7 +224,11 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
         const habitName = habit.habit || "";
         if (!habitName) continue;
         const frequency = habit.frequency || "";
-        const content = frequency ? `${habitName} (${frequency})` : habitName;
+        let content = frequency ? `${habitName} (${frequency})` : habitName;
+        const enriched = await enrich(
+          JSON.stringify({ habit: habitName, frequency }),
+        );
+        if (enriched) content = enriched;
 
         ctx.insert({
           source: "personal",
