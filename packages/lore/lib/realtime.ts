@@ -129,26 +129,26 @@ function getSourceForEvent(event: CaptureEvent): string {
 }
 
 /**
- * Build title for FTS5 entry, matching existing indexer format
+ * Build title for FTS5 entry (type is a first-class column, not a title prefix)
  */
 function buildTitle(event: CaptureEvent): string {
   const data = event.data as Record<string, unknown>;
 
   switch (event.type) {
     case "knowledge":
-      return `[${data.subtype || "knowledge"}] ${data.topic || "general"}`;
+      return `${data.topic || "general"}`;
     case "teaching":
-      return `[${data.topic || "general"}] (${data.confidence || "medium"})`;
+      return `${data.topic || "general"} (${data.confidence || "medium"})`;
     case "observation":
-      return `[${data.subtype || "pattern"}] ${data.topic || "general"}`;
+      return `${data.topic || "general"}`;
     case "insight":
-      return `[${data.subtype || "insight"}] ${data.topic || "general"}`;
+      return `${data.topic || "general"}`;
     case "learning":
-      return `[learning] ${data.topic || "general"}`;
+      return `${data.topic || "general"}`;
     case "task":
-      return `[task] ${data.topic || "general"}: ${data.name || "untitled"}`;
+      return `${data.topic || "general"}: ${data.name || "untitled"}`;
     case "note":
-      return `[note] ${data.topic || "general"}`;
+      return `${data.topic || "general"}`;
   }
 }
 
