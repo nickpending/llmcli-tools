@@ -25,30 +25,29 @@ function toISO(dateStr: string, fallback: string): string {
   return s.includes("T") ? s : `${s.slice(0, 10)}T00:00:00Z`;
 }
 
+const ENRICH_SHARED = `Only expand from the information provided. Do not add names, dates, or facts not present in the input.
+Include both singular and plural forms where applicable.
+Keep under 80 words. Output only the description, no headers or formatting.`;
+
 const ENRICH_PROMPTS: Record<string, string> = {
   person: `You are enriching a personal contact entry for search indexing.
 The "relationship" field is the EXACT relationship — do NOT add other relationship types.
 Generate synonyms and alternative phrasings ONLY for the stated relationship.
 Example: relationship "uncle" → uncle, family member, relative, parent's brother, parent's sibling. NOT: cousin, nephew, aunt.
 Example: relationship "daughter" → daughter, child, kid, offspring, family member. NOT: son, niece, nephew.
-Include both singular and plural forms where applicable.
-Keep under 80 words. Output only the description, no headers or formatting.`,
+${ENRICH_SHARED}`,
   book: `You are enriching a book entry for search indexing.
-Generate: genre, themes, subject matter, and related topics.
-Include both singular and plural forms of key terms.
-Keep under 80 words. Output only the description, no headers or formatting.`,
+Generate: genre, themes, and related topics based on the title.
+${ENRICH_SHARED}`,
   movie: `You are enriching a movie entry for search indexing.
-Generate: genre, themes, notable actors or director if well-known, and related topics.
-Include both singular and plural forms of key terms.
-Keep under 80 words. Output only the description, no headers or formatting.`,
+Generate: genre, themes, and related topics based on the title.
+${ENRICH_SHARED}`,
   interest: `You are enriching a personal interest entry for search indexing.
 Generate: related activities, domains, synonyms, and common alternative phrasings.
-Include both singular and plural forms.
-Keep under 80 words. Output only the description, no headers or formatting.`,
+${ENRICH_SHARED}`,
   habit: `You are enriching a personal habit/routine entry for search indexing.
 Generate: related routines, synonyms, categories, and common alternative phrasings.
-Include both singular and plural forms.
-Keep under 80 words. Output only the description, no headers or formatting.`,
+${ENRICH_SHARED}`,
 };
 
 const ENRICH_TIMEOUT_MS = 30_000;
