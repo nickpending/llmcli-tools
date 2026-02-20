@@ -51,12 +51,13 @@ Include both singular and plural forms.
 Keep under 80 words. Output only the description, no headers or formatting.`,
 };
 
-const ENRICH_TIMEOUT_MS = 10_000;
+const ENRICH_TIMEOUT_MS = 30_000;
+const ENRICH_MAX_FAILURES = 3;
 
-let enrichmentDisabled = false;
+let enrichmentFailures = 0;
 
 async function enrich(type: string, input: string): Promise<string | null> {
-  if (enrichmentDisabled) return null;
+  if (enrichmentFailures >= ENRICH_MAX_FAILURES) return null;
   const systemPrompt = ENRICH_PROMPTS[type];
   if (!systemPrompt) return null;
   try {
@@ -74,16 +75,24 @@ async function enrich(type: string, input: string): Promise<string | null> {
         ),
       ),
     ]);
+    enrichmentFailures = 0;
     return result.text.replace(/<\|[^|]+\|>/g, "").trim();
   } catch (e) {
-    console.warn(`Enrichment failed, disabling for remaining entries: ${e}`);
-    enrichmentDisabled = true;
+    enrichmentFailures++;
+    console.warn(
+      `Enrichment failed (${enrichmentFailures}/${ENRICH_MAX_FAILURES}): ${e}`,
+    );
+    if (enrichmentFailures >= ENRICH_MAX_FAILURES) {
+      console.warn(
+        "Max enrichment failures reached, disabling for remaining entries",
+      );
+    }
     return null;
   }
 }
 
 export async function indexPersonal(ctx: IndexerContext): Promise<void> {
-  enrichmentDisabled = false;
+  enrichmentFailures = 0;
   const personalDir = ctx.config.paths.personal;
 
   if (!checkPath("personal", "paths.personal", personalDir)) return;
