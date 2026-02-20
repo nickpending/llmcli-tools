@@ -44,7 +44,7 @@ export async function indexInsights(ctx: IndexerContext): Promise<void> {
 
       ctx.insert({
         source: "insights",
-        title: `[summary] ${topic}`,
+        title: topic,
         content,
         topic,
         type: "summary",

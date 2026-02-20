@@ -136,7 +136,7 @@ export async function indexBlogs(ctx: IndexerContext): Promise<void> {
 
       ctx.insert({
         source: "blogs",
-        title: `[blog] ${title}`,
+        title,
         content,
         topic,
         timestamp,

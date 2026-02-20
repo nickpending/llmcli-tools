@@ -72,7 +72,7 @@ export async function indexExplorations(ctx: IndexerContext): Promise<void> {
 
       ctx.insert({
         source: "explorations",
-        title: `[exploration] ${title}`,
+        title,
         content,
         topic: project,
         timestamp,

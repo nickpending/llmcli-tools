@@ -16,6 +16,7 @@ export interface SearchResult {
   content: string;
   metadata: string;
   topic: string;
+  type: string;
   rank: number;
 }
 
@@ -99,7 +100,7 @@ export function search(
     params.push(limit);
 
     const sql = `
-      SELECT rowid, source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, topic, rank
+      SELECT rowid, source, title, snippet(search, 2, '→', '←', '...', 32) as content, metadata, topic, type, rank
       FROM search
       WHERE ${conditions.join(" AND ")}
       ORDER BY rank

@@ -44,7 +44,7 @@ export async function indexObservations(ctx: IndexerContext): Promise<void> {
 
       ctx.insert({
         source: "observations",
-        title: `[${subtype}] ${topic}`,
+        title: topic,
         content,
         topic,
         type: subtype,

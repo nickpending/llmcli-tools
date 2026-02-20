@@ -119,7 +119,7 @@ describe("captures indexer", () => {
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe("completion");
     expect(result[0].topic).toBe("devtools");
-    expect((result[0].title as string).startsWith("[completion]")).toBe(true);
+    expect(result[0].title).toBe("devtools: Fix the build");
   });
 
   test("note entry produces type=note (INV-003)", async () => {

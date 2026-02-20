@@ -116,7 +116,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[book] ${book.title}`,
+          title: book.title,
           content,
           topic: "",
           type: "book",
@@ -149,7 +149,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[person] ${person.name}`,
+          title: person.name,
           content,
           topic: "",
           type: "person",
@@ -185,7 +185,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[movie] ${movie.title}`,
+          title: movie.title,
           content,
           topic: "",
           type: "movie",
@@ -211,7 +211,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[podcast] ${name}`,
+          title: name,
           content,
           topic: "",
           type: "podcast",
@@ -241,7 +241,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[interest] ${interest}`,
+          title: interest,
           content,
           topic: "",
           type: "interest",
@@ -273,7 +273,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[habit] ${habitName}`,
+          title: habitName,
           content,
           topic: "",
           type: "habit",
@@ -298,7 +298,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "personal",
-          title: `[profile] ${key}`,
+          title: key,
           content,
           topic: "",
           type: "profile",
@@ -326,7 +326,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
             ctx.insert({
               source: "personal",
-              title: `[preference] ${category}/${key}`,
+              title: `${category}/${key}`,
               content,
               topic: "",
               type: "preference",
@@ -339,7 +339,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
 
           ctx.insert({
             source: "personal",
-            title: `[preference] ${category}`,
+            title: category,
             content,
             topic: "",
             type: "preference",

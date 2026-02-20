@@ -68,7 +68,7 @@ export async function indexCommits(ctx: IndexerContext): Promise<void> {
 
         ctx.insert({
           source: "commits",
-          title: `[commit] ${subject}`,
+          title: subject,
           content,
           topic: project,
           timestamp,

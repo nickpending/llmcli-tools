@@ -20,6 +20,7 @@ export interface SemanticResult {
   content: string;
   metadata: string;
   topic: string;
+  type: string;
   distance: number;
 }
 
@@ -248,6 +249,7 @@ export async function semanticSearch(
         s.content,
         s.metadata,
         s.topic,
+        s.type,
         e.distance
       FROM embeddings e
       JOIN search s ON e.doc_id = s.rowid
@@ -276,6 +278,7 @@ export interface HybridResult {
   content: string;
   metadata: string;
   topic: string;
+  type: string;
   score: number;
   vectorScore: number;
   textScore: number;
@@ -364,6 +367,7 @@ export async function hybridSearch(
       content: r.content,
       metadata: r.metadata,
       topic: r.topic,
+      type: r.type,
       vectorScore,
       textScore: 0,
       score: vectorWeight * vectorScore,
@@ -391,6 +395,7 @@ export async function hybridSearch(
         content: r.content,
         metadata: r.metadata,
         topic: r.topic,
+        type: r.type,
         vectorScore: 0,
         textScore,
         score: textWeight * textScore,

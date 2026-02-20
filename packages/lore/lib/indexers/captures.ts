@@ -68,7 +68,7 @@ export async function indexCaptures(ctx: IndexerContext): Promise<void> {
         }
         if (techTags.length > 0) content += `\n${techTags.join("\n")}`;
 
-        title = `[completion] ${topic}: ${name}`;
+        title = `${topic}: ${name}`;
         type = "completion";
 
         if (event.data?.tags) metadata.tags = event.data.tags;
@@ -79,7 +79,7 @@ export async function indexCaptures(ctx: IndexerContext): Promise<void> {
         const tags = event.data?.tags || [];
         const tagsStr = tags.join(", ");
 
-        title = tagsStr ? `[note] ${tagsStr}` : "[note] untagged";
+        title = tagsStr ? tagsStr : "untagged";
         type = "note";
 
         if (tags.length > 0) metadata.tags = tags;
@@ -88,7 +88,7 @@ export async function indexCaptures(ctx: IndexerContext): Promise<void> {
         content = event.data?.content || "";
         const subtype = event.data?.subtype || "insight";
 
-        title = `[${subtype}] ${topic}`;
+        title = topic;
         type = subtype;
       }
 

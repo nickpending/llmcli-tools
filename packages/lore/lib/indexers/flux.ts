@@ -125,10 +125,7 @@ function parseFluxFile(
     const description = rest.trim();
     if (!description) continue;
 
-    const title =
-      topic !== "general"
-        ? `[${topic}] [${type}] ${description.slice(0, 80)}`
-        : `[${type}] ${description.slice(0, 80)}`;
+    const title = description.slice(0, 80);
 
     ctx.insert({
       source: "flux",

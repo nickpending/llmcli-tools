@@ -122,7 +122,7 @@ export async function indexSessions(ctx: IndexerContext): Promise<void> {
 
     ctx.insert({
       source: "sessions",
-      title: `[session] ${session.project} (${date})`,
+      title: `${session.project} (${date})`,
       content,
       topic: session.project,
       timestamp: session.firstTs,

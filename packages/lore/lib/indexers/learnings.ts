@@ -43,7 +43,7 @@ export async function indexLearnings(ctx: IndexerContext): Promise<void> {
 
       ctx.insert({
         source: "learnings",
-        title: `[learning] ${topic}`,
+        title: topic,
         content,
         topic,
         timestamp: event.timestamp || "",
