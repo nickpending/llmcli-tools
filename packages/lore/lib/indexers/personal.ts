@@ -25,19 +25,45 @@ function toISO(dateStr: string, fallback: string): string {
   return s.includes("T") ? s : `${s.slice(0, 10)}T00:00:00Z`;
 }
 
-const ENRICH_SYSTEM_PROMPT = `Given a personal data entry, generate a rich searchable description. Include: related terms, synonyms, common alternative phrasings, and brief context. Keep it under 80 words. Output only the description, no headers or formatting.`;
+const ENRICH_PROMPTS: Record<string, string> = {
+  person: `You are enriching a personal contact entry for search indexing.
+The "relationship" field is the EXACT relationship — do NOT add other relationship types.
+Generate synonyms and alternative phrasings ONLY for the stated relationship.
+Example: relationship "uncle" → uncle, family member, relative, parent's brother, parent's sibling. NOT: cousin, nephew, aunt.
+Example: relationship "daughter" → daughter, child, kid, offspring, family member. NOT: son, niece, nephew.
+Include both singular and plural forms where applicable.
+Keep under 80 words. Output only the description, no headers or formatting.`,
+  book: `You are enriching a book entry for search indexing.
+Generate: genre, themes, subject matter, and related topics.
+Include both singular and plural forms of key terms.
+Keep under 80 words. Output only the description, no headers or formatting.`,
+  movie: `You are enriching a movie entry for search indexing.
+Generate: genre, themes, notable actors or director if well-known, and related topics.
+Include both singular and plural forms of key terms.
+Keep under 80 words. Output only the description, no headers or formatting.`,
+  interest: `You are enriching a personal interest entry for search indexing.
+Generate: related activities, domains, synonyms, and common alternative phrasings.
+Include both singular and plural forms.
+Keep under 80 words. Output only the description, no headers or formatting.`,
+  habit: `You are enriching a personal habit/routine entry for search indexing.
+Generate: related routines, synonyms, categories, and common alternative phrasings.
+Include both singular and plural forms.
+Keep under 80 words. Output only the description, no headers or formatting.`,
+};
 
 const ENRICH_TIMEOUT_MS = 10_000;
 
 let enrichmentDisabled = false;
 
-async function enrich(input: string): Promise<string | null> {
+async function enrich(type: string, input: string): Promise<string | null> {
   if (enrichmentDisabled) return null;
+  const systemPrompt = ENRICH_PROMPTS[type];
+  if (!systemPrompt) return null;
   try {
     const result = await Promise.race([
       complete({
         prompt: input,
-        systemPrompt: ENRICH_SYSTEM_PROMPT,
+        systemPrompt,
         temperature: 0.3,
         maxTokens: 150,
       }),
@@ -72,6 +98,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
         if (!book.title) continue;
         let content = `${book.title} by ${book.author || "unknown"}\n${book.notes || ""}`;
         const enriched = await enrich(
+          "book",
           JSON.stringify({ title: book.title, author: book.author }),
         );
         if (enriched) content = enriched;
@@ -104,6 +131,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
         if (!person.name) continue;
         let content = `${person.name}\n${person.relationship || ""}\n${person.notes || ""}`;
         const enriched = await enrich(
+          "person",
           JSON.stringify({
             name: person.name,
             relationship: person.relationship,
@@ -139,6 +167,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
           ? `${movie.title} (${year})\n${movie.notes || ""}`
           : `${movie.title}\n${movie.notes || ""}`;
         const enriched = await enrich(
+          "movie",
           JSON.stringify({ title: movie.title, year: movie.year }),
         );
         if (enriched) content = enriched;
@@ -196,7 +225,10 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
       for (const interest of interests) {
         if (typeof interest !== "string" || !interest) continue;
         let content = interest;
-        const enriched = await enrich(JSON.stringify({ name: interest }));
+        const enriched = await enrich(
+          "interest",
+          JSON.stringify({ name: interest }),
+        );
         if (enriched) content = enriched;
 
         ctx.insert({
@@ -226,6 +258,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
         const frequency = habit.frequency || "";
         let content = frequency ? `${habitName} (${frequency})` : habitName;
         const enriched = await enrich(
+          "habit",
           JSON.stringify({ habit: habitName, frequency }),
         );
         if (enriched) content = enriched;
