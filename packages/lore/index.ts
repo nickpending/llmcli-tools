@@ -102,6 +102,7 @@ export { LoreType, LORE_TYPES, isValidLoreType } from "./lib/types";
 
 // Real-time indexing
 export { indexAndEmbed } from "./lib/realtime";
+export { type ContradictionDecision } from "./lib/contradiction";
 
 // Purge
 export {

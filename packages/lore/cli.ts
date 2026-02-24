@@ -59,6 +59,7 @@ import {
   type ObservationSubtype,
   type ObservationConfidence,
   type PurgeableSource,
+  type ContradictionDecision,
 } from "./index";
 import { isValidLoreType, LORE_TYPES } from "./lib/types";
 import { runIndexer } from "./lib/indexer";
@@ -162,6 +163,26 @@ function fail(error: string, code: number = 1): never {
   output({ success: false, error });
   console.error(`❌ ${error}`);
   process.exit(code);
+}
+
+/**
+ * Log contradiction decisions to stderr (CLI context).
+ * Only logs non-ADD actions — ADD is the default/expected path.
+ */
+function logContradictionDecisions(decisions: ContradictionDecision[]): void {
+  for (const d of decisions) {
+    if (d.action === "NOOP") {
+      console.error(
+        `[contradiction] NOOP: skipped as redundant (topic: ${d.topic})`,
+      );
+    } else if (d.action === "DELETE+ADD") {
+      console.error(
+        `[contradiction] DELETE+ADD: replaced rowid ${d.deleteRowid} (topic: ${d.topic})`,
+      );
+    } else if (d.error) {
+      console.error(`[contradiction] ADD (fallback): ${d.error}`);
+    }
+  }
 }
 
 // ============================================================================
@@ -783,8 +804,9 @@ async function handleCaptureTask(args: string[]): Promise<void> {
 
   if (result.success && result.event) {
     try {
-      await indexAndEmbed([result.event]);
+      const decisions = await indexAndEmbed([result.event]);
       output(result);
+      logContradictionDecisions(decisions);
       console.error("✅ Task logged and indexed");
       process.exit(0);
     } catch (error) {
@@ -818,8 +840,9 @@ async function handleCaptureKnowledge(args: string[]): Promise<void> {
 
   if (result.success && result.event) {
     try {
-      await indexAndEmbed([result.event]);
+      const decisions = await indexAndEmbed([result.event]);
       output(result);
+      logContradictionDecisions(decisions);
       console.error("✅ Knowledge logged and indexed");
       process.exit(0);
     } catch (error) {
@@ -851,8 +874,9 @@ async function handleCaptureNote(args: string[]): Promise<void> {
 
   if (result.success && result.event) {
     try {
-      await indexAndEmbed([result.event]);
+      const decisions = await indexAndEmbed([result.event]);
       output(result);
+      logContradictionDecisions(decisions);
       console.error("✅ Note logged and indexed");
       process.exit(0);
     } catch (error) {
@@ -887,8 +911,9 @@ async function handleCaptureTeaching(args: string[]): Promise<void> {
 
   if (result.success && result.event) {
     try {
-      await indexAndEmbed([result.event]);
+      const decisions = await indexAndEmbed([result.event]);
       output(result);
+      logContradictionDecisions(decisions);
       console.error("✅ Teaching logged and indexed");
       process.exit(0);
     } catch (error) {
@@ -924,8 +949,9 @@ async function handleCaptureObservation(args: string[]): Promise<void> {
 
   if (result.success && result.event) {
     try {
-      await indexAndEmbed([result.event]);
+      const decisions = await indexAndEmbed([result.event]);
       output(result);
+      logContradictionDecisions(decisions);
       console.error("✅ Observation logged and indexed");
       process.exit(0);
     } catch (error) {

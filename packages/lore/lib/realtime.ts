@@ -29,6 +29,7 @@ import {
   isContradictionCheckable,
   findCandidates,
   classifyContradiction,
+  type ContradictionDecision,
 } from "./contradiction.js";
 
 /**
@@ -38,8 +39,10 @@ import {
  * 2. Generate embeddings with cache (instant semantic search)
  * 3. Insert into embeddings table
  */
-export async function indexAndEmbed(events: CaptureEvent[]): Promise<void> {
-  if (events.length === 0) return;
+export async function indexAndEmbed(
+  events: CaptureEvent[],
+): Promise<ContradictionDecision[]> {
+  if (events.length === 0) return [];
 
   const dbPath = getDatabasePath();
   if (!existsSync(dbPath)) {
@@ -63,8 +66,11 @@ export async function indexAndEmbed(events: CaptureEvent[]): Promise<void> {
     //    duplicates existing entries. NOOP skips the event, DELETE+ADD
     //    removes the old entry before inserting the new one.
     const eventsToIndex: CaptureEvent[] = [];
+    const decisions: ContradictionDecision[] = [];
     for (const event of events) {
       const source = getSourceForEvent(event);
+      const data = event.data as Record<string, unknown>;
+      const topic = String(data.topic || "");
 
       if (isContradictionCheckable(source)) {
         try {
@@ -73,37 +79,34 @@ export async function indexAndEmbed(events: CaptureEvent[]): Promise<void> {
             const result = await classifyContradiction(event, candidates);
 
             if (result.action === "NOOP") {
-              const data = event.data as Record<string, unknown>;
-              const topic = String(data.topic || "");
-              console.error(
-                `[contradiction] NOOP: skipped as redundant (topic: ${topic})`,
-              );
+              decisions.push({ action: "NOOP", topic, source });
               continue;
             }
 
             if (result.action === "DELETE+ADD" && result.deleteRowid) {
               deleteSearchAndEmbedding(db, result.deleteRowid);
-              const data = event.data as Record<string, unknown>;
-              const topic = String(data.topic || "");
-              console.error(
-                `[contradiction] DELETE+ADD: removed rowid ${result.deleteRowid}, topic: ${topic}`,
-              );
+              decisions.push({
+                action: "DELETE+ADD",
+                topic,
+                source,
+                deleteRowid: result.deleteRowid,
+              });
+            } else {
+              decisions.push({ action: "ADD", topic, source });
             }
             // ADD falls through to normal insert
           }
         } catch (err) {
           // Fail open — if contradiction check fails, proceed with ADD
           const message = err instanceof Error ? err.message : String(err);
-          console.error(
-            `[contradiction] check failed (${message}) — proceeding with ADD`,
-          );
+          decisions.push({ action: "ADD", topic, source, error: message });
         }
       }
 
       eventsToIndex.push(event);
     }
 
-    if (eventsToIndex.length === 0) return;
+    if (eventsToIndex.length === 0) return decisions;
 
     // 1. Insert into FTS5 and collect doc IDs
     const docIds: number[] = [];
@@ -120,6 +123,8 @@ export async function indexAndEmbed(events: CaptureEvent[]): Promise<void> {
     for (let i = 0; i < eventsToIndex.length; i++) {
       insertEmbedding(db, docIds[i], embeddings[i], eventsToIndex[i]);
     }
+
+    return decisions;
   } finally {
     db.close();
   }

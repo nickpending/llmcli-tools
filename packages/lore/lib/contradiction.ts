@@ -27,6 +27,15 @@ export interface ContradictionResult {
   deleteRowid?: number;
 }
 
+/** Decision record returned to callers for logging */
+export interface ContradictionDecision {
+  action: ContradictionAction;
+  topic: string;
+  source: string;
+  deleteRowid?: number;
+  error?: string;
+}
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const MLX_URL = "http://localhost:8080/v1/chat/completions";
@@ -133,9 +142,6 @@ Otherwise reply: ADD or NOOP`;
     });
 
     if (!resp.ok) {
-      console.error(
-        `[contradiction] MLX returned ${resp.status} — defaulting to ADD`,
-      );
       return { action: "ADD" };
     }
 
@@ -145,12 +151,8 @@ Otherwise reply: ADD or NOOP`;
 
     const raw = json.choices?.[0]?.message?.content?.trim() || "";
     return parseClassification(raw);
-  } catch (err) {
+  } catch {
     // Timeout, network error, or model unavailable — fail open
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(
-      `[contradiction] classification failed (${message}) — defaulting to ADD`,
-    );
     return { action: "ADD" };
   }
 }
@@ -183,9 +185,6 @@ function parseClassification(raw: string): ContradictionResult {
   }
 
   // Unparseable — default to ADD
-  console.error(
-    `[contradiction] unparseable response "${raw}" — defaulting to ADD`,
-  );
   return { action: "ADD" };
 }
 
