@@ -45,7 +45,9 @@ export function openDatabase(readonly = false): Database {
     throw new Error(`Database not found: ${dbPath}. Run lore-db-init first.`);
   }
 
-  const db = new Database(dbPath, { readonly });
+  const db = readonly
+    ? new Database(dbPath, { readonly: true })
+    : new Database(dbPath);
 
   // Load sqlite-vec extension
   const vecPath = process.env.SQLITE_VEC_PATH;
@@ -71,5 +73,7 @@ export function openDatabaseBasic(readonly = false): Database {
     throw new Error(`Database not found: ${dbPath}. Run lore-db-init first.`);
   }
 
-  return new Database(dbPath, { readonly });
+  return readonly
+    ? new Database(dbPath, { readonly: true })
+    : new Database(dbPath);
 }

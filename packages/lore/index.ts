@@ -102,3 +102,13 @@ export { LoreType, LORE_TYPES, isValidLoreType } from "./lib/types";
 
 // Real-time indexing
 export { indexAndEmbed } from "./lib/realtime";
+
+// Purge
+export {
+  findPurgeMatches,
+  deleteEntries,
+  PURGEABLE_SOURCES,
+  type PurgeableSource,
+  type PurgeMatch,
+  type PurgeResult,
+} from "./lib/purge";

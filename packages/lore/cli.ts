@@ -41,6 +41,9 @@ import {
   hybridSearch,
   formatBriefSearch,
   hasEmbeddings,
+  findPurgeMatches,
+  deleteEntries,
+  PURGEABLE_SOURCES,
   SOURCES,
   type SearchResult,
   type HybridResult,
@@ -55,6 +58,7 @@ import {
   type ObservationInput,
   type ObservationSubtype,
   type ObservationConfidence,
+  type PurgeableSource,
 } from "./index";
 import { isValidLoreType, LORE_TYPES } from "./lib/types";
 import { runIndexer } from "./lib/indexer";
@@ -103,6 +107,7 @@ const BOOLEAN_FLAGS = new Set([
   "brief",
   "list",
   "rebuild",
+  "force",
 ]);
 
 function getPositionalArgs(args: string[]): string[] {
@@ -612,6 +617,133 @@ Examples:
 }
 
 // ============================================================================
+// Purge Command
+// ============================================================================
+
+async function handlePurge(args: string[]): Promise<void> {
+  if (hasFlag(args, "help")) {
+    showPurgeHelp();
+  }
+
+  const parsed = parseArgs(args);
+  const matchQuery = parsed.get("match");
+
+  if (!matchQuery) {
+    fail('Missing --match flag. Use: lore purge --match "content to find"');
+  }
+
+  const force = hasFlag(args, "force");
+  const sourceFilter = parsed.get("source") as PurgeableSource | undefined;
+
+  // Validate source filter if provided
+  if (
+    sourceFilter &&
+    !PURGEABLE_SOURCES.includes(sourceFilter as PurgeableSource)
+  ) {
+    fail(
+      `Invalid source: ${sourceFilter}. Purgeable sources: ${PURGEABLE_SOURCES.join(", ")}`,
+    );
+  }
+
+  try {
+    const matches = findPurgeMatches(matchQuery, { source: sourceFilter });
+
+    if (matches.length === 0) {
+      output({
+        success: true,
+        matches: 0,
+        deleted: 0,
+        message: "No matching entries found",
+      });
+      console.error("No matching entries found.");
+      process.exit(0);
+    }
+
+    // Display matches
+    console.error(`\nFound ${matches.length} matching entries:\n`);
+    for (const m of matches) {
+      const preview =
+        m.content.length > 100 ? m.content.slice(0, 100) + "..." : m.content;
+      console.error(`  [${m.rowid}] ${m.source}/${m.type}: ${preview}`);
+    }
+    console.error("");
+
+    // Confirm unless --force
+    if (!force) {
+      process.stderr.write(`Delete ${matches.length} entries? (y/N) `);
+
+      // Read confirmation from stdin
+      const buf = Buffer.alloc(16);
+      const fd = require("fs").openSync("/dev/tty", "r");
+      const bytesRead = require("fs").readSync(fd, buf, 0, 16, null);
+      require("fs").closeSync(fd);
+      const answer = buf.toString("utf8", 0, bytesRead).trim().toLowerCase();
+
+      if (answer !== "y" && answer !== "yes") {
+        output({
+          success: true,
+          matches: matches.length,
+          deleted: 0,
+          message: "Aborted",
+        });
+        console.error("Aborted.");
+        process.exit(0);
+      }
+    }
+
+    const result = deleteEntries(matches.map((m) => m.rowid));
+
+    output({
+      success: true,
+      matches: matches.length,
+      deleted: result.deleted,
+      rowids: result.rowids,
+    });
+    console.error(`Purged ${result.deleted} entries from search + embeddings.`);
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    fail(message, 2);
+  }
+}
+
+function showPurgeHelp(): void {
+  console.log(`
+lore purge - Delete entries from purgeable sources
+
+Usage:
+  lore purge --match "content string"         Find and delete matching entries
+  lore purge --match "content" --force        Delete without confirmation
+  lore purge --match "content" --source captures   Filter by source
+
+Purgeable Sources:
+  captures          Quick captures (knowledge, decisions, gotchas, etc.)
+  observations      Model observations about user patterns
+  teachings         Teaching moments
+
+Non-purgeable sources (blogs, commits, obsidian, etc.) are never affected.
+
+Options:
+  --match <text>    Content to search for (required, uses LIKE matching)
+  --source <src>    Limit to specific purgeable source
+  --force           Skip confirmation prompt
+  --help            Show this help
+
+Process:
+  1. Searches purgeable sources for entries containing the match text
+  2. Displays matches with rowid, source, type, and content preview
+  3. Asks for confirmation (unless --force)
+  4. Deletes from both FTS5 search table and vec0 embeddings table
+
+Examples:
+  lore purge --match "install.sh overwrites config.toml"
+  lore purge --match "bracket prefix" --force
+  lore purge --match "stale gotcha" --source captures
+`);
+  process.exit(0);
+}
+
+// ============================================================================
 // Capture Command
 // ============================================================================
 
@@ -916,6 +1048,7 @@ Usage:
   lore about <project>                  Aggregate view of project knowledge
   lore about <project> --brief          Compact project summary
   lore capture task|knowledge|note|teaching  Capture knowledge
+  lore purge --match "content"              Delete matching entries
   lore index [source] [--rebuild] [--list]  Run indexers
 
 Search Options:
@@ -1303,9 +1436,12 @@ async function main(): Promise<void> {
     case "index":
       await handleIndex(commandArgs);
       break;
+    case "purge":
+      await handlePurge(commandArgs);
+      break;
     default:
       fail(
-        `Unknown command: ${command}. Use: search, list, sources, info, projects, about, capture, or index`,
+        `Unknown command: ${command}. Use: search, list, sources, info, projects, about, capture, purge, or index`,
       );
   }
 }
