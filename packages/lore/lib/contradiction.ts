@@ -16,6 +16,7 @@
 
 import { hybridSearch, type HybridResult } from "./semantic.js";
 import { PURGEABLE_SOURCES } from "./purge.js";
+import { complete } from "@voidwire/llm-core";
 import type { CaptureEvent } from "./capture.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -38,11 +39,8 @@ export interface ContradictionDecision {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const MLX_URL = "http://localhost:8080/v1/chat/completions";
-const MLX_MODEL = "mlx-community/Qwen2.5-7B-Instruct-4bit";
-const MLX_TIMEOUT_MS = 1500;
-
 const CANDIDATE_LIMIT = 5;
+const LLM_SERVICE = "mlx";
 
 // Sources eligible for contradiction checking (same as purgeable)
 const CONTRADICTION_SOURCES = new Set<string>(PURGEABLE_SOURCES);
@@ -126,33 +124,17 @@ If DELETE, reply: DELETE <rowid>
 Otherwise reply: ADD or NOOP`;
 
   try {
-    const resp = await fetch(MLX_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MLX_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 20,
-        temperature: 0,
-      }),
-      signal: AbortSignal.timeout(MLX_TIMEOUT_MS),
+    const result = await complete({
+      service: LLM_SERVICE,
+      prompt: userPrompt,
+      systemPrompt,
+      maxTokens: 20,
+      temperature: 0,
     });
 
-    if (!resp.ok) {
-      return { action: "ADD" };
-    }
-
-    const json = (await resp.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    const raw = json.choices?.[0]?.message?.content?.trim() || "";
-    return parseClassification(raw);
+    return parseClassification(result.text);
   } catch {
-    // Timeout, network error, or model unavailable — fail open
+    // Network error, model unavailable — fail open
     return { action: "ADD" };
   }
 }
