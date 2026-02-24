@@ -1,0 +1,55 @@
+{
+  "name": "@voidwire/sable-eval",
+  "version": "0.1.0",
+  "description": "Rubric-based artifact scoring tool for SABLE agents",
+  "type": "module",
+  "main": "./index.ts",
+  "bin": {
+    "sable-eval": "./cli.ts"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./cli": "./cli.ts"
+  },
+  "files": [
+    "index.ts",
+    "cli.ts",
+    "lib/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "keywords": [
+    "sable",
+    "eval",
+    "rubric",
+    "llm",
+    "cli",
+    "llcli"
+  ],
+  "author": "nickpending <nickpending@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickpending/llmcli-tools.git",
+    "directory": "packages/sable-eval"
+  },
+  "homepage": "https://github.com/nickpending/llmcli-tools/tree/main/packages/sable-eval#readme",
+  "bugs": {
+    "url": "https://github.com/nickpending/llmcli-tools/issues"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "@voidwire/llm-core": "^0.3.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "bun-types": "1.3.5"
+  }
+}

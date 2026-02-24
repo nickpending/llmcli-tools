@@ -1,0 +1,174 @@
+# Task Plan Quality Rubric
+# Evaluates individual task plans before build phase
+# Weights sum to 1.0 | Pass threshold: 80%
+
+name: task-plan-quality
+passThreshold: 0.8
+
+criteria:
+  - name: Grouping Rationale
+    weight: 0.30
+    description: |
+      Task grouping decision is documented and justified.
+      "Would user care if ONLY this was done?" answered for each piece.
+
+      Must demonstrate:
+      - Explicit grouping decision (GROUP or STANDALONE)
+      - Rationale for why items belong together (or don't)
+      - No orphan scaffolding (empty structures, imports-only files)
+      - Each grouped item answers "would user care?" test
+
+      Red flags:
+      - Grouping without explanation
+      - Scaffolding tasks that produce nothing testable
+      - "Part 1 of N" patterns without clear boundaries
+      - Items grouped just because they're "related"
+    examples:
+      good: |
+        ## Grouping Decision: GROUP (2 items)
+
+        **Rationale**: User cares about "can upload files" — neither the
+        upload endpoint alone nor the storage layer alone is useful.
+        Together they produce a working feature.
+
+        **Items**:
+        1. Storage service with S3 integration
+           - Would user care alone? NO — nowhere to call it from
+        2. Upload API endpoint
+           - Would user care alone? NO — nothing to store to
+
+        **Combined outcome**: User can upload a file and see it stored.
+      bad: |
+        ## Tasks
+
+        1. Create upload service
+        2. Create upload endpoint
+        3. Create upload tests
+
+        These are related so grouping them together.
+
+  - name: Risk Assessment
+    weight: 0.25
+    description: |
+      Complexity is rated and risks are identified with mitigations.
+      Architecture/implementation flags are justified.
+
+      Must include:
+      - Complexity rating (simple/moderate/complex) with reasoning
+      - needs_arch flag justified if true
+      - needs_impl flag justified if true
+      - Specific risks with severity and mitigation
+
+      Red flags:
+      - Complexity without reasoning
+      - Flags set without explanation
+      - Generic risks ("might fail")
+      - Missing mitigations for identified risks
+    examples:
+      good: |
+        ## Risk Assessment
+
+        **Complexity**: Moderate
+        - New service, but follows existing pattern in `src/lib/email-service.ts`
+        - S3 SDK is well-documented, no unknowns
+
+        **Flags**:
+        - needs_arch: false — pattern exists, no design decisions needed
+        - needs_impl: true — reviewer should verify S3 error handling
+
+        **Risks**:
+        | Risk | Severity | Mitigation |
+        |------|----------|------------|
+        | S3 credentials missing in dev | Medium | Fallback to local filesystem |
+        | Large file timeout | Low | Multipart upload for files >5MB |
+      bad: |
+        **Complexity**: Medium
+
+        **Risks**: Might have some issues with S3.
+
+  - name: Implementation Path
+    weight: 0.25
+    description: |
+      Files to modify are listed with specific changes.
+      Patterns to follow are referenced with actual paths.
+
+      Must include:
+      - Specific files to create/modify
+      - What changes in each file
+      - Pattern files to follow (with paths)
+      - Demo command that proves success
+
+      Red flags:
+      - "Create necessary files"
+      - Vague change descriptions
+      - Pattern references without paths
+      - Demo command that doesn't verify behavior
+    examples:
+      good: |
+        ## Implementation Path
+
+        **Files**:
+        | File | Action | Changes |
+        |------|--------|---------|
+        | src/lib/storage-service.ts | Create | S3 client wrapper with upload/download |
+        | src/api/routes/upload.ts | Create | POST /api/upload multipart handler |
+        | src/lib/config.ts | Modify | Add S3_BUCKET, S3_REGION env vars |
+
+        **Pattern**: Follow `src/lib/email-service.ts` structure:
+        - Constructor takes config
+        - Methods return Result<T, Error>
+        - Errors are typed, not thrown
+
+        **Demo**:
+        ```bash
+        curl -X POST http://localhost:3000/api/upload \
+          -F "file=@test.txt"
+        # Returns: {"url": "https://bucket.s3.../test.txt"}
+        ```
+      bad: |
+        ## Implementation
+
+        Create the upload service and endpoint.
+        Follow existing patterns.
+
+        **Demo**: Upload should work.
+
+  - name: Test Considerations
+    weight: 0.20
+    description: |
+      Invariants from iteration are passed through.
+      Risk areas are flagged for test-runner.
+
+      Must include:
+      - Invariants this task must protect
+      - Risk areas for Elena to focus on
+      - Happy path scenario
+      - Error cases to cover
+      - Edge cases if relevant
+
+      Red flags:
+      - No test considerations
+      - "Standard testing" without specifics
+      - Missing error cases
+      - Invariants not connected to iteration-level risks
+    examples:
+      good: |
+        ## Test Considerations
+
+        **Invariants** (from iteration):
+        - File uploads MUST NOT corrupt data
+        - Failed uploads MUST NOT leave partial files
+
+        **Risk Areas** (for test-runner):
+        - S3 error handling — what happens when S3 is down?
+        - Large file handling — does multipart work correctly?
+
+        **Scenarios**:
+        - Happy: Upload 1KB file, verify retrievable
+        - Error: Upload with invalid credentials, expect 401
+        - Error: Upload to full bucket, expect 507
+        - Edge: Upload file with unicode filename
+      bad: |
+        ## Testing
+
+        Write tests for the upload feature.
