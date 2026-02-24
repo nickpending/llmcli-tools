@@ -324,12 +324,14 @@ function insertEmbedding(
 
   const embeddingBlob = serializeEmbedding(embedding);
 
+  const timestamp = event.timestamp || new Date().toISOString();
+
   const stmt = db.prepare(`
-    INSERT INTO embeddings (doc_id, chunk_idx, source, topic, type, embedding)
-    VALUES (?, 0, ?, ?, ?, ?)
+    INSERT INTO embeddings (doc_id, chunk_idx, source, topic, type, timestamp, embedding)
+    VALUES (?, 0, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run(docId, source, topic, type, embeddingBlob);
+  stmt.run(docId, source, topic, type, timestamp, embeddingBlob);
 }
 
 /**
