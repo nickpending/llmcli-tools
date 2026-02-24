@@ -41,6 +41,18 @@ export interface IndexerContext {
 export type IndexerFunction = (ctx: IndexerContext) => Promise<void>;
 
 /**
+ * Sources excluded from --rebuild because the DB is their source of truth.
+ * These sources use real-time indexing (indexAndEmbed) with contradiction
+ * resolution. Rebuilding from log.jsonl would resurrect purged/superseded
+ * entries, breaking the contradiction resolution invariant.
+ */
+export const REBUILD_EXCLUDED_SOURCES = new Set([
+  "captures",
+  "observations",
+  "teachings",
+]);
+
+/**
  * Check if a path is configured and exists on disk.
  * Logs a specific reason when the check fails:
  *   - "not configured" when path is undefined
@@ -228,6 +240,14 @@ export async function runIndexer(
       const indexer = registry[src];
       if (!indexer) {
         console.error(`Unknown source: ${src}`);
+        continue;
+      }
+
+      // Skip rebuild-excluded sources — DB is source of truth, not log.jsonl
+      if (rebuild && REBUILD_EXCLUDED_SOURCES.has(src)) {
+        console.log(
+          `${src}: skipped (DB is source of truth — not rebuilt from log)`,
+        );
         continue;
       }
 

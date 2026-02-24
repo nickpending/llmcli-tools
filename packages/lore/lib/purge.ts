@@ -10,8 +10,16 @@
  */
 
 import { Database } from "bun:sqlite";
-import { existsSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  unlinkSync,
+} from "fs";
+import { join } from "path";
 import { getDatabasePath, openDatabase } from "./db.js";
+import { getConfig } from "./config.js";
 
 // Only these sources can be purged — indexed sources (blogs, commits, etc.) are never purgeable
 export const PURGEABLE_SOURCES = [
@@ -33,6 +41,7 @@ export interface PurgeMatch {
 export interface PurgeResult {
   deleted: number;
   rowids: number[];
+  logEntriesRemoved: number;
 }
 
 /**
@@ -76,14 +85,20 @@ export function findPurgeMatches(
 }
 
 /**
- * Delete entries from both FTS5 search table and vec0 embeddings table.
+ * Delete entries from FTS5 search table, vec0 embeddings table,
+ * and optionally clean matching lines from log.jsonl.
  *
- * FTS5 DELETE: DELETE FROM search WHERE rowid = ?
- * vec0 DELETE: DELETE FROM embeddings WHERE doc_id = ?
+ * @param rowids - Row IDs to delete from search + embeddings
+ * @param matchContents - Content strings from findPurgeMatches for log.jsonl filtering.
+ *   Optional (default []); when empty, log.jsonl cleanup is skipped.
+ *   This avoids a breaking change for existing callers.
  */
-export function deleteEntries(rowids: number[]): PurgeResult {
+export function deleteEntries(
+  rowids: number[],
+  matchContents: string[] = [],
+): PurgeResult {
   if (rowids.length === 0) {
-    return { deleted: 0, rowids: [] };
+    return { deleted: 0, rowids: [], logEntriesRemoved: 0 };
   }
 
   // Open DB directly for read-write (matches realtime.ts pattern —
@@ -118,8 +133,66 @@ export function deleteEntries(rowids: number[]): PurgeResult {
       deleted++;
     }
 
-    return { deleted, rowids };
+    // Clean matching lines from log.jsonl (best-effort)
+    const logEntriesRemoved = purgeLogEntries(matchContents);
+
+    return { deleted, rowids, logEntriesRemoved };
   } finally {
     db.close();
+  }
+}
+
+/**
+ * Remove lines from log.jsonl whose content matches any of the given strings.
+ *
+ * Uses atomic write: writes filtered content to a temp file, then renames.
+ * Matches on event.data.content (the raw capture content), not the assembled
+ * search table content — task entries may use assembled content that differs.
+ * This is acceptable: the rebuild exclusion (Change 2) is the hard guard;
+ * log.jsonl cleanup is best-effort.
+ *
+ * @param matchContents - Content strings to filter out
+ * @returns Number of lines removed
+ */
+function purgeLogEntries(matchContents: string[]): number {
+  if (matchContents.length === 0) return 0;
+
+  const logPath = join(getConfig().paths.data, "log.jsonl");
+  const tmpPath = logPath + ".tmp";
+
+  if (!existsSync(logPath)) return 0;
+
+  try {
+    // Clean up stale temp file from a prior crash
+    if (existsSync(tmpPath)) {
+      unlinkSync(tmpPath);
+    }
+
+    const lines = readFileSync(logPath, "utf-8").split("\n").filter(Boolean);
+    const filtered = lines.filter((line) => {
+      try {
+        const event = JSON.parse(line) as {
+          data?: { content?: string; text?: string };
+        };
+        const content = event.data?.content || event.data?.text || "";
+        return !matchContents.some((mc) => content.includes(mc));
+      } catch {
+        return true; // Keep unparseable lines
+      }
+    });
+
+    writeFileSync(
+      tmpPath,
+      filtered.join("\n") + (filtered.length > 0 ? "\n" : ""),
+      "utf-8",
+    );
+    renameSync(tmpPath, logPath);
+
+    return lines.length - filtered.length;
+  } catch (err) {
+    // log.jsonl cleanup is best-effort — never fail the purge
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[purge] log.jsonl cleanup failed (${message})`);
+    return 0;
   }
 }

@@ -25,6 +25,11 @@ import {
 } from "./semantic.js";
 import { hashContent, getCachedEmbedding, cacheEmbedding } from "./cache.js";
 import type { CaptureEvent } from "./capture.js";
+import {
+  isContradictionCheckable,
+  findCandidates,
+  classifyContradiction,
+} from "./contradiction.js";
 
 /**
  * Index and embed capture events for immediate searchability
@@ -53,20 +58,67 @@ export async function indexAndEmbed(events: CaptureEvent[]): Promise<void> {
     }
     db.loadExtension(vecPath);
 
+    // 0. Contradiction detection — filter events before insert
+    //    For purgeable sources, check if the new event contradicts or
+    //    duplicates existing entries. NOOP skips the event, DELETE+ADD
+    //    removes the old entry before inserting the new one.
+    const eventsToIndex: CaptureEvent[] = [];
+    for (const event of events) {
+      const source = getSourceForEvent(event);
+
+      if (isContradictionCheckable(source)) {
+        try {
+          const candidates = await findCandidates(event);
+          if (candidates.length > 0) {
+            const result = await classifyContradiction(event, candidates);
+
+            if (result.action === "NOOP") {
+              const data = event.data as Record<string, unknown>;
+              const topic = String(data.topic || "");
+              console.error(
+                `[contradiction] NOOP: skipped as redundant (topic: ${topic})`,
+              );
+              continue;
+            }
+
+            if (result.action === "DELETE+ADD" && result.deleteRowid) {
+              deleteSearchAndEmbedding(db, result.deleteRowid);
+              const data = event.data as Record<string, unknown>;
+              const topic = String(data.topic || "");
+              console.error(
+                `[contradiction] DELETE+ADD: removed rowid ${result.deleteRowid}, topic: ${topic}`,
+              );
+            }
+            // ADD falls through to normal insert
+          }
+        } catch (err) {
+          // Fail open — if contradiction check fails, proceed with ADD
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[contradiction] check failed (${message}) — proceeding with ADD`,
+          );
+        }
+      }
+
+      eventsToIndex.push(event);
+    }
+
+    if (eventsToIndex.length === 0) return;
+
     // 1. Insert into FTS5 and collect doc IDs
     const docIds: number[] = [];
-    for (const event of events) {
+    for (const event of eventsToIndex) {
       const docId = insertSearchEntry(db, event);
       docIds.push(docId);
     }
 
     // 2. Generate embeddings with cache
-    const contents = events.map((e) => getContentForEmbedding(e));
+    const contents = eventsToIndex.map((e) => getContentForEmbedding(e));
     const embeddings = await embedWithCache(db, contents);
 
     // 3. Insert embeddings
-    for (let i = 0; i < events.length; i++) {
-      insertEmbedding(db, docIds[i], embeddings[i], events[i]);
+    for (let i = 0; i < eventsToIndex.length; i++) {
+      insertEmbedding(db, docIds[i], embeddings[i], eventsToIndex[i]);
     }
   } finally {
     db.close();
@@ -102,6 +154,16 @@ function insertSearchEntry(db: Database, event: CaptureEvent): number {
     timestamp,
   );
   return Number(result.lastInsertRowid);
+}
+
+/**
+ * Delete an entry from both FTS5 search and vec0 embeddings tables.
+ * Used by contradiction resolution to remove superseded entries.
+ * Reuses the same prepared statement pattern as purge.ts:108-114.
+ */
+function deleteSearchAndEmbedding(db: Database, rowid: number): void {
+  db.prepare("DELETE FROM search WHERE rowid = ?").run(rowid);
+  db.prepare("DELETE FROM embeddings WHERE doc_id = ?").run(rowid);
 }
 
 /**

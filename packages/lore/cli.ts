@@ -691,15 +691,24 @@ async function handlePurge(args: string[]): Promise<void> {
       }
     }
 
-    const result = deleteEntries(matches.map((m) => m.rowid));
+    const result = deleteEntries(
+      matches.map((m) => m.rowid),
+      matches.map((m) => m.content),
+    );
 
     output({
       success: true,
       matches: matches.length,
       deleted: result.deleted,
       rowids: result.rowids,
+      logEntriesRemoved: result.logEntriesRemoved,
     });
-    console.error(`Purged ${result.deleted} entries from search + embeddings.`);
+    console.error(
+      `Purged ${result.deleted} entries from search + embeddings` +
+        (result.logEntriesRemoved > 0
+          ? ` + ${result.logEntriesRemoved} from log.jsonl.`
+          : `.`),
+    );
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
