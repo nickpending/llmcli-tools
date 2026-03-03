@@ -18,6 +18,7 @@ import { hybridSearch, type HybridResult } from "./semantic.js";
 import { PURGEABLE_SOURCES } from "./purge.js";
 import { complete } from "@voidwire/llm-core";
 import type { CaptureEvent } from "./capture.js";
+import { getSourceForEvent } from "./source-map.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -168,28 +169,4 @@ function parseClassification(raw: string): ContradictionResult {
 
   // Unparseable — default to ADD
   return { action: "ADD" };
-}
-
-/**
- * Map event type to source name (mirrors realtime.ts getSourceForEvent).
- */
-function getSourceForEvent(event: CaptureEvent): string {
-  switch (event.type) {
-    case "knowledge":
-      return "captures";
-    case "teaching":
-      return "teachings";
-    case "observation":
-      return "observations";
-    case "insight":
-      return "insights";
-    case "learning":
-      return "learnings";
-    case "task":
-      return "flux";
-    case "note":
-      return "captures";
-    default:
-      return "captures";
-  }
 }

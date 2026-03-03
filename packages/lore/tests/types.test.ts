@@ -13,12 +13,20 @@ const EXPECTED_TYPES = [
   "task",
   "todo",
   "idea",
+  "knowledge",
+  "insight",
+  "summary",
+  "observation",
+  "context",
+  "completion",
+  "problem",
+  "tool",
 ];
 
 describe("LoreType enum", () => {
-  test("has all 11 type values", () => {
+  test("has all 19 type values", () => {
     const values = Object.values(LoreType);
-    expect(values).toHaveLength(11);
+    expect(values).toHaveLength(19);
     for (const type of EXPECTED_TYPES) {
       expect(values).toContain(type);
     }
@@ -36,12 +44,20 @@ describe("LoreType enum", () => {
     expect(LoreType.Task).toBe("task");
     expect(LoreType.Todo).toBe("todo");
     expect(LoreType.Idea).toBe("idea");
+    expect(LoreType.Knowledge).toBe("knowledge");
+    expect(LoreType.Insight).toBe("insight");
+    expect(LoreType.Summary).toBe("summary");
+    expect(LoreType.Observation).toBe("observation");
+    expect(LoreType.Context).toBe("context");
+    expect(LoreType.Completion).toBe("completion");
+    expect(LoreType.Problem).toBe("problem");
+    expect(LoreType.Tool).toBe("tool");
   });
 });
 
 describe("LORE_TYPES array", () => {
-  test("contains exactly 11 values matching enum", () => {
-    expect(LORE_TYPES).toHaveLength(11);
+  test("contains exactly 19 values matching enum", () => {
+    expect(LORE_TYPES).toHaveLength(19);
     const enumValues = Object.values(LoreType);
     for (const type of LORE_TYPES) {
       expect(enumValues).toContain(type);

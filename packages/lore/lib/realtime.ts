@@ -15,16 +15,16 @@
  */
 
 import { Database } from "bun:sqlite";
-import { existsSync } from "fs";
 import {
   embedDocuments,
-  getDatabasePath,
   MODEL_NAME,
   EMBEDDING_DIM,
   serializeEmbedding,
 } from "./semantic.js";
+import { openDatabase } from "./db.js";
 import { hashContent, getCachedEmbedding, cacheEmbedding } from "./cache.js";
 import type { CaptureEvent } from "./capture.js";
+import { getSourceForEvent } from "./source-map.js";
 import {
   isContradictionCheckable,
   findCandidates,
@@ -44,23 +44,9 @@ export async function indexAndEmbed(
 ): Promise<ContradictionDecision[]> {
   if (events.length === 0) return [];
 
-  const dbPath = getDatabasePath();
-  if (!existsSync(dbPath)) {
-    throw new Error(`Database not found: ${dbPath}. Run lore-db-init first.`);
-  }
-
-  const db = new Database(dbPath);
+  const db = openDatabase(false);
 
   try {
-    // Load sqlite-vec extension for embeddings table
-    const vecPath = process.env.SQLITE_VEC_PATH;
-    if (!vecPath) {
-      throw new Error(
-        'SQLITE_VEC_PATH not set. Get path with: python3 -c "import sqlite_vec; print(sqlite_vec.loadable_path())"',
-      );
-    }
-    db.loadExtension(vecPath);
-
     // 0. Contradiction detection — filter events before insert
     //    For purgeable sources, check if the new event contradicts or
     //    duplicates existing entries. NOOP skips the event, DELETE+ADD
@@ -137,9 +123,9 @@ export async function indexAndEmbed(
 function insertSearchEntry(db: Database, event: CaptureEvent): number {
   const source = getSourceForEvent(event);
   const title = buildTitle(event);
-  const content = getContentForEmbedding(event);
-  const metadata = buildMetadata(event);
   const data = event.data as Record<string, unknown>;
+  const content = String(data.content || data.text || "");
+  const metadata = buildMetadata(event);
   const topic = String(data.topic || "");
   const type = extractType(event);
   const timestamp = event.timestamp || new Date().toISOString();
@@ -172,30 +158,6 @@ function deleteSearchAndEmbedding(db: Database, rowid: number): void {
 }
 
 /**
- * Map event type to source name used in search table
- */
-function getSourceForEvent(event: CaptureEvent): string {
-  switch (event.type) {
-    case "knowledge":
-      return "captures";
-    case "teaching":
-      return "teachings";
-    case "observation":
-      return "observations";
-    case "insight":
-      return "insights";
-    case "learning":
-      return "learnings";
-    case "task":
-      return "flux";
-    case "note":
-      return "captures";
-    default:
-      return "captures";
-  }
-}
-
-/**
  * Build title for FTS5 entry (type is a first-class column, not a title prefix)
  */
 function buildTitle(event: CaptureEvent): string {
@@ -210,24 +172,26 @@ function buildTitle(event: CaptureEvent): string {
       return `${data.topic || "general"}`;
     case "insight":
       return `${data.topic || "general"}`;
-    case "learning":
-      return `${data.topic || "general"}`;
     case "task":
       return `${data.topic || "general"}: ${data.name || "untitled"}`;
     case "note":
+      return `${data.topic || "general"}`;
+    default:
       return `${data.topic || "general"}`;
   }
 }
 
 /**
  * Extract content for embedding from event
- * Concatenates topic+content for richer embeddings (matches lore-embed-all)
+ * Concatenates type+topic+content for richer embeddings (matches lore-embed-all)
  */
 function getContentForEmbedding(event: CaptureEvent): string {
   const data = event.data as Record<string, unknown>;
   const content = String(data.content || data.text || "");
   const topic = String(data.topic || "").trim();
-  return topic ? `${topic} ${content}`.trim() : content;
+  const type = extractType(event);
+  const parts = [type, topic, content].filter(Boolean);
+  return parts.join(" ").trim() || content;
 }
 
 /**
@@ -252,9 +216,6 @@ function buildMetadata(event: CaptureEvent): string {
     case "insight":
       metadata.subtype = data.subtype;
       metadata.session_id = data.session_id;
-      break;
-    case "learning":
-      metadata.persona = data.persona;
       break;
     case "task":
       metadata.name = data.name;
@@ -349,8 +310,6 @@ function extractType(event: CaptureEvent): string {
       return String(data.subtype || "pattern");
     case "insight":
       return String(data.subtype || "insight");
-    case "learning":
-      return "learning";
     case "task":
       return "task";
     case "note":

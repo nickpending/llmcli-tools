@@ -29,7 +29,6 @@ export type Source =
   | "teachings"
   | "sessions"
   | "insights"
-  | "learnings"
   | "observations";
 
 export const SOURCES: Source[] = [
@@ -51,7 +50,6 @@ export const SOURCES: Source[] = [
   "teachings",
   "sessions",
   "insights",
-  "learnings",
   "observations",
 ];
 

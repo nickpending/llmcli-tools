@@ -74,13 +74,6 @@ export interface InsightInput {
   source: "auto";
 }
 
-export interface LearningInput {
-  topic: string; // "spanish", "guitar", "kubernetes" - the learning topic
-  persona: string; // "marcus", "elena", etc.
-  content: string; // "Covered verb conjugations, struggles with subjunctive"
-  session_summary?: string; // Longer form session notes
-}
-
 export type ObservationSubtype =
   | "term"
   | "style"
@@ -164,18 +157,6 @@ interface InsightEvent {
   };
 }
 
-interface LearningEvent {
-  event: "captured";
-  type: "learning";
-  timestamp: string;
-  data: {
-    topic: string; // Learning topic (spanish, guitar, etc.)
-    persona: string;
-    content: string;
-    session_summary?: string;
-  };
-}
-
 interface ObservationEvent {
   event: "captured";
   type: "observation";
@@ -195,7 +176,6 @@ type CaptureEvent =
   | NoteEvent
   | TeachingEvent
   | InsightEvent
-  | LearningEvent
   | ObservationEvent;
 
 function getLogPath(): string {
@@ -366,32 +346,6 @@ export function captureInsight(input: InsightInput): CaptureResult {
       subtype: input.subtype,
       content: input.content,
       source: input.source,
-    },
-  };
-
-  return writeEvent(event);
-}
-
-/**
- * Capture a learning session progress
- */
-export function captureLearning(input: LearningInput): CaptureResult {
-  if (!input.topic || !input.persona || !input.content) {
-    return {
-      success: false,
-      error: "Missing required fields: topic, persona, content",
-    };
-  }
-
-  const event: LearningEvent = {
-    event: "captured",
-    type: "learning",
-    timestamp: "",
-    data: {
-      topic: input.topic,
-      persona: input.persona,
-      content: input.content,
-      session_summary: input.session_summary,
     },
   };
 

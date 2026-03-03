@@ -9,7 +9,6 @@
  *   deleteEntries(matches.map(m => m.rowid));
  */
 
-import { Database } from "bun:sqlite";
 import {
   existsSync,
   readFileSync,
@@ -18,7 +17,7 @@ import {
   unlinkSync,
 } from "fs";
 import { join } from "path";
-import { getDatabasePath, openDatabase } from "./db.js";
+import { openDatabase } from "./db.js";
 import { getConfig } from "./config.js";
 
 // Only these sources can be purged — indexed sources (blogs, commits, etc.) are never purgeable
@@ -101,25 +100,9 @@ export function deleteEntries(
     return { deleted: 0, rowids: [], logEntriesRemoved: 0 };
   }
 
-  // Open DB directly for read-write (matches realtime.ts pattern —
-  // openDatabase(false) triggers SQLITE_MISUSE with custom_sqlite)
-  const dbPath = getDatabasePath();
-  if (!existsSync(dbPath)) {
-    throw new Error(`Database not found: ${dbPath}. Run lore-db-init first.`);
-  }
-
-  const db = new Database(dbPath);
+  const db = openDatabase(false);
 
   try {
-    // Load sqlite-vec extension for embeddings table access
-    const vecPath = process.env.SQLITE_VEC_PATH;
-    if (!vecPath) {
-      throw new Error(
-        'SQLITE_VEC_PATH not set. Get path with: python3 -c "import sqlite_vec; print(sqlite_vec.loadable_path())"',
-      );
-    }
-    db.loadExtension(vecPath);
-
     const deleteSearch = db.prepare("DELETE FROM search WHERE rowid = ?");
     const deleteEmbedding = db.prepare(
       "DELETE FROM embeddings WHERE doc_id = ?",

@@ -369,7 +369,6 @@ describe("projects.ts — topic column query (no json_extract)", () => {
       "insights",
       "captures",
       "teachings",
-      "learnings",
       "observations",
     ];
     const placeholders = PROJECT_SOURCES.map(() => "?").join(", ");

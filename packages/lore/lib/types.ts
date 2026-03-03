@@ -18,6 +18,14 @@ export enum LoreType {
   Task = "task",
   Todo = "todo",
   Idea = "idea",
+  Knowledge = "knowledge",
+  Insight = "insight",
+  Summary = "summary",
+  Observation = "observation",
+  Context = "context",
+  Completion = "completion",
+  Problem = "problem",
+  Tool = "tool",
 }
 
 /**

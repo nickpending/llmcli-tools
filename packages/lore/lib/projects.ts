@@ -16,7 +16,6 @@ const PROJECT_SOURCES = [
   "insights",
   "captures",
   "teachings",
-  "learnings",
   "observations",
 ];
 
