@@ -1,0 +1,20 @@
+{
+  "name": "@voidwire/dojo",
+  "version": "0.1.0",
+  "description": "Dojo coaching system — state management CLI",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "dojo": "./cli.ts"
+  },
+  "scripts": {
+    "typecheck": "bun tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-fsrs": "5.2.3",
+    "@iarna/toml": "2.2.5"
+  },
+  "devDependencies": {
+    "bun-types": "1.3.5"
+  }
+}

@@ -12,6 +12,20 @@
         "argus-send": "./cli.ts",
       },
     },
+    "packages/dojo": {
+      "name": "@voidwire/dojo",
+      "version": "0.1.0",
+      "bin": {
+        "dojo": "./cli.ts",
+      },
+      "dependencies": {
+        "@iarna/toml": "2.2.5",
+        "ts-fsrs": "5.2.3",
+      },
+      "devDependencies": {
+        "bun-types": "1.3.5",
+      },
+    },
     "packages/expertise-update": {
       "name": "@voidwire/expertise-update",
       "version": "1.0.1",
@@ -85,7 +99,7 @@
     },
     "packages/lore": {
       "name": "@voidwire/lore",
-      "version": "1.4.0",
+      "version": "1.7.0",
       "bin": {
         "lore": "./cli.ts",
       },
@@ -489,6 +503,8 @@
     "@voidwire/apiconf": ["@voidwire/apiconf@0.1.0", "", { "dependencies": { "smol-toml": "1.6.0" } }, "sha512-Lh3DRD61X5I4jDhSO/fssIk0OAeH8SfJPwKXlO6AXiNtJn8TaVE2IXZg5iUUl7Xm1uRmbNb+oqGw9HtsH7ykew=="],
 
     "@voidwire/argus-send": ["@voidwire/argus-send@workspace:packages/argus-send"],
+
+    "@voidwire/dojo": ["@voidwire/dojo@workspace:packages/dojo"],
 
     "@voidwire/expertise-update": ["@voidwire/expertise-update@workspace:packages/expertise-update"],
 
@@ -1189,6 +1205,8 @@
     "tr46": ["tr46@0.0.3", "", {}, "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw=="],
 
     "ts-dedent": ["ts-dedent@2.2.0", "", {}, "sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ=="],
+
+    "ts-fsrs": ["ts-fsrs@5.2.3", "", {}, "sha512-R3IjceC9WfnvUin6Nx+DwqEzh3Qil6Gg2yEHqvocUcC7Nbi+xDrFg/1fKaYBT0tJedDnDAguXMSX0hijhi859w=="],
 
     "ts-interface-checker": ["ts-interface-checker@0.1.13", "", {}, "sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA=="],
 
