@@ -93,6 +93,15 @@ export interface SessionEntry {
   struggle_descriptions: string[];
 }
 
+export interface DueConcept {
+  concept_id: string;
+  title: string;
+  due: string;
+  state: number;
+  mastery: MasteryLevel;
+  confusion_pair: boolean;
+}
+
 export interface DomainState {
   domain: string;
   goal: string;

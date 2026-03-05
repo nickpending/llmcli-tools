@@ -7,7 +7,19 @@ import {
   updateDomain,
   recordSession,
   getSessionStatus,
+  addConcept,
+  setConceptResources,
+  validateCurriculum,
+  verifyUrls,
+  updateProgress,
+  getDueConcepts,
+  getReadyConcepts,
+  addConfusionPair,
+  getNudgeStatus,
   type LearningContext,
+  type FSRSRating,
+  type MasteryLevel,
+  type Resource,
 } from "./index";
 
 // ============================================================================
@@ -325,19 +337,283 @@ function handleSession(args: string[]): void {
 }
 
 // ============================================================================
-// Stub Commands (Task 1.2)
+// Curriculum Command
 // ============================================================================
 
-function handleCurriculum(_args: string[]): void {
-  output({ success: true, data: "not yet implemented" });
+const VALID_RATINGS: FSRSRating[] = ["again", "hard", "good", "easy"];
+const VALID_MASTERY: MasteryLevel[] = [
+  "none",
+  "introduced",
+  "practiced",
+  "reinforced",
+  "solid",
+];
+
+function showCurriculumHelp(): void {
+  console.log(`
+dojo curriculum - Curriculum graph operations
+
+Usage:
+  dojo curriculum add-concept <domain> --id "..." --title "..." --prereqs '[...]' --difficulty <1-5> [--description "..."]
+  dojo curriculum set-resources <domain> <concept-id> --resources '[{...}]'
+  dojo curriculum validate <domain>
+  dojo curriculum verify-urls <domain>
+`);
+  process.exit(0);
 }
 
-function handleProgress(_args: string[]): void {
-  output({ success: true, data: "not yet implemented" });
+async function handleCurriculum(args: string[]): Promise<void> {
+  if (args.length === 0 || hasFlag(args, "help")) {
+    showCurriculumHelp();
+  }
+
+  const sub = args[0];
+  const subArgs = args.slice(1);
+
+  switch (sub) {
+    case "add-concept": {
+      const positional = getPositionalArgs(subArgs);
+      const flags = parseArgs(subArgs);
+      const domain = positional[0];
+      if (!domain)
+        fail(
+          "Missing domain name. Usage: dojo curriculum add-concept <domain> --id '...' --title '...' --prereqs '[...]' --difficulty <1-5>",
+        );
+
+      const id = flags.get("id");
+      if (!id) fail("Missing required flag: --id");
+
+      const title = flags.get("title");
+      if (!title) fail("Missing required flag: --title");
+
+      const prereqsStr = flags.get("prereqs");
+      if (prereqsStr === undefined) fail("Missing required flag: --prereqs");
+
+      let prereqs: string[];
+      try {
+        prereqs = JSON.parse(prereqsStr);
+        if (!Array.isArray(prereqs))
+          fail("--prereqs must be a JSON array, e.g. '[\"a\"]'");
+      } catch {
+        fail("--prereqs must be a JSON array, e.g. '[\"a\"]'");
+      }
+
+      const difficultyStr = flags.get("difficulty");
+      if (!difficultyStr) fail("Missing required flag: --difficulty");
+      const difficulty = Number(difficultyStr);
+      if (isNaN(difficulty) || difficulty < 1 || difficulty > 5)
+        fail("--difficulty must be a number between 1 and 5");
+
+      const description = flags.get("description");
+
+      try {
+        const state = addConcept(domain, {
+          id,
+          title,
+          description,
+          prereqs,
+          difficulty,
+        });
+        output({ success: true, data: state });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "set-resources": {
+      const positional = getPositionalArgs(subArgs);
+      const flags = parseArgs(subArgs);
+      const domain = positional[0];
+      const conceptId = positional[1];
+      if (!domain || !conceptId)
+        fail(
+          "Usage: dojo curriculum set-resources <domain> <concept-id> --resources '[{...}]'",
+        );
+
+      const resourcesStr = flags.get("resources");
+      if (!resourcesStr) fail("Missing required flag: --resources");
+
+      let resources: Resource[];
+      try {
+        resources = JSON.parse(resourcesStr);
+        if (!Array.isArray(resources))
+          fail("--resources must be a JSON array of Resource objects");
+      } catch {
+        fail("--resources must be a JSON array of Resource objects");
+      }
+
+      try {
+        const state = setConceptResources(domain, conceptId, resources);
+        output({ success: true, data: state });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "validate": {
+      const positional = getPositionalArgs(subArgs);
+      const domain = positional[0];
+      if (!domain)
+        fail("Missing domain name. Usage: dojo curriculum validate <domain>");
+
+      try {
+        const result = validateCurriculum(domain);
+        output({ success: true, data: result });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "verify-urls": {
+      const positional = getPositionalArgs(subArgs);
+      const domain = positional[0];
+      if (!domain)
+        fail(
+          "Missing domain name. Usage: dojo curriculum verify-urls <domain>",
+        );
+
+      try {
+        const result = await verifyUrls(domain);
+        output({ success: true, data: result });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    default:
+      fail(
+        `Unknown curriculum subcommand: ${sub}. Use: add-concept, set-resources, validate, verify-urls`,
+      );
+  }
 }
+
+// ============================================================================
+// Progress Command
+// ============================================================================
+
+function showProgressHelp(): void {
+  console.log(`
+dojo progress - FSRS progress tracking
+
+Usage:
+  dojo progress update <domain> <concept-id> --rating <again|hard|good|easy> [--mastery <level>]
+  dojo progress get-due <domain>
+  dojo progress get-ready <domain>
+  dojo progress add-confusion <domain> <concept-a> <concept-b>
+
+Mastery levels: none, introduced, practiced, reinforced, solid
+`);
+  process.exit(0);
+}
+
+function handleProgress(args: string[]): void {
+  if (args.length === 0 || hasFlag(args, "help")) {
+    showProgressHelp();
+  }
+
+  const sub = args[0];
+  const subArgs = args.slice(1);
+
+  switch (sub) {
+    case "update": {
+      const positional = getPositionalArgs(subArgs);
+      const flags = parseArgs(subArgs);
+      const domain = positional[0];
+      const conceptId = positional[1];
+      if (!domain || !conceptId)
+        fail(
+          "Usage: dojo progress update <domain> <concept-id> --rating <again|hard|good|easy>",
+        );
+
+      const rating = flags.get("rating") as FSRSRating | undefined;
+      if (!rating) fail("Missing required flag: --rating");
+      if (!VALID_RATINGS.includes(rating))
+        fail(`Invalid rating: '${rating}'. Use: ${VALID_RATINGS.join(", ")}`);
+
+      const mastery = flags.get("mastery") as MasteryLevel | undefined;
+      if (mastery && !VALID_MASTERY.includes(mastery))
+        fail(`Invalid mastery: '${mastery}'. Use: ${VALID_MASTERY.join(", ")}`);
+
+      try {
+        const result = updateProgress(domain, conceptId, rating, mastery);
+        output({ success: true, data: result });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "get-due": {
+      const positional = getPositionalArgs(subArgs);
+      const domain = positional[0];
+      if (!domain)
+        fail("Missing domain name. Usage: dojo progress get-due <domain>");
+
+      try {
+        const result = getDueConcepts(domain);
+        output({ success: true, data: result });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "get-ready": {
+      const positional = getPositionalArgs(subArgs);
+      const domain = positional[0];
+      if (!domain)
+        fail("Missing domain name. Usage: dojo progress get-ready <domain>");
+
+      try {
+        const result = getReadyConcepts(domain);
+        output({ success: true, data: result });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    case "add-confusion": {
+      const positional = getPositionalArgs(subArgs);
+      const domain = positional[0];
+      const conceptA = positional[1];
+      const conceptB = positional[2];
+      if (!domain || !conceptA || !conceptB)
+        fail(
+          "Usage: dojo progress add-confusion <domain> <concept-a> <concept-b>",
+        );
+
+      try {
+        const state = addConfusionPair(domain, conceptA, conceptB);
+        output({ success: true, data: state });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    default:
+      fail(
+        `Unknown progress subcommand: ${sub}. Use: update, get-due, get-ready, add-confusion`,
+      );
+  }
+}
+
+// ============================================================================
+// Nudge Command
+// ============================================================================
 
 function handleNudge(_args: string[]): void {
-  output({ success: true, data: "not yet implemented" });
+  try {
+    const status = getNudgeStatus();
+    output({ success: true, data: status });
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
 }
 
 // ============================================================================
@@ -380,7 +656,7 @@ async function main(): Promise<void> {
         handleDomain(commandArgs);
         break;
       case "curriculum":
-        handleCurriculum(commandArgs);
+        await handleCurriculum(commandArgs);
         break;
       case "progress":
         handleProgress(commandArgs);

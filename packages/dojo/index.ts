@@ -35,3 +35,23 @@ export {
 // Session
 export { recordSession, getSessionStatus } from "./lib/session";
 export type { SessionStatus } from "./lib/session";
+
+// Curriculum
+export {
+  addConcept,
+  setConceptResources,
+  validateCurriculum,
+  verifyUrls,
+} from "./lib/curriculum";
+
+// FSRS / Progress
+export {
+  updateProgress,
+  getDueConcepts,
+  getReadyConcepts,
+  addConfusionPair,
+  getNudgeStatus,
+} from "./lib/fsrs";
+
+// DueConcept type
+export type { DueConcept } from "./lib/types";
