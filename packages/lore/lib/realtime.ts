@@ -303,18 +303,20 @@ export function extractType(event: CaptureEvent): string {
 
   switch (event.type) {
     case "knowledge":
-      return String(data.subtype || "general");
+      return String(data.subtype);
     case "teaching":
       return "teaching";
     case "observation":
-      return String(data.subtype || "pattern");
+      return String(data.subtype);
     case "insight":
-      return String(data.subtype || "insight");
+      return String(data.subtype);
     case "task":
       return "task";
     case "note":
       return "note";
     default:
-      return "general";
+      throw new Error(
+        `extractType: unhandled event type "${(event as any).type}"`,
+      );
   }
 }
