@@ -120,7 +120,7 @@ export async function indexAndEmbed(
  * Insert event into FTS5 search table
  * @returns rowid of inserted entry (used as doc_id for embeddings)
  */
-function insertSearchEntry(db: Database, event: CaptureEvent): number {
+export function insertSearchEntry(db: Database, event: CaptureEvent): number {
   const source = getSourceForEvent(event);
   const title = buildTitle(event);
   const data = event.data as Record<string, unknown>;
@@ -185,7 +185,7 @@ function buildTitle(event: CaptureEvent): string {
  * Extract content for embedding from event
  * Concatenates type+topic+content for richer embeddings (matches lore-embed-all)
  */
-function getContentForEmbedding(event: CaptureEvent): string {
+export function getContentForEmbedding(event: CaptureEvent): string {
   const data = event.data as Record<string, unknown>;
   const content = String(data.content || data.text || "");
   const topic = String(data.topic || "").trim();
@@ -298,7 +298,7 @@ function insertEmbedding(
 /**
  * Extract type value for embeddings partition column
  */
-function extractType(event: CaptureEvent): string {
+export function extractType(event: CaptureEvent): string {
   const data = event.data as Record<string, unknown>;
 
   switch (event.type) {
