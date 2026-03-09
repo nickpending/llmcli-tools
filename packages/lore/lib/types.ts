@@ -26,6 +26,9 @@ export enum LoreType {
   Completion = "completion",
   Problem = "problem",
   Tool = "tool",
+  Note = "note",
+  Project = "project",
+  Conversation = "conversation",
 }
 
 /**

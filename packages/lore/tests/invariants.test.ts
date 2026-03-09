@@ -207,26 +207,21 @@ describe("Invariant: LoreType enum completeness", () => {
   // This test covers types that ARE in the enum today and will catch regressions
   // if any currently-valid mapping breaks.
 
-  const EVENTS_WITH_VALID_LORE_TYPES: CaptureEvent[] = ALL_EVENT_TYPES.filter(
-    (e) => e.type !== "note",
-  );
-
-  test("extractType produces values recognized by isValidLoreType for covered event types", () => {
-    for (const event of EVENTS_WITH_VALID_LORE_TYPES) {
+  test("extractType produces values recognized by isValidLoreType for ALL event types", () => {
+    for (const event of ALL_EVENT_TYPES) {
       const type = extractType(event);
       expect(isValidLoreType(type)).toBe(true);
     }
   });
 
-  test("known gaps: note/project/conversation types are NOT in LoreType enum", () => {
-    // This test documents the gap and will fail (alerting us) when the gap is fixed
+  test("note/project/conversation types are in LoreType enum", () => {
     const noteEvent: CaptureEvent = {
       event: "captured",
       type: "note",
       timestamp: "2026-03-07T00:00:00.000Z",
       data: { content: "test" },
     };
-    expect(isValidLoreType(extractType(noteEvent))).toBe(false);
+    expect(isValidLoreType(extractType(noteEvent))).toBe(true);
 
     const projectEvent: CaptureEvent = {
       event: "captured",
@@ -234,7 +229,7 @@ describe("Invariant: LoreType enum completeness", () => {
       timestamp: "2026-03-07T00:00:00.000Z",
       data: { topic: "test", content: "test", subtype: "project" },
     };
-    expect(isValidLoreType(extractType(projectEvent))).toBe(false);
+    expect(isValidLoreType(extractType(projectEvent))).toBe(true);
 
     const conversationEvent: CaptureEvent = {
       event: "captured",
@@ -242,7 +237,7 @@ describe("Invariant: LoreType enum completeness", () => {
       timestamp: "2026-03-07T00:00:00.000Z",
       data: { topic: "test", content: "test", subtype: "conversation" },
     };
-    expect(isValidLoreType(extractType(conversationEvent))).toBe(false);
+    expect(isValidLoreType(extractType(conversationEvent))).toBe(true);
   });
 
   test("knowledge subtypes in LoreType enum produce valid types", () => {
