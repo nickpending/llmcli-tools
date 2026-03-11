@@ -7,7 +7,6 @@ import { join } from "path";
 import { createIndexerContext } from "../lib/indexer";
 import type { LoreConfig } from "../lib/config";
 import { indexCaptures } from "../lib/indexers/captures";
-import { indexInsights } from "../lib/indexers/insights";
 import { indexObservations } from "../lib/indexers/observations";
 import { indexTeachings } from "../lib/indexers/teachings";
 import { indexSessions } from "../lib/indexers/sessions";
@@ -179,70 +178,6 @@ describe("captures indexer", () => {
 
     const result = rows(db);
     expect(result).toHaveLength(0);
-  });
-
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-});
-
-// ─── Insights ────────────────────────────────────────────────────────────────
-
-describe("insights indexer", () => {
-  let db: Database;
-  let tmpDir: string;
-
-  beforeEach(() => {
-    db = createTestDb();
-    tmpDir = `/tmp/lore-test-insights-${Date.now()}`;
-    mkdirSync(tmpDir, { recursive: true });
-  });
-
-  test("only indexes insight+summary entries, excludes other types (INV-003 filter)", async () => {
-    const logPath = join(tmpDir, "log.jsonl");
-    const lines = [
-      // Should be included: insight+summary
-      JSON.stringify({
-        event: "captured",
-        type: "insight",
-        timestamp: "2026-01-01T10:00:00Z",
-        data: {
-          topic: "refactoring",
-          subtype: "summary",
-          content: "Refactored the module successfully",
-          session_id: "sess-abc",
-        },
-      }),
-      // Should be excluded: insight but NOT summary subtype
-      JSON.stringify({
-        event: "captured",
-        type: "insight",
-        timestamp: "2026-01-01T10:01:00Z",
-        data: {
-          topic: "testing",
-          subtype: "analysis",
-          content: "Some analysis",
-        },
-      }),
-      // Should be excluded: different event type entirely
-      JSON.stringify({
-        event: "captured",
-        type: "knowledge",
-        timestamp: "2026-01-01T10:02:00Z",
-        data: { topic: "misc", subtype: "summary", content: "Not an insight" },
-      }),
-    ].join("\n");
-    writeFileSync(logPath, lines + "\n");
-
-    const ctx = makeCtx(db, makeConfig({ data: tmpDir }));
-    await indexInsights(ctx);
-
-    const result = rows(db);
-    expect(result).toHaveLength(1);
-    expect(result[0].type).toBe("summary");
-    expect(result[0].topic).toBe("refactoring");
-    const meta = JSON.parse(result[0].metadata as string);
-    expect(meta.session_id).toBe("sess-abc");
   });
 
   afterEach(() => {

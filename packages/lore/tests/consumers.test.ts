@@ -366,7 +366,6 @@ describe("projects.ts — topic column query (no json_extract)", () => {
       "commits",
       "sessions",
       "flux",
-      "insights",
       "captures",
       "teachings",
       "observations",

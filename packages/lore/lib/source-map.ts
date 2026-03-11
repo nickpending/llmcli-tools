@@ -19,7 +19,9 @@ export function getSourceForEvent(event: CaptureEvent): string {
     case "observation":
       return "observations";
     case "insight":
-      return "insights";
+      throw new Error(
+        "getSourceForEvent: insight events should not be indexed — they go to log.jsonl only",
+      );
     case "task":
       return "flux";
     case "note":

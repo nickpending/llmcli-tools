@@ -13,7 +13,6 @@ const PROJECT_SOURCES = [
   "commits",
   "sessions",
   "flux",
-  "insights",
   "captures",
   "teachings",
   "observations",

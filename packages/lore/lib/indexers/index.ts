@@ -6,12 +6,10 @@
  */
 
 import type { IndexerFunction } from "../indexer";
-import { indexEvents } from "./events";
 import { indexReadmes } from "./readmes";
 import { indexDevelopment } from "./development";
 import { indexCaptures } from "./captures";
 import { indexTeachings } from "./teachings";
-import { indexInsights } from "./insights";
 import { indexObservations } from "./observations";
 import { indexExplorations } from "./explorations";
 import { indexSessions } from "./sessions";
@@ -22,12 +20,10 @@ import { indexBlogs } from "./blogs";
 import { indexPersonal } from "./personal";
 
 export const indexers: Record<string, IndexerFunction> = {
-  events: indexEvents,
   readmes: indexReadmes,
   development: indexDevelopment,
   captures: indexCaptures,
   teachings: indexTeachings,
-  insights: indexInsights,
   observations: indexObservations,
   explorations: indexExplorations,
   sessions: indexSessions,

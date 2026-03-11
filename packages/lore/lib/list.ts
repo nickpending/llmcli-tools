@@ -13,7 +13,6 @@ import { getDatabasePath } from "./db.js";
 export type Source =
   | "development"
   | "flux"
-  | "events"
   | "blogs"
   | "commits"
   | "explorations"
@@ -28,13 +27,11 @@ export type Source =
   | "habits"
   | "teachings"
   | "sessions"
-  | "insights"
   | "observations";
 
 export const SOURCES: Source[] = [
   "development",
   "flux",
-  "events",
   "blogs",
   "commits",
   "explorations",
@@ -49,7 +46,6 @@ export const SOURCES: Source[] = [
   "habits",
   "teachings",
   "sessions",
-  "insights",
   "observations",
 ];
 

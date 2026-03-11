@@ -267,11 +267,20 @@ describe("Invariant: LoreType enum completeness", () => {
 });
 
 describe("Invariant: Source mapping", () => {
-  test("getSourceForEvent maps all CaptureEvent types to values in SOURCES array", () => {
-    for (const event of ALL_EVENT_TYPES) {
+  test("getSourceForEvent maps indexable CaptureEvent types to values in SOURCES array", () => {
+    // insight events are not indexed — getSourceForEvent throws on them
+    const indexableEvents = ALL_EVENT_TYPES.filter((e) => e.type !== "insight");
+    for (const event of indexableEvents) {
       const source = getSourceForEvent(event);
       expect(SOURCES).toContain(source);
     }
+  });
+
+  test("getSourceForEvent throws on insight events (not indexed)", () => {
+    const insightEvent = ALL_EVENT_TYPES.find((e) => e.type === "insight")!;
+    expect(() => getSourceForEvent(insightEvent)).toThrow(
+      "insight events should not be indexed",
+    );
   });
 });
 
@@ -322,10 +331,11 @@ describe("Invariant: Capture to search entry pipeline", () => {
 
 describe("Invariant: No dead sources", () => {
   test("every source from getSourceForEvent exists in SOURCES array", () => {
-    // Collect all unique sources produced by getSourceForEvent
+    // insight events are not indexed — getSourceForEvent throws on them
+    const indexableEvents = ALL_EVENT_TYPES.filter((e) => e.type !== "insight");
     const producedSources = new Set<string>();
 
-    for (const event of ALL_EVENT_TYPES) {
+    for (const event of indexableEvents) {
       producedSources.add(getSourceForEvent(event));
     }
 
@@ -335,6 +345,7 @@ describe("Invariant: No dead sources", () => {
     }
 
     // Verify we tested all event types (guard against ALL_EVENT_TYPES going stale)
+    // 5 indexable + 1 non-indexable (insight) = 6 total
     const eventTypes = new Set(ALL_EVENT_TYPES.map((e) => e.type));
     expect(eventTypes.size).toBe(6); // knowledge, teaching, observation, insight, task, note
   });

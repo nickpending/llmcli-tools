@@ -24,7 +24,7 @@ export interface AboutResult {
 /**
  * Sources to query for project knowledge
  * Each source has a different field for project mapping (handled by list.ts)
- * Note: "insights" will be added when task 2.1 is complete
+ * Covers commits, captures, flux, teachings, and sessions
  */
 const ABOUT_SOURCES: Source[] = [
   "commits",
