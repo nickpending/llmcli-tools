@@ -1,4 +1,4 @@
-import type { Card } from "ts-fsrs";
+import type { CardInput } from "ts-fsrs";
 
 // Domain learning context
 export type LearningContext =
@@ -72,7 +72,7 @@ export interface Assignment {
 
 export interface ConceptProgress {
   mastery: MasteryLevel;
-  fsrs_card: Card;
+  fsrs_card: CardInput;
   struggle_points: string[];
   confusion_pairs: string[];
   assignments: Assignment[];

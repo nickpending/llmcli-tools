@@ -2,7 +2,6 @@ import {
   fsrs as makeFSRSInstance,
   createEmptyCard,
   Rating,
-  type CardInput,
   type Grade,
 } from "ts-fsrs";
 import type { StepUnit } from "ts-fsrs";
@@ -34,8 +33,8 @@ const ratingMap: Record<FSRSRating, Grade> = {
   easy: Rating.Easy,
 };
 
-function isDue(card: { due: Date | string }): boolean {
-  return new Date(card.due as string) <= new Date();
+function isDue(card: { due: Date | number | string }): boolean {
+  return new Date(card.due) <= new Date();
 }
 
 function makeDefaultProgress(): ConceptProgress {
@@ -62,11 +61,7 @@ export function updateProgress(
 
   const card = state.progress[conceptId].fsrs_card;
   const f = makeFSRS();
-  const result = f.next(
-    card as unknown as CardInput,
-    new Date(),
-    ratingMap[rating],
-  );
+  const result = f.next(card, new Date(), ratingMap[rating]);
 
   state.progress[conceptId].fsrs_card = result.card;
   if (mastery !== undefined) {
