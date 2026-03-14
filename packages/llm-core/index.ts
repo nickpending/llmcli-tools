@@ -11,10 +11,13 @@
 export type {
   CompleteOptions,
   CompleteResult,
+  EmbedOptions,
+  EmbedResult,
   ServiceConfig,
   ServiceMap,
 } from "./lib/types";
 
 export { complete } from "./lib/core";
+export { embed } from "./lib/embed";
 export { loadServices, resolveService, listServices } from "./lib/services";
 export { extractJson, isTruncated } from "./lib/helpers";

@@ -69,9 +69,23 @@
         "language-detect": "./cli.ts",
       },
     },
+    "packages/llm": {
+      "name": "@voidwire/llm",
+      "version": "0.1.0",
+      "bin": {
+        "llm": "./cli.ts",
+      },
+      "dependencies": {
+        "@huggingface/transformers": "^3.8.1",
+        "@voidwire/llm-core": "workspace:*",
+      },
+      "devDependencies": {
+        "bun-types": "1.3.5",
+      },
+    },
     "packages/llm-core": {
       "name": "@voidwire/llm-core",
-      "version": "0.3.1",
+      "version": "0.4.0",
       "bin": {
         "llm-core": "./cli.ts",
       },
@@ -94,12 +108,12 @@
         "llm-summarize": "./cli.ts",
       },
       "dependencies": {
-        "@voidwire/llm-core": "workspace:*",
+        "@voidwire/llm-core": "^0.3.0",
       },
     },
     "packages/lore": {
       "name": "@voidwire/lore",
-      "version": "1.7.0",
+      "version": "1.7.4",
       "bin": {
         "lore": "./cli.ts",
       },
@@ -513,6 +527,8 @@
     "@voidwire/gitignore-check": ["@voidwire/gitignore-check@workspace:packages/gitignore-check"],
 
     "@voidwire/language-detect": ["@voidwire/language-detect@workspace:packages/language-detect"],
+
+    "@voidwire/llm": ["@voidwire/llm@workspace:packages/llm"],
 
     "@voidwire/llm-core": ["@voidwire/llm-core@workspace:packages/llm-core"],
 
@@ -1286,6 +1302,10 @@
 
     "@voidwire/llm-core/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
 
+    "@voidwire/llm-summarize/@voidwire/llm-core": ["@voidwire/llm-core@0.3.1", "", { "dependencies": { "@voidwire/apiconf": "^0.1.0", "smol-toml": "1.6.0" }, "bin": { "llm-core": "cli.ts" } }, "sha512-7XsOojjBX2NoCH1N0p9GAPEnMZ5W9NcEd4kdzZUiI05T49BZzhIQMmSB5Ylkf3EHwHJir+uHqxB0Nu6atBVA+Q=="],
+
+    "@voidwire/sable-eval/@voidwire/llm-core": ["@voidwire/llm-core@0.3.1", "", { "dependencies": { "@voidwire/apiconf": "^0.1.0", "smol-toml": "1.6.0" }, "bin": { "llm-core": "cli.ts" } }, "sha512-7XsOojjBX2NoCH1N0p9GAPEnMZ5W9NcEd4kdzZUiI05T49BZzhIQMmSB5Ylkf3EHwHJir+uHqxB0Nu6atBVA+Q=="],
+
     "@zenuml/core/marked": ["marked@4.3.0", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-PRsaiG84bK+AMvxziE/lCFss8juXjNaWzVbN5tXAm4XjeaS9NAHhop+PjQxz2A9h8Q4M/xGmzP8vqNwy6JeK0A=="],
 
     "chokidar/glob-parent": ["glob-parent@5.1.2", "", { "dependencies": { "is-glob": "^4.0.1" } }, "sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow=="],
@@ -1325,6 +1345,10 @@
     "unbzip2-stream/buffer": ["buffer@5.7.1", "", { "dependencies": { "base64-js": "^1.3.1", "ieee754": "^1.1.13" } }, "sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ=="],
 
     "wrap-ansi/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
+
+    "@voidwire/llm-summarize/@voidwire/llm-core/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
+
+    "@voidwire/sable-eval/@voidwire/llm-core/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
 
     "cytoscape-fcose/cose-base/layout-base": ["layout-base@2.0.1", "", {}, "sha512-dp3s92+uNI1hWIpPGH3jK2kxE2lMjdXdr+DH8ynZHpd6PUlH6x6cbuXnoMmiNumznqaNO31xu9e79F0uuZ0JFg=="],
 

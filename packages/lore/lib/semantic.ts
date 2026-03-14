@@ -1,53 +1,18 @@
 /**
- * lib/semantic.ts - Semantic search via local embeddings
+ * lib/semantic.ts - Semantic search via embeddings
  *
- * Query embedding using @huggingface/transformers with nomic-embed-text-v1.5.
+ * Embedding via llm-core's embed() — requires embed server running.
+ * No in-process fallback. Start with: llm embed-server start
  * KNN search against sqlite-vec virtual table.
  * Uses Bun's built-in SQLite with sqlite-vec extension.
  */
 
 import { Database } from "bun:sqlite";
 import { existsSync } from "fs";
-import { pipeline } from "@huggingface/transformers";
+import { embed } from "@voidwire/llm-core";
 import { getDatabasePath, openDatabase } from "./db.js";
 import { search as keywordSearch, type SearchResult } from "./search.js";
 import { getConfig } from "./config.js";
-
-// ─── Embedding Server (server-first, in-process fallback) ────────────────────
-
-const EMBED_SERVER = process.env.EMBED_SERVER_URL || "http://localhost:8090";
-
-/**
- * Try the persistent embedding server first (warm: ~9ms vs 244ms in-process).
- * Returns null on any failure — caller falls back to in-process.
- */
-async function serverEmbed(
-  text: string,
-  prefix: string,
-): Promise<number[] | null> {
-  try {
-    const resp = await fetch(`${EMBED_SERVER}/embed`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, prefix }),
-      signal: AbortSignal.timeout(500),
-    });
-    if (!resp.ok) return null;
-    const data = (await resp.json()) as {
-      embedding?: number[];
-      dims?: number;
-    };
-    if (
-      !Array.isArray(data.embedding) ||
-      data.embedding.length !== EMBEDDING_DIM
-    ) {
-      return null;
-    }
-    return data.embedding;
-  } catch {
-    return null; // Server not running or timed out — fall back silently
-  }
-}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -72,148 +37,37 @@ export interface SemanticSearchOptions {
 
 const { model: MODEL_NAME, dimensions: EMBEDDING_DIM } = getConfig().embedding;
 
-interface EmbeddingPipeline {
-  (
-    text: string,
-    options?: { pooling?: string; normalize?: boolean },
-  ): Promise<{
-    data: Float32Array;
-  }>;
-}
-
-// Cache the pipeline to avoid reloading on every query
-let cachedPipeline: EmbeddingPipeline | null = null;
-
 /**
- * Get or create the embedding pipeline
- * Pipeline is cached after first load for performance
- */
-async function getEmbeddingPipeline(): Promise<EmbeddingPipeline> {
-  if (cachedPipeline) {
-    return cachedPipeline;
-  }
-
-  try {
-    const p = await pipeline("feature-extraction", MODEL_NAME, {
-      dtype: "fp32",
-    });
-    cachedPipeline = p as unknown as EmbeddingPipeline;
-    return cachedPipeline;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Failed to load embedding model: ${message}\n` +
-        `Note: First run downloads ~500MB model to ~/.cache/huggingface/hub`,
-    );
-  }
-}
-
-/**
- * Embed a query string using local transformers.js model
- * Uses "search_query: " prefix as required by nomic-embed-text
+ * Embed a query string via the embed server
+ * Uses "search_query" prefix as required by nomic-embed-text
  * @returns 768-dimensional embedding vector
  */
 export async function embedQuery(query: string): Promise<number[]> {
-  // Try persistent server first (~9ms warm vs 244ms in-process)
-  const serverResult = await serverEmbed(query, "search_query");
-  if (serverResult) return serverResult;
-
-  // Fall back to in-process model loading
-  const embedder = await getEmbeddingPipeline();
-
-  // nomic model requires "search_query: " prefix for queries
-  // (FastEmbed uses "search_document: " prefix during indexing)
-  const prefixedQuery = `search_query: ${query}`;
-  const output = await embedder(prefixedQuery, {
-    pooling: "mean",
-    normalize: true,
-  });
-
-  // Output is a Tensor, convert to array
-  const embedding = Array.from(output.data as Float32Array);
-
-  if (embedding.length !== EMBEDDING_DIM) {
-    throw new Error(
-      `Invalid embedding: expected ${EMBEDDING_DIM} dims, got ${embedding.length}`,
-    );
-  }
-
-  return embedding;
+  const result = await embed({ text: query, prefix: "search_query" });
+  return result.embedding;
 }
 
 /**
- * Embed a document string using local transformers.js model
- * Uses "search_document: " prefix as required by nomic-embed-text
+ * Embed a document string via the embed server
+ * Uses "search_document" prefix as required by nomic-embed-text
  * @returns 768-dimensional embedding vector
  */
 export async function embedDocument(text: string): Promise<number[]> {
-  // Try persistent server first (~9ms warm vs 244ms in-process)
-  const serverResult = await serverEmbed(text, "search_document");
-  if (serverResult) return serverResult;
-
-  // Fall back to in-process model loading
-  const embedder = await getEmbeddingPipeline();
-
-  const prefixedText = `search_document: ${text}`;
-  const output = await embedder(prefixedText, {
-    pooling: "mean",
-    normalize: true,
-  });
-
-  const embedding = Array.from(output.data as Float32Array);
-
-  if (embedding.length !== EMBEDDING_DIM) {
-    throw new Error(
-      `Invalid embedding: expected ${EMBEDDING_DIM} dims, got ${embedding.length}`,
-    );
-  }
-
-  return embedding;
+  const result = await embed({ text, prefix: "search_document" });
+  return result.embedding;
 }
 
 /**
- * Batch embed multiple documents
- * More efficient than individual calls when embedding several documents
+ * Batch embed multiple documents via the embed server
  * @returns array of 768-dimensional embedding vectors
  */
 export async function embedDocuments(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
-
-  const results: number[][] = [];
-
-  // Try persistent server first for each document
-  let serverAvailable = true;
-  for (const text of texts) {
-    if (serverAvailable) {
-      const serverResult = await serverEmbed(text, "search_document");
-      if (serverResult) {
-        results.push(serverResult);
-        continue;
-      }
-      // Server failed — stop trying and fall back for remaining
-      serverAvailable = false;
-    }
-
-    // Fall back to in-process
-    const embedder = await getEmbeddingPipeline();
-    const prefixedText = `search_document: ${text}`;
-    const output = await embedder(prefixedText, {
-      pooling: "mean",
-      normalize: true,
-    });
-
-    const embedding = Array.from(output.data as Float32Array);
-
-    if (embedding.length !== EMBEDDING_DIM) {
-      throw new Error(
-        `Invalid embedding: expected ${EMBEDDING_DIM} dims, got ${embedding.length}`,
-      );
-    }
-
-    results.push(embedding);
-  }
-
-  return results;
+  return Promise.all(
+    texts.map((t) =>
+      embed({ text: t, prefix: "search_document" }).then((r) => r.embedding),
+    ),
+  );
 }
 
 /**

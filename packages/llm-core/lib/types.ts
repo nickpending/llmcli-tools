@@ -57,3 +57,16 @@ export interface AdapterResponse {
 export interface ProviderAdapter {
   complete(request: AdapterRequest): Promise<AdapterResponse>;
 }
+
+// Embedding API surface
+export interface EmbedOptions {
+  text: string;
+  prefix?: "search_query" | "search_document"; // default: "search_query"
+  service?: string; // Named service from services.toml, default: "embed"
+}
+
+export interface EmbedResult {
+  embedding: number[];
+  dims: number;
+  durationMs: number;
+}
