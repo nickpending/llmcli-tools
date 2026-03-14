@@ -39,7 +39,7 @@ export function getConfig(): DojoConfig {
     raw = readFileSync(configPath, "utf-8");
   } catch {
     throw new Error(
-      `Config not found: ${configPath}\nRun ./install.sh to create it.`,
+      `Config not found: ${configPath}\nRun 'dojo init' to create it.`,
     );
   }
 
