@@ -107,6 +107,12 @@ export function initDomain(
   context: LearningContext,
   persona: string,
 ): DomainState {
+  if (domainExists(name)) {
+    throw new Error(
+      `Domain '${name}' already exists. Use 'dojo domain update' to modify.`,
+    );
+  }
+
   const state: DomainState = {
     domain: name,
     goal,

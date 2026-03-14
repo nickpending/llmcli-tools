@@ -19,6 +19,15 @@ export function addConcept(
     );
   }
 
+  const existingIds = new Set(state.curriculum.concepts.map((c) => c.id));
+  for (const prereq of concept.prereqs) {
+    if (!existingIds.has(prereq)) {
+      throw new Error(
+        `Prerequisite '${prereq}' not found in domain '${domain}'. Add it first.`,
+      );
+    }
+  }
+
   const node: ConceptNode = {
     id: concept.id,
     title: concept.title,
@@ -136,7 +145,7 @@ export async function verifyUrls(domain: string) {
       }),
     );
 
-    for (const result of results) {
+    results.forEach((result, i) => {
       if (result.status === "fulfilled") {
         const { entry, status, ok } = result.value;
         if (ok) {
@@ -146,10 +155,10 @@ export async function verifyUrls(domain: string) {
         }
       } else {
         // Network error or timeout
-        const entry = batch[results.indexOf(result)];
+        const entry = batch[i];
         dead.push({ concept_id: entry.concept_id, url: entry.url });
       }
-    }
+    });
   }
 
   return { checked: urlEntries.length, live, dead };
