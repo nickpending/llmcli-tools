@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { handleInit } from "./lib/init";
 import {
   initDomain,
   readDomain,
@@ -630,6 +631,7 @@ Usage:
   dojo progress <subcommand>   FSRS progress tracking
   dojo session <subcommand>    Session management
   dojo nudge                   Check for stale domains
+  dojo init                    First-time setup (dirs, config, skills)
 
 Run 'dojo <command> --help' for command-specific help.
 `);
@@ -667,9 +669,12 @@ async function main(): Promise<void> {
       case "nudge":
         handleNudge(commandArgs);
         break;
+      case "init":
+        handleInit(commandArgs, output, fail);
+        break;
       default:
         fail(
-          `Unknown command: ${command}. Use: domain, curriculum, progress, session, nudge`,
+          `Unknown command: ${command}. Use: domain, curriculum, progress, session, nudge, init`,
         );
     }
   } catch (err) {
