@@ -45,7 +45,7 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@voidwire/llm-core": "^0.3.1",
+    "@voidwire/llm-core": "workspace:*",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {

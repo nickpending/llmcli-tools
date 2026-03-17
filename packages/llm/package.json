@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/llm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LLM tooling CLI - embed server lifecycle and utility subcommands",
   "type": "module",
   "main": "./index.ts",
