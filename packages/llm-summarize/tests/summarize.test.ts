@@ -52,7 +52,7 @@ const { summarize, loadConfig } = await import(
 /** A minimal CompleteResult that summarize() expects */
 function makeCompleteResult(overrides: Record<string, unknown> = {}) {
   return {
-    text: '{"summary":"User is testing things","should_search":false,"extractions":[]}',
+    text: '{"summary":"User is testing things"}',
     model: "claude-3-5-haiku-20241022",
     provider: "anthropic",
     tokens: { input: 100, output: 42 },
@@ -81,8 +81,7 @@ beforeEach(() => {
 
 describe("summarize() output shape (INV-005)", () => {
   it("returns insights, rawText, model, tokens_used on success", async () => {
-    const rawJson =
-      '{"summary":"User is testing things","should_search":false,"extractions":[]}';
+    const rawJson = '{"summary":"User is testing things"}';
     completeImpl = async () => makeCompleteResult({ text: rawJson });
 
     const result = await summarize("some text", defaultConfig());
@@ -209,7 +208,7 @@ describe("extractJson domain logic (via summarize)", () => {
   it("strips <think>...</think> blocks before parsing JSON", async () => {
     const textWithThinking =
       "<think>Let me analyze this...</think>\n" +
-      '{"summary":"Cleaned output","should_search":false,"extractions":[]}';
+      '{"summary":"Cleaned output"}';
     completeImpl = async () => makeCompleteResult({ text: textWithThinking });
 
     const result = await summarize("text", defaultConfig());
@@ -219,8 +218,7 @@ describe("extractJson domain logic (via summarize)", () => {
   });
 
   it("strips MLX end tokens and parses JSON", async () => {
-    const textWithMlx =
-      '{"summary":"MLX output","should_search":false,"extractions":[]}<|im_end|>';
+    const textWithMlx = '{"summary":"MLX output"}<|im_end|>';
     completeImpl = async () => makeCompleteResult({ text: textWithMlx });
 
     const result = await summarize("text", defaultConfig());
@@ -231,9 +229,7 @@ describe("extractJson domain logic (via summarize)", () => {
 
   it("extracts JSON from markdown code blocks", async () => {
     const textWithCodeBlock =
-      "```json\n" +
-      '{"summary":"Markdown wrapped","should_search":true,"extractions":[]}\n' +
-      "```";
+      "```json\n" + '{"summary":"Markdown wrapped"}\n' + "```";
     completeImpl = async () => makeCompleteResult({ text: textWithCodeBlock });
 
     const result = await summarize("text", defaultConfig());
