@@ -78,7 +78,6 @@ export async function findCandidates(
 
   return hybridSearch(content, {
     source,
-    project: topic || undefined,
     limit: CANDIDATE_LIMIT,
   });
 }
