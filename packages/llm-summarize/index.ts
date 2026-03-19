@@ -82,7 +82,7 @@ Previous Assistant: <last assistant message>
 User Prompt: <current user message>
 
 Produce JSON with:
-1. summary: Brief description (1-2 sentences) of what the user is doing/asking. Start with "${name}".
+1. summary: Brief description (1-2 sentences) of what the user is doing/asking. Start with "${name}". Include 2-3 key searchable terms from the prompt (names, tools, concepts) naturally in the sentence.
 2. should_search: Whether to search the knowledge base
 3. extractions: Terms worth searching for
 

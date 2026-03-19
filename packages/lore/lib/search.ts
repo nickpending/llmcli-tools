@@ -38,7 +38,7 @@ function escapeFts5Query(query: string): string {
     .split(/\s+/)
     .filter(Boolean)
     .map((term) => `"${term.replace(/"/g, '""')}"`)
-    .join(" ");
+    .join(" OR ");
 }
 
 /**
