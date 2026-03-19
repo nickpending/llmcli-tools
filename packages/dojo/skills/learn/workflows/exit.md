@@ -192,7 +192,7 @@ Present a closing summary to the user:
 
 | Error | Response |
 |-------|----------|
-| `dojo` not on PATH | "dojo CLI not found — state cannot be saved. Run `./install.sh` and retry with the exit summary." Stop. |
+| `dojo` not on PATH | "dojo CLI not found — state cannot be saved. Run `dojo init` and retry with the exit summary." Stop. |
 | `dojo progress update` fails for one concept | Continue with remaining concepts. Report failure at the end: "Note: FSRS rating for [concept] failed — [error]. You may need to re-rate it manually." |
 | `dojo session record` fails | "Session record failed — [error]. Session data was NOT saved to history. Your progress ratings (Steps 2-3) were saved." Report the full error. |
 | `lore` not on PATH | "Lore capture skipped — `lore` not on PATH. Install Lore to enable session capture." Do not fail. |

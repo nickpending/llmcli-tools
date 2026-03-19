@@ -93,11 +93,25 @@ export function getDueConcepts(domain: string): DueConcept[] {
     }
   }
 
+  // Include new concepts (no progress entry = never reviewed)
+  for (const concept of state.curriculum.concepts) {
+    if (!state.progress[concept.id]) {
+      result.set(concept.id, {
+        concept_id: concept.id,
+        title: concept.title,
+        due: new Date().toISOString(),
+        state: 0,
+        mastery: "none",
+        confusion_pair: false,
+      });
+    }
+  }
+
   // Co-schedule confusion pairs
   const dueIds = [...result.keys()];
   for (const dueId of dueIds) {
     const progress = state.progress[dueId];
-    for (const pairId of progress.confusion_pairs) {
+    for (const pairId of progress?.confusion_pairs ?? []) {
       if (result.has(pairId)) {
         // Already in result — mark as confusion pair
         const existing = result.get(pairId)!;

@@ -212,7 +212,7 @@ Do not force a session when there is nothing to cover.
 
 | Error | Response |
 |-------|----------|
-| `dojo` not on PATH | "dojo CLI not found — run `./install.sh` and retry." Stop. |
+| `dojo` not on PATH | "dojo CLI not found — run `dojo init` and retry." Stop. |
 | Domain not found | "I don't have a domain for '[name]' yet. Want to set one up now?" Offer `workflows/setup.md`. |
 | `get-due` returns error | Surface the full error. Do not start session. |
 | Persona file not found | Fall back to neutral coach with warning: "Couldn't load [persona] — using default voice." |

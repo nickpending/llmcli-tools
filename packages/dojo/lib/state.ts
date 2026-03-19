@@ -54,6 +54,33 @@ export function validateDomainState(raw: unknown): DomainState {
       "Invalid domain state: missing or invalid 'curriculum' field",
     );
 
+  // Validate nested structures
+  const curriculum = obj.curriculum as Record<string, unknown>;
+  if (!Array.isArray(curriculum.concepts))
+    throw new Error(
+      "Invalid domain state: curriculum.concepts must be an array",
+    );
+
+  if (!Array.isArray(obj.sources))
+    throw new Error("Invalid domain state: sources must be an array");
+
+  const progress = obj.progress as Record<string, unknown>;
+  for (const [conceptId, entry] of Object.entries(progress)) {
+    if (typeof entry !== "object" || entry === null)
+      throw new Error(
+        `Invalid domain state: progress['${conceptId}'] must be an object`,
+      );
+    const p = entry as Record<string, unknown>;
+    if (typeof p.fsrs_card !== "object" || p.fsrs_card === null)
+      throw new Error(
+        `Invalid domain state: progress['${conceptId}'].fsrs_card must be an object`,
+      );
+    if (typeof p.mastery !== "string")
+      throw new Error(
+        `Invalid domain state: progress['${conceptId}'].mastery must be a string`,
+      );
+  }
+
   return raw as DomainState;
 }
 

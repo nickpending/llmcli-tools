@@ -17,7 +17,7 @@ dojo domain list
 ```
 
 - If this succeeds (returns JSON): proceed to Step 1.
-- If `command not found` or similar error: tell the user "dojo CLI not found — run `./install.sh` from the dojo project directory, then retry." **Do not proceed.**
+- If `command not found` or similar error: tell the user "dojo CLI not found — run `dojo init` from the dojo project directory, then retry." **Do not proceed.**
 
 ---
 
@@ -302,7 +302,7 @@ If concepts are missing resources (`concepts_without_resources` is non-empty), a
 
 | Error | Response |
 |-------|----------|
-| `dojo` not on PATH | "dojo CLI not found — run `./install.sh` from the dojo project directory, then retry." Stop. |
+| `dojo` not on PATH | "dojo CLI not found — run `dojo init` from the dojo project directory, then retry." Stop. |
 | `yt-dlp` not found | "No yt-dlp available — I'll use my knowledge about this topic instead." Continue without transcript. |
 | `domain init` fails (already exists) | Should not happen — Step 1 checks existence first. If it does: use `dojo domain update` instead. |
 | `add-concept` fails (missing prereq) | Prerequisite ordering error. Re-check topological order and add the missing prereq concept first. |
