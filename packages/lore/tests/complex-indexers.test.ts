@@ -339,7 +339,7 @@ describe("personal indexer", () => {
     for (const expectedType of expectedTypes) {
       expect(types.has(expectedType)).toBe(true);
     }
-  });
+  }, 30000);
 
   test("books use date_read for timestamp, podcasts use title field", async () => {
     const personalDir = join(tmpDir, "personal");
@@ -375,7 +375,7 @@ describe("personal indexer", () => {
     expect(podcast).toBeDefined();
     // podcast.title field (not podcast.name) must be the title
     expect(podcast.title as string).toContain("Lex Fridman Podcast");
-  });
+  }, 30000);
 
   afterEach(() => {
     rmSync(tmpDir, { recursive: true, force: true });

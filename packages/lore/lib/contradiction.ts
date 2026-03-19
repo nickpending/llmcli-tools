@@ -110,10 +110,13 @@ export async function classifyContradiction(
     .map((c) => `[rowid: ${c.rowid}] ${c.content}`)
     .join("\n");
 
-  const systemPrompt = `You classify knowledge contradictions. Reply with exactly one word: ADD, NOOP, or DELETE.
-  ADD: new information not covered by candidates
-  NOOP: duplicate or redundant (already captured)
-  DELETE: new information supersedes a candidate (also provide rowid)`;
+  const systemPrompt = `You deduplicate knowledge entries. Your job is to prevent storing the same insight multiple times.
+
+Reply NOOP if the new entry means the same thing as ANY existing entry — even if the words are different.
+Reply DELETE <rowid> if the new entry is a better version of an existing entry.
+Reply ADD only if the new entry contains a genuinely novel insight not present in any existing entry.
+
+When in doubt, reply NOOP. Redundancy is worse than missing an entry.`;
 
   const userPrompt = `New entry (source: ${source}, topic: ${topic}):
 ${content}
