@@ -99,16 +99,20 @@ describe("Persona files — task 5.1", () => {
     expect(failures).toEqual([]);
   });
 
-  it("every system prompt includes negative space (You do NOT or never)", () => {
+  it("no system prompt contains a 'You do NOT:' constraint list (identity format, not instruction format)", () => {
     const failures: string[] = [];
     for (const file of PERSONA_FILES) {
       const content = readPersona(file);
       const systemPrompt = extractSystemPrompt(content);
-      // Must contain either "do NOT" or "never" (case-sensitive per the spec voice)
-      const hasNegativeSpace =
-        systemPrompt.includes("do NOT") || systemPrompt.includes("never");
-      if (!hasNegativeSpace) {
-        failures.push(`${file}: system prompt has no negative space`);
+      // Task 2.1 converted all files from instruction format to identity format.
+      // "You do NOT:" blocks are an instruction-format artifact and must not appear.
+      if (
+        systemPrompt.includes("You do NOT:") ||
+        systemPrompt.includes("do NOT:")
+      ) {
+        failures.push(
+          `${file}: system prompt still contains "You do NOT:" (old instruction format)`,
+        );
       }
     }
     expect(failures).toEqual([]);
