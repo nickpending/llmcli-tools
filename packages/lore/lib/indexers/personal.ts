@@ -2,7 +2,7 @@
  * lib/indexers/personal.ts - Personal data indexer
  *
  * Reads JSON files from the personal data directory and indexes
- * 8 types: book, person, movie, podcast, interest, habit, profile, preference.
+ * 8 types: book, contact, movie, podcast, interest, habit, profile, preference.
  *
  * Source: personal
  * Topic: (empty - type handles categorization)
@@ -31,10 +31,11 @@ Keep under 80 words. Output only the description, no headers or formatting.`;
 
 const ENRICH_PROMPTS: Record<string, string> = {
   person: `You are enriching a personal contact entry for search indexing.
-The "relationship" field is the EXACT relationship — do NOT add other relationship types.
-Generate synonyms and alternative phrasings ONLY for the stated relationship.
-Example: relationship "uncle" → uncle, family member, relative, parent's brother, parent's sibling. NOT: cousin, nephew, aunt.
-Example: relationship "daughter" → daughter, child, kid, offspring, family member. NOT: son, niece, nephew.
+Generate a natural language description that includes the person's name and their relationship.
+Include synonyms for the relationship naturally in the sentence.
+Example: {"name":"Mike","relationship":"uncle"} → Mike is an uncle, a family member and relative on the parent's side.
+Example: {"name":"Jade","relationship":"child"} → Jade is a child, a kid and offspring in the family.
+Example: {"name":"Sansa","relationship":"cat"} → Sansa is a cat, a pet and feline companion in the household.
 ${ENRICH_SHARED}`,
   book: `You are enriching a book entry for search indexing.
 Generate: genre, themes, and related topics based on the title.
@@ -152,7 +153,7 @@ export async function indexPersonal(ctx: IndexerContext): Promise<void> {
           title: person.name,
           content,
           topic: "",
-          type: "person",
+          type: "contact",
           timestamp: peopleTs,
           metadata: { name: person.name },
         });
