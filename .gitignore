@@ -115,3 +115,6 @@ vite.config.ts.timestamp-*
 .vite/
 pnpm-lock.yaml
 package-lock.json
+
+# Base compliance patterns (auto-added by gitignore-check)
+.bun/
