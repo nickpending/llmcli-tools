@@ -50,10 +50,16 @@ Example: {"title":"The Matrix","year":1999} → The Matrix (1999) is a sci-fi ac
 Example: {"title":"Pan's Labyrinth","year":2006} → Pan's Labyrinth (2006) is a dark fantasy drama about childhood, political oppression, and magical escape during the Spanish Civil War.
 ${ENRICH_SHARED}`,
   interest: `You are enriching a personal interest entry for search indexing.
-Generate: related activities, domains, synonyms, and common alternative phrasings.
+Generate a natural language description starting with the interest name.
+Include related activities, domains, and common alternative phrasings naturally in the sentence.
+Example: {"name":"woodworking"} → Woodworking is a hands-on craft involving carpentry, furniture making, and wood carving using hand tools and power tools.
+Example: {"name":"cybersecurity"} → Cybersecurity is a technical field covering network security, penetration testing, threat analysis, and digital defense.
 ${ENRICH_SHARED}`,
   habit: `You are enriching a personal habit/routine entry for search indexing.
-Generate: related routines, synonyms, categories, and common alternative phrasings.
+Generate a natural language description starting with the habit name.
+Include frequency, related routines, and benefits naturally in the sentence.
+Example: {"habit":"morning meditation","frequency":"daily"} → Morning meditation is a daily mindfulness practice involving focused breathing and mental clarity exercises.
+Example: {"habit":"meal prep","frequency":"weekly"} → Meal prep is a weekly cooking routine involving batch preparation of meals for the upcoming days.
 ${ENRICH_SHARED}`,
 };
 
