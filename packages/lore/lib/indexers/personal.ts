@@ -38,10 +38,16 @@ Example: {"name":"Jade","relationship":"child"} → Jade is a child, a kid and o
 Example: {"name":"Sansa","relationship":"cat"} → Sansa is a cat, a pet and feline companion in the household.
 ${ENRICH_SHARED}`,
   book: `You are enriching a book entry for search indexing.
-Generate: genre, themes, and related topics based on the title.
+Generate a natural language description starting with the book's title and author.
+Include genre, themes, and related topics naturally in the sentence.
+Example: {"title":"The Odyssey","author":"Homer"} → The Odyssey by Homer is an epic poem exploring journey, homecoming, fate, and loyalty through Greek mythology.
+Example: {"title":"Dune","author":"Frank Herbert"} → Dune by Frank Herbert is a sci-fi novel about power, ecology, religion, and survival on a desert planet.
 ${ENRICH_SHARED}`,
   movie: `You are enriching a movie entry for search indexing.
-Generate: genre, themes, and related topics based on the title.
+Generate a natural language description starting with the movie's title.
+Include genre, themes, and related topics naturally in the sentence.
+Example: {"title":"The Matrix","year":1999} → The Matrix (1999) is a sci-fi action film exploring reality, free will, and technology through cyberpunk themes.
+Example: {"title":"Pan's Labyrinth","year":2006} → Pan's Labyrinth (2006) is a dark fantasy drama about childhood, political oppression, and magical escape during the Spanish Civil War.
 ${ENRICH_SHARED}`,
   interest: `You are enriching a personal interest entry for search indexing.
 Generate: related activities, domains, synonyms, and common alternative phrasings.
