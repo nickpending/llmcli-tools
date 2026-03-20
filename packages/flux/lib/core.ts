@@ -335,6 +335,18 @@ export async function done(
     });
   }
 
+  // If recurring item, update recurring metadata
+  if (item.id) {
+    const recurringParsed = await getFileParsed(
+      paths.recurring,
+      getDefaultRecurringContent(),
+    );
+    const recurringMatch = findItemByFuzzy(recurringParsed.sections, item.id);
+    if (recurringMatch) {
+      await completeRecurring(item.id);
+    }
+  }
+
   return {
     success: true,
     id: item.id,
