@@ -1,12 +1,12 @@
 ---
 name: Session Exit
-description: Persists all session data — FSRS ratings, session history, confusion pairs, and optional Lore capture. Runs after the coaching session workflow (session.md) completes. This is the single persistence point for all session state.
-trigger: User says 'done', '/exit', 'finished', or 'quit' after a coaching session
+description: Persists all session data — FSRS ratings, session history, confusion pairs, and optional Lore capture. Runs inside the coaching session when the learner signals they are done. This is the single persistence point for all session state.
+trigger: User says 'done', '/exit', 'finished', or 'quit' during a coaching session. Triggered by the exit instructions in the coaching system prompt.
 ---
 
 # Session Exit Workflow
 
-End a coaching session by persisting all state accumulated during the session. The session workflow tracks everything in conversation context; this workflow writes it to disk via CLI calls, then displays a closing summary.
+End a coaching session by persisting all state accumulated during the session. The coaching session tracks everything in conversation context throughout the lesson; this workflow writes it to disk via CLI calls, then displays a closing summary.
 
 ---
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { handleInit } from "./lib/init";
+import { spawnSession } from "./lib/spawn";
 import {
   initDomain,
   readDomain,
@@ -255,6 +256,7 @@ function showSessionHelp(): void {
 dojo session - Session management
 
 Usage:
+  dojo session spawn <domain>   Spawn a coaching session (fuzzy domain match)
   dojo session record <domain> --data '{...}'
   dojo session status [domain]
 
@@ -282,6 +284,21 @@ function handleSession(args: string[]): void {
   const subArgs = args.slice(1);
 
   switch (sub) {
+    case "spawn": {
+      const positional = getPositionalArgs(subArgs);
+      const domainInput = positional[0];
+      if (!domainInput)
+        fail("Missing domain name. Usage: dojo session spawn <domain>");
+
+      try {
+        const result = spawnSession(domainInput);
+        output({ success: true, data: result });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
     case "record": {
       const positional = getPositionalArgs(subArgs);
       const flags = parseArgs(subArgs);
@@ -333,7 +350,7 @@ function handleSession(args: string[]): void {
     }
 
     default:
-      fail(`Unknown session subcommand: ${sub}. Use: record, status`);
+      fail(`Unknown session subcommand: ${sub}. Use: spawn, record, status`);
   }
 }
 

@@ -21,6 +21,31 @@ dojo domain list
 
 ---
 
+### Task Tracking Setup
+
+Before starting Step 1, create a task for each setup step using TaskCreate:
+
+- "Step 1: Domain Name" — Check domain name and existence
+- "Step 2: Goal" — Collect learning goal
+- "Step 3: Learning Context" — Select context
+- "Step 4: Source Materials" — Process sources (or skip)
+- "Step 5: Persona Selection" — Choose persona
+- "Step 6: Initialize Domain" — Run dojo domain init
+- "Step 7: Curriculum Generation" — Generate concept graph
+- "Step 8: Add Concepts" — Persist all concepts via CLI
+- "Step 9: Resource Curation" — **MANDATORY: set resources for every concept**
+- "Step 10: Validate and Hand Off" — Run validation gate and start session
+
+For each step: mark the task `in_progress` before starting, `completed` only after the step's CLI commands succeed. Do not skip or mark tasks completed without executing their work.
+
+---
+
+## Execute ALL steps in sequence
+
+Do not skip steps. Do not reorder steps. Complete each step fully before moving to the next.
+
+---
+
 ## Step 1: Domain Name
 
 Ask: **"What do you want to learn?"**
@@ -213,7 +238,9 @@ Notes:
 
 ---
 
-## Step 9: Curate Resources Per Concept
+## Step 9: Curate Resources Per Concept — MANDATORY
+
+> **This step is not optional.** Every concept must have at least one resource before setup can complete. If the user provided source materials with URLs (roadmap, book, course), extract those URLs and map them to the relevant concepts. If no sources were provided, curate resources from training knowledge. Zero-resource concepts will fail the validation gate in Step 10.
 
 For each concept, curate 1-3 supplementary resources. Draw from:
 - Official documentation (if applicable)
@@ -294,7 +321,15 @@ dojo curriculum add-concept <domain> \
 3. Re-run `dojo curriculum validate <domain>` to confirm the cycle is resolved.
 4. Once acyclic, proceed with the handoff above.
 
-If concepts are missing resources (`concepts_without_resources` is non-empty), add resources for those concepts before handing off.
+**Resource Gate (checked after acyclic):**
+
+If `data.concepts_without_resources` is non-empty:
+
+Tell the user: "Setup is not complete — the following concepts have no resources: [list concept IDs]. I need to curate resources for these before we can start."
+
+Go back to Step 9. Set resources for each listed concept. Run `dojo curriculum validate <domain>` again to confirm `concepts_without_resources` is now empty.
+
+**Do not hand off to session.md until `concepts_without_resources` is empty.**
 
 ---
 

@@ -7,7 +7,9 @@
  * Invariants tested:
  * - Both workflow files exist at correct paths
  * - Both files have valid YAML front matter
- * - SKILL.md routing table has all 4 required entries (setup, session, exit, status)
+ * - SKILL.md routing table has 3 required entries (setup, status, session-spawn) — NOT 4
+ *   (exit routing removed in task 4.1: exit now runs inside coaching session)
+ *   (session routing removed from table in task 4.1: session is now inline spawn procedure)
  * - setup.md has all 10 steps
  * - All 11 persona slugs are listed in setup.md Step 5
  * - All 4 valid learning contexts are documented in setup.md Step 3
@@ -78,22 +80,32 @@ describe("YAML front matter — task 2.1", () => {
 // ---------------------------------------------------------------------------
 
 describe("SKILL.md routing table — task 2.1", () => {
-  it("routing table includes all 4 required workflow entries", () => {
+  it("routing table routes setup and status to workflow files (session and exit routing removed in task 4.1)", () => {
     const content = readFile(SKILL_FILE);
-    // Each of the four intents must route to the corresponding workflow
+    // setup and status still route to their workflow files
     expect(content).toContain("workflows/setup.md");
-    expect(content).toContain("workflows/session.md");
-    expect(content).toContain("workflows/exit.md");
     expect(content).toContain("workflows/status.md");
+    // session.md routing intentionally removed — session is now an inline spawn procedure
+    expect(content).not.toContain("workflows/session.md");
+    // exit routing intentionally removed — exit runs inside coaching session
+    // (exit.md is still loaded from within the coaching session, not routed here)
   });
 
-  it("routing table covers all 4 intent categories (setup, session, exit, status)", () => {
+  it("routing table covers setup, session-spawn, and status intents — exit is NOT in SKILL.md routing (handled inside coaching session)", () => {
     const content = readFile(SKILL_FILE);
-    // Intent keywords for each workflow must be present
+    // Intent keywords for remaining routed intents must be present
     expect(content).toMatch(/setup|new domain|teach me|I want to learn/i);
     expect(content).toMatch(/session|practice|review|continue/i);
-    expect(content).toMatch(/done|exit|finished|quit/i);
     expect(content).toMatch(/status|progress|overview/i);
+    // Exit intent keywords (done/exit/finished/quit) are intentionally absent from routing table
+    // They are handled inside the coaching session via exit.md
+    const routingTableMatch = content.match(
+      /## Determine Action[\s\S]*?(?=\n---\n|\n## Session)/i,
+    );
+    expect(routingTableMatch).not.toBeNull();
+    const routingTable = routingTableMatch![0];
+    // The routing table must NOT have done/exit/finished/quit as routed actions
+    expect(routingTable).not.toMatch(/\|\s*(done|exit|finished|quit)/i);
   });
 });
 
@@ -240,5 +252,61 @@ describe("setup.md critical constraints — task 2.1", () => {
     const step4a = step4aMatch![0];
     // Must explicitly state sources are not persisted via CLI
     expect(step4a).toMatch(/not persisted|no CLI command to store/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setup.md: TaskCreate tracking — task-WO-fix
+// ---------------------------------------------------------------------------
+
+describe("setup.md TaskCreate tracking — task-WO-fix", () => {
+  it("TaskCreate instruction is present in setup.md", () => {
+    const content = readFile(SETUP_FILE);
+    expect(content).toMatch(/TaskCreate/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setup.md: Step 9 mandatory framing — task-WO-fix
+// ---------------------------------------------------------------------------
+
+describe("setup.md Step 9 mandatory framing — task-WO-fix", () => {
+  it("Step 9 header contains MANDATORY marker", () => {
+    const content = readFile(SETUP_FILE);
+    const step9Match = content.match(
+      /## Step 9[:\s][\s\S]*?(?=## Step 10|## Error Handling|$)/i,
+    );
+    expect(step9Match).not.toBeNull();
+    const step9 = step9Match![0];
+    expect(step9).toMatch(/MANDATORY|mandatory/);
+  });
+
+  it("Step 9 has a hard constraint block (blockquote) stating the step is not optional", () => {
+    const content = readFile(SETUP_FILE);
+    const step9Match = content.match(
+      /## Step 9[:\s][\s\S]*?(?=## Step 10|## Error Handling|$)/i,
+    );
+    expect(step9Match).not.toBeNull();
+    const step9 = step9Match![0];
+    // A blockquote (line starting with >) must be present in Step 9
+    expect(step9).toMatch(/^>/m);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setup.md: Step 10 resource gate — task-WO-fix
+// ---------------------------------------------------------------------------
+
+describe("setup.md Step 10 resource gate — task-WO-fix", () => {
+  it("Step 10 has a hard stop on concepts_without_resources", () => {
+    const content = readFile(SETUP_FILE);
+    const step10Match = content.match(
+      /## Step 10[:\s][\s\S]*?(?=## Error Handling|## Handoff|$)/i,
+    );
+    expect(step10Match).not.toBeNull();
+    const step10 = step10Match![0];
+    expect(step10).toContain("concepts_without_resources");
+    // Must instruct the model to NOT proceed — not just a soft suggestion
+    expect(step10).toMatch(/Do not hand off|do not proceed|must be empty/i);
   });
 });
