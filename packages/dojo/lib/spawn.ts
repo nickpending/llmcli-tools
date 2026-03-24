@@ -113,14 +113,8 @@ export function assemblePrompt(
   // Strip the HTML comment block at the top (variable slots canonical reference)
   result = result.replace(/\n*<!--[\s\S]*?-->\n*/, "");
 
-  // Variable slot substitutions
-  result = result.replaceAll("{{PERSONA_IDENTITY}}", personaIdentity);
-  result = result.replaceAll("{{DOMAIN_NAME}}", domainName);
-  result = result.replaceAll("{{LEARNING_CONTEXT}}", learningContext);
-  result = result.replaceAll("{{CONCEPT_QUEUE}}", conceptQueue);
-  result = result.replaceAll("{{LORE_CONTEXT}}", loreContext);
-
-  // Embedded content marker substitutions (exact match from template)
+  // Inline embedded content FIRST — framework and guards may contain {{VARIABLE}} slots
+  // that need to be resolved in the next pass (e.g., guards.md references {{LORE_CONTEXT}})
   result = result.replace(
     "<!-- FRAMEWORK_CONTENT_EMBEDDED_HERE: read coaching/framework.md and inline all content at this position -->",
     frameworkContent,
@@ -129,6 +123,13 @@ export function assemblePrompt(
     "<!-- GUARDS_CONTENT_EMBEDDED_HERE: read coaching/guards.md and inline all content at this position -->",
     guardsContent,
   );
+
+  // Variable slot substitutions (after inlining, so slots inside guards/framework resolve)
+  result = result.replaceAll("{{PERSONA_IDENTITY}}", personaIdentity);
+  result = result.replaceAll("{{DOMAIN_NAME}}", domainName);
+  result = result.replaceAll("{{LEARNING_CONTEXT}}", learningContext);
+  result = result.replaceAll("{{CONCEPT_QUEUE}}", conceptQueue);
+  result = result.replaceAll("{{LORE_CONTEXT}}", loreContext);
 
   return result;
 }

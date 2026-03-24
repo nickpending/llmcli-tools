@@ -65,7 +65,7 @@ dojo domain get <name>
 
 - If the command succeeds (domain exists): tell the user "You already have a **[name]** domain set up." Offer two choices:
   - **(a) Update it** — continue to Steps 2-5 to collect new goal/context/persona, then use `dojo domain update` in Step 6 instead of `dojo domain init`
-  - **(b) Start a session** — skip setup entirely and hand off to `workflows/session.md`
+  - **(b) Start a session** — skip setup entirely and run `dojo session spawn <domain>` to launch a coaching session
 - If the command fails (domain does not exist): proceed to Step 2.
 
 ---
@@ -297,7 +297,7 @@ The command returns JSON with `data.acyclic` (boolean), `data.concept_count` (nu
 
 Tell the user: "Setup complete! **[Domain]** has **N concepts** ready. Starting your first session..."
 
-Then hand off to the session workflow: read and follow `workflows/session.md`.
+Then spawn the coaching session: run `dojo session spawn <domain>` to launch a new coaching window.
 
 **If `acyclic` is `false`:**
 
@@ -329,7 +329,7 @@ Tell the user: "Setup is not complete — the following concepts have no resourc
 
 Go back to Step 9. Set resources for each listed concept. Run `dojo curriculum validate <domain>` again to confirm `concepts_without_resources` is now empty.
 
-**Do not hand off to session.md until `concepts_without_resources` is empty.**
+**Do not spawn a coaching session until `concepts_without_resources` is empty.**
 
 ---
 
@@ -351,4 +351,4 @@ Go back to Step 9. Set resources for each listed concept. Run `dojo curriculum v
 
 ## Handoff
 
-When setup is complete and validation passes, read and follow `workflows/session.md` to start the user's first coaching session in the newly configured domain.
+When setup is complete and validation passes, run `dojo session spawn <domain>` to launch the user's first coaching session in the newly configured domain.

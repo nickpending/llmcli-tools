@@ -307,6 +307,8 @@ describe("setup.md Step 10 resource gate — task-WO-fix", () => {
     const step10 = step10Match![0];
     expect(step10).toContain("concepts_without_resources");
     // Must instruct the model to NOT proceed — not just a soft suggestion
-    expect(step10).toMatch(/Do not hand off|do not proceed|must be empty/i);
+    expect(step10).toMatch(
+      /Do not hand off|Do not spawn|do not proceed|must be empty/i,
+    );
   });
 });
