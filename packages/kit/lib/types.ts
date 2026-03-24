@@ -2,7 +2,7 @@
  * lib/types.ts — Kit type definitions
  */
 
-export type ResourceType = "skill" | "command" | "script" | "prompt" | "agent";
+export type ResourceType = "skill" | "command" | "script" | "agent";
 
 export interface CatalogEntry {
   name: string;
@@ -40,7 +40,6 @@ export interface KitConfig {
     skills?: string;
     commands?: string;
     scripts?: string;
-    prompts?: string;
     agents?: string;
   };
 }
@@ -102,7 +101,6 @@ export interface InitResult {
 export interface SyncResult {
   success: boolean;
   updated: number;
-  unchanged: number;
   failed: number;
   errors: string[];
 }

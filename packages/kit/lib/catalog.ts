@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import { files } from "./paths";
 import type { Catalog, CatalogEntry, ResourceType } from "./types";
 
-const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "prompt", "agent"];
+const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "agent"];
 
 function validateEntry(entry: unknown, index: number): CatalogEntry {
   if (!entry || typeof entry !== "object") {
@@ -20,10 +20,14 @@ function validateEntry(entry: unknown, index: number): CatalogEntry {
     throw new Error(`Catalog entry ${index}: missing or invalid 'name'`);
   }
   if (typeof e.repo !== "string" || !e.repo) {
-    throw new Error(`Catalog entry ${index} (${e.name}): missing or invalid 'repo'`);
+    throw new Error(
+      `Catalog entry ${index} (${e.name}): missing or invalid 'repo'`,
+    );
   }
   if (typeof e.path !== "string" || !e.path) {
-    throw new Error(`Catalog entry ${index} (${e.name}): missing or invalid 'path'`);
+    throw new Error(
+      `Catalog entry ${index} (${e.name}): missing or invalid 'path'`,
+    );
   }
   if (!VALID_TYPES.includes(e.type as ResourceType)) {
     throw new Error(
@@ -66,7 +70,7 @@ export function loadCatalog(path?: string): Catalog {
       entries.push(validateEntry(item, index++));
     }
   } else {
-    // Sections by type: skills:, commands:, agents:, scripts:, prompts:
+    // Sections by type: skills:, commands:, agents:, scripts:
     for (const section of Object.keys(parsed)) {
       const items = parsed[section];
       if (!Array.isArray(items)) continue;
@@ -101,7 +105,10 @@ export function saveCatalog(catalog: Catalog, path?: string): void {
 }
 
 /** Find an entry by name */
-export function findEntry(catalog: Catalog, name: string): CatalogEntry | undefined {
+export function findEntry(
+  catalog: Catalog,
+  name: string,
+): CatalogEntry | undefined {
   return catalog.entries.find((e) => e.name === name);
 }
 

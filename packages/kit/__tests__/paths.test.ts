@@ -7,7 +7,9 @@ const home = homedir();
 
 describe("getInstallPath", () => {
   it("skill installs to ~/.claude/skills/<name>/", () => {
-    expect(getInstallPath("recon", "skill")).toBe(join(home, ".claude", "skills", "recon"));
+    expect(getInstallPath("recon", "skill")).toBe(
+      join(home, ".claude", "skills", "recon"),
+    );
   });
 
   it("command installs to ~/.claude/commands/<name>.md", () => {
@@ -17,11 +19,9 @@ describe("getInstallPath", () => {
   });
 
   it("script installs to ~/.local/bin/<name>", () => {
-    expect(getInstallPath("sigil-search", "script")).toBe(join(home, ".local", "bin", "sigil-search"));
-  });
-
-  it("prompt installs to ~/.claude/commands/<name>.md", () => {
-    expect(getInstallPath("review", "prompt")).toBe(join(home, ".claude", "commands", "review.md"));
+    expect(getInstallPath("sigil-search", "script")).toBe(
+      join(home, ".local", "bin", "sigil-search"),
+    );
   });
 
   it("agent installs to ~/.config/sable/agents/<name>.yaml", () => {
@@ -41,6 +41,8 @@ describe("getInstallPath", () => {
       catalog: { repo: "" },
       paths: { skills: "/custom/skills" },
     };
-    expect(getInstallPath("recon", "skill", config)).toBe(join("/custom/skills", "recon"));
+    expect(getInstallPath("recon", "skill", config)).toBe(
+      join("/custom/skills", "recon"),
+    );
   });
 });

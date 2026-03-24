@@ -1,6 +1,6 @@
 # @voidwire/kit
 
-Cross-cutting component registry for the @voidwire ecosystem. Manages skills, agents, commands, scripts, and prompts across devices.
+Cross-cutting component registry for the @voidwire ecosystem. Manages skills, agents, commands, and scripts across devices.
 
 Kit is a **package manager without versioning** — "I just want the latest." It maintains a YAML catalog of pointers to components in git repos, with type-aware installation to the correct locations on disk.
 
@@ -49,7 +49,6 @@ skills:
 | `skill` | `~/.claude/skills/<name>/` | Claude Code skill directories |
 | `command` | `~/.claude/commands/<name>.md` | Claude Code slash commands |
 | `script` | `~/.local/bin/` | Executable scripts |
-| `prompt` | `~/.claude/commands/` | Instruction/prompt files |
 | `agent` | `~/.config/sable/agents/` | Sable persona definitions |
 
 ### Two Views

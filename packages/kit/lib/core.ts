@@ -4,13 +4,36 @@
  * All business logic lives here. CLI is a thin wrapper.
  */
 
-import { existsSync, mkdirSync, rmSync, cpSync, statSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  rmSync,
+  cpSync,
+  statSync,
+  chmodSync,
+  writeFileSync,
+} from "fs";
 import { dirname, join } from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
+import { stringify } from "smol-toml";
 import { xdg, files, getInstallPath } from "./paths";
 import { getConfig } from "./config";
-import { loadCatalog, saveCatalog, findEntry, addEntry, removeEntry } from "./catalog";
-import { loadState, saveState, isInstalled, getInstalled, recordInstall, recordRemoval, recordSync } from "./state";
+import {
+  loadCatalog,
+  saveCatalog,
+  findEntry,
+  addEntry,
+  removeEntry,
+} from "./catalog";
+import {
+  loadState,
+  saveState,
+  isInstalled,
+  getInstalled,
+  recordInstall,
+  recordRemoval,
+  recordSync,
+} from "./state";
 import type {
   ResourceType,
   CatalogEntry,
@@ -27,18 +50,21 @@ import type {
   StatusResult,
 } from "./types";
 
-const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "prompt", "agent"];
+const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "agent"];
 
-function git(args: string, cwd?: string): string {
+function git(args: string[], cwd?: string): string {
   try {
-    return execSync(`git ${args}`, {
+    return execFileSync("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
   } catch (err) {
-    const message = err instanceof Error ? (err as any).stderr?.trim() || err.message : String(err);
-    throw new Error(`git ${args.split(" ")[0]} failed: ${message}`);
+    const message =
+      err instanceof Error
+        ? (err as any).stderr?.trim() || err.message
+        : String(err);
+    throw new Error(`git ${args[0]} failed: ${message}`);
   }
 }
 
@@ -68,29 +94,29 @@ export async function init(catalogRepo?: string): Promise<InitResult> {
   if (!repo) {
     return {
       success: false,
-      error: "No catalog repo specified. Pass a repo URL or set it in ~/.config/kit/config.toml",
+      error:
+        "No catalog repo specified. Pass a repo URL or set it in ~/.config/kit/config.toml",
     };
   }
 
   // Clone or update catalog
   if (existsSync(files.catalogDir)) {
     try {
-      git("pull --ff-only", files.catalogDir);
+      git(["pull", "--ff-only"], files.catalogDir);
     } catch {
       // If pull fails, re-clone
       rmSync(files.catalogDir, { recursive: true, force: true });
-      git(`clone ${repo} ${files.catalogDir}`);
+      git(["clone", repo, files.catalogDir]);
     }
   } else {
-    git(`clone ${repo} ${files.catalogDir}`);
+    git(["clone", repo, files.catalogDir]);
   }
 
   // Write config if repo was provided and differs
   if (catalogRepo && catalogRepo !== config.catalog.repo) {
     ensureDir(xdg.config);
-    const configContent = `[catalog]\nrepo = "${catalogRepo}"\n`;
-    const { writeFileSync } = await import("fs");
-    writeFileSync(files.config, configContent, "utf-8");
+    const configContent = stringify({ catalog: { repo: catalogRepo } });
+    writeFileSync(files.config, configContent + "\n", "utf-8");
   }
 
   return {
@@ -113,7 +139,10 @@ export async function add(opts: {
   ensureInitialized();
 
   if (!VALID_TYPES.includes(opts.type)) {
-    return { success: false, error: `Invalid type '${opts.type}'. Must be: ${VALID_TYPES.join(", ")}` };
+    return {
+      success: false,
+      error: `Invalid type '${opts.type}'. Must be: ${VALID_TYPES.join(", ")}`,
+    };
   }
 
   const catalog = loadCatalog();
@@ -132,14 +161,17 @@ export async function add(opts: {
     const updated = addEntry(catalog, entry);
     saveCatalog(updated);
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 
   // Commit and push catalog changes
   try {
-    git("add kit-catalog.yaml", files.catalogDir);
-    git(`commit -m "Add ${opts.name} (${opts.type})"`, files.catalogDir);
-    git("push", files.catalogDir);
+    git(["add", "kit-catalog.yaml"], files.catalogDir);
+    git(["commit", "-m", `Add ${opts.name} (${opts.type})`], files.catalogDir);
+    git(["push"], files.catalogDir);
   } catch {
     // Commit/push failure is non-fatal — catalog is updated locally
   }
@@ -156,7 +188,10 @@ export async function use(name: string, dir?: string): Promise<UseResult> {
   const entry = findEntry(catalog, name);
 
   if (!entry) {
-    return { success: false, error: `Component '${name}' not found in catalog` };
+    return {
+      success: false,
+      error: `Component '${name}' not found in catalog`,
+    };
   }
 
   const config = getConfig();
@@ -167,7 +202,7 @@ export async function use(name: string, dir?: string): Promise<UseResult> {
 
   try {
     ensureDir(dirname(tmpDir));
-    git(`clone --depth 1 ${entry.repo} ${tmpDir}`);
+    git(["clone", "--depth", "1", entry.repo, tmpDir]);
 
     const sourcePath = join(tmpDir, entry.path);
     if (!existsSync(sourcePath)) {
@@ -189,7 +224,7 @@ export async function use(name: string, dir?: string): Promise<UseResult> {
 
     // Make scripts executable
     if (entry.type === "script") {
-      execSync(`chmod +x "${installPath}"`, { stdio: "pipe" });
+      chmodSync(installPath, 0o755);
     }
 
     // Update state
@@ -222,7 +257,10 @@ export async function use(name: string, dir?: string): Promise<UseResult> {
 
 // ─── remove ──────────────────────────────────────────────────────────────────
 
-export async function remove(name: string, fromCatalog?: boolean): Promise<RemoveResult> {
+export async function remove(
+  name: string,
+  fromCatalog?: boolean,
+): Promise<RemoveResult> {
   ensureInitialized();
 
   if (fromCatalog) {
@@ -234,16 +272,19 @@ export async function remove(name: string, fromCatalog?: boolean): Promise<Remov
 
       // Commit and push
       try {
-        git("add kit-catalog.yaml", files.catalogDir);
-        git(`commit -m "Remove ${name}"`, files.catalogDir);
-        git("push", files.catalogDir);
+        git(["add", "kit-catalog.yaml"], files.catalogDir);
+        git(["commit", "-m", `Remove ${name}`], files.catalogDir);
+        git(["push"], files.catalogDir);
       } catch {
         // Non-fatal
       }
 
       return { success: true, name, removed: "catalog" };
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -252,7 +293,10 @@ export async function remove(name: string, fromCatalog?: boolean): Promise<Remov
   const installed = getInstalled(state, name);
 
   if (!installed) {
-    return { success: false, error: `Component '${name}' is not installed on this device` };
+    return {
+      success: false,
+      error: `Component '${name}' is not installed on this device`,
+    };
   }
 
   // Delete the installed files
@@ -298,9 +342,7 @@ export async function list(opts?: ListOptions): Promise<ListResult> {
     entries = entries.filter((e) => e.domain.includes(opts.domain!));
   }
   if (opts?.tags?.length) {
-    entries = entries.filter((e) =>
-      opts.tags!.some((t) => e.tags.includes(t)),
-    );
+    entries = entries.filter((e) => opts.tags!.some((t) => e.tags.includes(t)));
   }
 
   return {
@@ -319,7 +361,10 @@ export async function get(name: string): Promise<GetResult> {
   const entry = findEntry(catalog, name);
 
   if (!entry) {
-    return { success: false, error: `Component '${name}' not found in catalog` };
+    return {
+      success: false,
+      error: `Component '${name}' not found in catalog`,
+    };
   }
 
   const state = loadState();
@@ -374,75 +419,99 @@ export async function sync(): Promise<SyncResult> {
 
   // Pull latest catalog
   try {
-    git("pull --ff-only", files.catalogDir);
+    git(["pull", "--ff-only"], files.catalogDir);
   } catch (err) {
     return {
       success: false,
       updated: 0,
-      unchanged: 0,
       failed: 1,
-      errors: [`Failed to update catalog: ${err instanceof Error ? err.message : String(err)}`],
+      errors: [
+        `Failed to update catalog: ${err instanceof Error ? err.message : String(err)}`,
+      ],
     };
   }
 
   const state = loadState();
   let updated = 0;
-  let unchanged = 0;
   let failed = 0;
   const errors: string[] = [];
+  const succeeded: string[] = [];
 
-  // Update each installed component
+  // Group installed components by source repo to clone each unique repo once
+  const byRepo = new Map<string, typeof state.installed>();
   for (const inst of state.installed) {
-    const tmpDir = join(xdg.cache, "tmp", `sync-${inst.name}-${Date.now()}`);
+    const group = byRepo.get(inst.sourceRepo) ?? [];
+    group.push(inst);
+    byRepo.set(inst.sourceRepo, group);
+  }
+
+  for (const [repo, components] of byRepo) {
+    const tmpDir = join(xdg.cache, "tmp", `sync-${Date.now()}`);
 
     try {
       ensureDir(dirname(tmpDir));
-      git(`clone --depth 1 ${inst.sourceRepo} ${tmpDir}`);
+      git(["clone", "--depth", "1", repo, tmpDir]);
 
-      const sourcePath = join(tmpDir, inst.sourcePath);
-      if (!existsSync(sourcePath)) {
-        errors.push(`${inst.name}: source path '${inst.sourcePath}' not found in repo`);
-        failed++;
-        continue;
+      for (const inst of components) {
+        try {
+          const sourcePath = join(tmpDir, inst.sourcePath);
+          if (!existsSync(sourcePath)) {
+            errors.push(
+              `${inst.name}: source path '${inst.sourcePath}' not found in repo`,
+            );
+            failed++;
+            continue;
+          }
+
+          // Replace installed files
+          if (existsSync(inst.installPath)) {
+            rmSync(inst.installPath, { recursive: true, force: true });
+          }
+          ensureDir(dirname(inst.installPath));
+
+          const sourceIsDir = statSync(sourcePath).isDirectory();
+          if (sourceIsDir) {
+            cpSync(sourcePath, inst.installPath, { recursive: true });
+          } else {
+            cpSync(sourcePath, inst.installPath);
+          }
+
+          if (inst.type === "script") {
+            chmodSync(inst.installPath, 0o755);
+          }
+
+          updated++;
+          succeeded.push(inst.name);
+        } catch (err) {
+          errors.push(
+            `${inst.name}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          failed++;
+        }
       }
-
-      // Replace installed files
-      if (existsSync(inst.installPath)) {
-        rmSync(inst.installPath, { recursive: true, force: true });
-      }
-      ensureDir(dirname(inst.installPath));
-
-      const sourceIsDir = statSync(sourcePath).isDirectory();
-      if (sourceIsDir) {
-        cpSync(sourcePath, inst.installPath, { recursive: true });
-      } else {
-        cpSync(sourcePath, inst.installPath);
-      }
-
-      if (inst.type === "script") {
-        execSync(`chmod +x "${inst.installPath}"`, { stdio: "pipe" });
-      }
-
-      updated++;
     } catch (err) {
-      errors.push(`${inst.name}: ${err instanceof Error ? err.message : String(err)}`);
-      failed++;
+      // Clone failed — mark all components from this repo as failed
+      for (const inst of components) {
+        errors.push(
+          `${inst.name}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        failed++;
+      }
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   }
 
-  // Update sync timestamps
+  // Update sync timestamps only for components that succeeded
   let updatedState = state;
-  for (const inst of state.installed) {
-    updatedState = recordSync(updatedState, inst.name);
+  for (const name of succeeded) {
+    updatedState = recordSync(updatedState, name);
   }
   saveState(updatedState);
 
   return {
     success: failed === 0,
     updated,
-    unchanged,
     failed,
     errors,
   };
@@ -457,11 +526,17 @@ export async function push(name: string): Promise<PushResult> {
   const inst = getInstalled(state, name);
 
   if (!inst) {
-    return { success: false, error: `Component '${name}' is not installed on this device` };
+    return {
+      success: false,
+      error: `Component '${name}' is not installed on this device`,
+    };
   }
 
   if (!existsSync(inst.installPath)) {
-    return { success: false, error: `Install path '${inst.installPath}' does not exist` };
+    return {
+      success: false,
+      error: `Install path '${inst.installPath}' does not exist`,
+    };
   }
 
   // Clone source repo, copy local changes in, commit and push
@@ -469,7 +544,7 @@ export async function push(name: string): Promise<PushResult> {
 
   try {
     ensureDir(dirname(tmpDir));
-    git(`clone ${inst.sourceRepo} ${tmpDir}`);
+    git(["clone", inst.sourceRepo, tmpDir]);
 
     const destPath = join(tmpDir, inst.sourcePath);
 
@@ -486,18 +561,18 @@ export async function push(name: string): Promise<PushResult> {
       cpSync(inst.installPath, destPath);
     }
 
-    git("add .", tmpDir);
+    git(["add", "."], tmpDir);
 
     // Check if there are changes
     try {
-      git("diff --cached --quiet", tmpDir);
+      git(["diff", "--cached", "--quiet"], tmpDir);
       return { success: true, name, error: "No changes to push" };
     } catch {
       // There are changes — good
     }
 
-    git(`commit -m "Update ${name} via kit push"`, tmpDir);
-    git("push", tmpDir);
+    git(["commit", "-m", `Update ${name} via kit push`], tmpDir);
+    git(["push"], tmpDir);
 
     return { success: true, name };
   } catch (err) {

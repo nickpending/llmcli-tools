@@ -6,6 +6,7 @@
 
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
+import { parse } from "smol-toml";
 import { files } from "./paths";
 import type { KitConfig } from "./types";
 
@@ -15,32 +16,8 @@ function resolvePath(path: string): string {
   return path.replace(/^~/, homedir());
 }
 
-/**
- * Minimal TOML parser — handles simple key=value, [sections], and quoted strings.
- * Good enough for Kit's flat config. No external deps needed.
- */
-function parseSimpleToml(raw: string): Record<string, Record<string, string>> {
-  const result: Record<string, Record<string, string>> = {};
-  let currentSection = "";
-
-  for (const line of raw.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const sectionMatch = trimmed.match(/^\[(.+)\]$/);
-    if (sectionMatch) {
-      currentSection = sectionMatch[1];
-      result[currentSection] = result[currentSection] || {};
-      continue;
-    }
-
-    const kvMatch = trimmed.match(/^(\w+)\s*=\s*"(.*)"\s*$/);
-    if (kvMatch && currentSection) {
-      result[currentSection][kvMatch[1]] = kvMatch[2];
-    }
-  }
-
-  return result;
+function str(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 /** Load and cache Kit config from config.toml. Returns defaults if file missing. */
@@ -55,19 +32,29 @@ export function getConfig(): KitConfig {
   }
 
   const raw = readFileSync(files.config, "utf-8");
-  const parsed = parseSimpleToml(raw);
+  const parsed = parse(raw);
+
+  const catalog = parsed.catalog as Record<string, unknown> | undefined;
+  const paths = parsed.paths as Record<string, unknown> | undefined;
 
   cachedConfig = {
     catalog: {
-      repo: parsed.catalog?.repo ?? "",
+      repo: str(catalog?.repo) ?? "",
     },
-    paths: parsed.paths
+    paths: paths
       ? {
-          skills: parsed.paths.skills ? resolvePath(parsed.paths.skills) : undefined,
-          commands: parsed.paths.commands ? resolvePath(parsed.paths.commands) : undefined,
-          scripts: parsed.paths.scripts ? resolvePath(parsed.paths.scripts) : undefined,
-          prompts: parsed.paths.prompts ? resolvePath(parsed.paths.prompts) : undefined,
-          agents: parsed.paths.agents ? resolvePath(parsed.paths.agents) : undefined,
+          skills: str(paths.skills)
+            ? resolvePath(str(paths.skills)!)
+            : undefined,
+          commands: str(paths.commands)
+            ? resolvePath(str(paths.commands)!)
+            : undefined,
+          scripts: str(paths.scripts)
+            ? resolvePath(str(paths.scripts)!)
+            : undefined,
+          agents: str(paths.agents)
+            ? resolvePath(str(paths.agents)!)
+            : undefined,
         }
       : undefined,
   };

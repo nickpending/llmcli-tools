@@ -59,7 +59,7 @@ OPTIONS:
     --name <name>           Component name (required)
     --repo <url>            Source repo URL (required)
     --path <path>           Path within repo (required)
-    --type <type>           Resource type: skill|command|script|prompt|agent (required)
+    --type <type>           Resource type: skill|command|script|agent (required)
     --domain <d1,d2>        Domain tags (comma-separated)
     --tags <t1,t2>          Tags (comma-separated)
     --description <text>    Description
@@ -81,7 +81,6 @@ RESOURCE TYPES:
   skill    → ~/.claude/skills/<name>/
   command  → ~/.claude/commands/<name>.md
   script   → ~/.local/bin/
-  prompt   → ~/.claude/commands/
   agent    → ~/.config/sable/agents/
 
 EXAMPLES:
@@ -142,7 +141,8 @@ async function main(): Promise<void> {
 
     case "use": {
       const name = args[1];
-      if (!name || name.startsWith("-")) fail("Missing component name. Usage: kit use <name>");
+      if (!name || name.startsWith("-"))
+        fail("Missing component name. Usage: kit use <name>");
       const dir = getArg("--dir");
       const result = await use(name, dir);
       respond(result);
@@ -152,7 +152,8 @@ async function main(): Promise<void> {
 
     case "remove": {
       const name = args[1];
-      if (!name || name.startsWith("-")) fail("Missing component name. Usage: kit remove <name>");
+      if (!name || name.startsWith("-"))
+        fail("Missing component name. Usage: kit remove <name>");
       const fromCatalog = hasFlag("--from-catalog");
       const result = await remove(name, fromCatalog);
       respond(result);
@@ -180,7 +181,8 @@ async function main(): Promise<void> {
 
     case "get": {
       const name = args[1];
-      if (!name || name.startsWith("-")) fail("Missing component name. Usage: kit get <name>");
+      if (!name || name.startsWith("-"))
+        fail("Missing component name. Usage: kit get <name>");
       const result = await get(name);
       respond(result);
       if (!result.success) process.exit(1);
@@ -188,7 +190,10 @@ async function main(): Promise<void> {
     }
 
     case "search": {
-      const query = args.slice(1).filter((a) => !a.startsWith("-")).join(" ");
+      const query = args
+        .slice(1)
+        .filter((a) => !a.startsWith("-"))
+        .join(" ");
       if (!query) fail("Missing search query. Usage: kit search <query>");
       const result = await search(query);
       respond(result);
@@ -204,7 +209,8 @@ async function main(): Promise<void> {
 
     case "push": {
       const name = args[1];
-      if (!name || name.startsWith("-")) fail("Missing component name. Usage: kit push <name>");
+      if (!name || name.startsWith("-"))
+        fail("Missing component name. Usage: kit push <name>");
       const result = await push(name);
       respond(result);
       if (!result.success) process.exit(1);

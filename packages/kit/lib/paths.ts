@@ -28,13 +28,12 @@ const defaultInstallDirs: Record<ResourceType, string> = {
   skill: join(home, ".claude", "skills"),
   command: join(home, ".claude", "commands"),
   script: join(home, ".local", "bin"),
-  prompt: join(home, ".claude", "commands"),
   agent: join(home, ".config", "sable", "agents"),
 };
 
 /**
  * Get the install path for a resource, respecting config overrides.
- * Skills and agents get subdirectories; commands/prompts get files.
+ * Skills and agents get subdirectories; commands get files.
  */
 export function getInstallPath(
   name: string,
@@ -49,8 +48,6 @@ export function getInstallPath(
         return join(dir, ".claude", "skills", name);
       case "command":
         return join(dir, ".claude", "commands", `${name}.md`);
-      case "prompt":
-        return join(dir, ".claude", "commands", `${name}.md`);
       case "script":
         return join(dir, "bin", name);
       case "agent":
@@ -58,15 +55,14 @@ export function getInstallPath(
     }
   }
 
-  const base = config?.paths?.[`${type}s` as keyof NonNullable<KitConfig["paths"]>]
-    ?? defaultInstallDirs[type];
+  const base =
+    config?.paths?.[`${type}s` as keyof NonNullable<KitConfig["paths"]>] ??
+    defaultInstallDirs[type];
 
   switch (type) {
     case "skill":
       return join(base, name);
     case "command":
-      return join(base, `${name}.md`);
-    case "prompt":
       return join(base, `${name}.md`);
     case "script":
       return join(base, name);
