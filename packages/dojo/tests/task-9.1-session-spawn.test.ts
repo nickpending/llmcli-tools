@@ -155,8 +155,26 @@ describe("resolveDomain — task 9.1 session spawn", () => {
 // ---------------------------------------------------------------------------
 
 describe("buildConceptQueue — task 9.1 session spawn", () => {
+  // Minimal mock DomainState for existing tests (no resources, no progress)
+  const emptyDomainState = {
+    domain: "test",
+    goal: "test",
+    context: "skill-build" as const,
+    persona: "test",
+    sources: [],
+    curriculum: {
+      concepts: [],
+      generated_from: "model-knowledge" as const,
+      generated_at: "2026-01-01T00:00:00Z",
+    },
+    progress: {},
+    session_history: [],
+    session_count: 0,
+    last_session: null,
+  };
+
   it("empty array produces fallback string", () => {
-    const result = buildConceptQueue([]);
+    const result = buildConceptQueue([], emptyDomainState);
     expect(result).toContain("No concepts due");
   });
 
@@ -179,10 +197,12 @@ describe("buildConceptQueue — task 9.1 session spawn", () => {
         confusion_pair: false,
       },
     ];
-    const result = buildConceptQueue(concepts);
-    expect(result).toContain("- [Backprop] (state: new, mastery: none)");
+    const result = buildConceptQueue(concepts, emptyDomainState);
     expect(result).toContain(
-      "- [Attention] (state: review, mastery: introduced)",
+      "- [Backprop] (state: new, mastery: none, plan: none)",
+    );
+    expect(result).toContain(
+      "- [Attention] (state: review, mastery: introduced, plan: none)",
     );
   });
 });

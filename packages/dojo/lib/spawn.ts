@@ -2,7 +2,7 @@ import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { getDueConcepts } from "./fsrs";
 import { listDomains, readDomain } from "./state";
-import type { DueConcept } from "./types";
+import type { DomainState, DueConcept } from "./types";
 
 // ============================================================================
 // Types
@@ -29,7 +29,9 @@ export function resolveDomain(input: string): string {
   if (matches.length === 1) return matches[0];
   if (matches.length === 0) {
     const available = domains.length > 0 ? domains.join(", ") : "(none)";
-    throw new Error(`No domain matching "${input}". Available domains: ${available}`);
+    throw new Error(
+      `No domain matching "${input}". Available domains: ${available}`,
+    );
   }
   throw new Error(
     `Ambiguous domain "${input}" — matches: ${matches.join(", ")}. Be more specific.`,
@@ -43,7 +45,9 @@ export function resolveDomain(input: string): string {
 export function extractPersonaIdentity(content: string): string {
   const match = content.match(/## System Prompt\n([\s\S]*?)(?=\n## |\s*$)/);
   if (!match) {
-    throw new Error("Could not extract System Prompt section from persona file");
+    throw new Error(
+      "Could not extract System Prompt section from persona file",
+    );
   }
   return match[1].trim();
 }
@@ -60,14 +64,38 @@ export function extractPersonaDisplayName(content: string): string {
 // Concept Queue Formatting
 // ============================================================================
 
-export function buildConceptQueue(concepts: DueConcept[]): string {
+export function buildConceptQueue(
+  concepts: DueConcept[],
+  domainState: DomainState,
+): string {
   if (concepts.length === 0) {
     return "No concepts due — all caught up or domain has no concepts yet.";
   }
   return concepts
     .map((c) => {
       const stateLabel = c.state === 0 ? "new" : "review";
-      return `- [${c.title}] (state: ${stateLabel}, mastery: ${c.mastery})`;
+
+      // Look up lesson plan status from progress
+      const progress = domainState.progress[c.concept_id];
+      const planPath = progress?.lesson_plan_path ?? null;
+      const planStatus =
+        planPath && existsSync(planPath)
+          ? `plan: exists at ${planPath}`
+          : "plan: none";
+
+      // Look up resources from curriculum
+      const conceptNode = domainState.curriculum.concepts.find(
+        (n) => n.id === c.concept_id,
+      );
+      const resources = conceptNode?.resources ?? [];
+
+      // Format resource line
+      const resourceLine =
+        resources.length > 0
+          ? resources.map((r) => `${r.title} (${r.url})`).join(", ")
+          : "none";
+
+      return `- [${c.title}] (state: ${stateLabel}, mastery: ${c.mastery}, ${planStatus})\n  Resources: ${resourceLine}`;
     })
     .join("\n");
 }
@@ -78,9 +106,12 @@ export function buildConceptQueue(concepts: DueConcept[]): string {
 
 function getLoreContext(domain: string): string {
   try {
-    const result = Bun.spawnSync(["lore", "search", "--source=teachings", domain, "--limit=3"], {
-      stderr: "pipe",
-    });
+    const result = Bun.spawnSync(
+      ["lore", "search", "--source=teachings", domain, "--limit=3"],
+      {
+        stderr: "pipe",
+      },
+    );
     if (result.exitCode !== 0 || !result.stdout) return "none";
     const text = result.stdout.toString().trim();
     return text.length > 0 ? text : "none";
@@ -183,7 +214,7 @@ export function spawnSession(domainInput: string): SpawnResult {
 
   // g. Get due concepts + format
   const dueConcepts = getDueConcepts(domain);
-  const conceptQueue = buildConceptQueue(dueConcepts);
+  const conceptQueue = buildConceptQueue(dueConcepts, state);
 
   // h. Get lore context
   const loreContext = getLoreContext(domain);
@@ -220,7 +251,17 @@ claude --system-prompt "$PROMPT" --name "Dojo: ${safeName} — ${domain}"
 
   // Try Ghostty first with -F flag (prevents session restore)
   const ghosttyResult = Bun.spawnSync(
-    ["open", "-n", "-a", "/Applications/Ghostty.app", "-F", "--args", "-e", "bash", scriptPath],
+    [
+      "open",
+      "-n",
+      "-a",
+      "/Applications/Ghostty.app",
+      "-F",
+      "--args",
+      "-e",
+      "bash",
+      scriptPath,
+    ],
     { stderr: "pipe" },
   );
 
@@ -228,9 +269,12 @@ claude --system-prompt "$PROMPT" --name "Dojo: ${safeName} — ${domain}"
     spawnMethod = "ghostty";
   } else {
     // Fall back to Terminal
-    const terminalResult = Bun.spawnSync(["open", "-a", "Terminal", scriptPath], {
-      stderr: "pipe",
-    });
+    const terminalResult = Bun.spawnSync(
+      ["open", "-a", "Terminal", scriptPath],
+      {
+        stderr: "pipe",
+      },
+    );
     if (terminalResult.exitCode === 0) {
       spawnMethod = "terminal";
     }
