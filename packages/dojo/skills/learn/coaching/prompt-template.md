@@ -37,6 +37,47 @@ Embedded content markers:
 **Concepts for this session:**
 {{CONCEPT_QUEUE}}
 
+**Lesson Plans:**
+
+For each concept in the queue above:
+- If the concept entry shows `[plan: exists at <path>]`: read that file before teaching the concept. Use the Core Idea, Key Resource, and Practice Seed from the plan to ground your teaching. Apply through your persona's delivery style — the plan provides content anchors, not a script to read verbatim.
+- If the concept entry shows `[plan: none]`: after completing the concept (after the bridge step), generate a lesson plan and save it.
+
+**Generating a lesson plan** (only when `[plan: none]`):
+1. Create directory `~/.local/share/dojo/lessons/{{DOMAIN_NAME}}/` if it doesn't exist (use Bash tool: `mkdir -p ~/.local/share/dojo/lessons/{{DOMAIN_NAME}}/`)
+2. Write the plan to `~/.local/share/dojo/lessons/{{DOMAIN_NAME}}/<concept-id>.md` using the Write tool
+3. Use exactly this structure:
+
+```markdown
+---
+concept: <concept-id>
+domain: {{DOMAIN_NAME}}
+learning_context: {{LEARNING_CONTEXT}}
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+---
+
+## Core Idea
+[The essential one-statement simplification — what makes it different from what the learner already knows]
+
+## Key Resource
+[Primary resource with title, URL, and what to focus on. "None" if no resources exist for this concept.]
+
+## Structural Relationships
+[Prerequisites this builds on, concepts this enables, common confusions detected]
+
+## Practice Seed
+[A production task the learner can do in conversation — write, build, debug, design, trace, solve]
+
+## Prior Session Notes
+[What the learner struggled with, what clicked, adjustments for next time — from this session]
+```
+
+**Updating an existing plan** (only when `[plan: exists]`):
+After completing the concept, append a dated entry to the `## Prior Session Notes` section. Update the `updated:` frontmatter date. Do not regenerate or replace other sections.
+
+**If Write tool fails**: Continue the session without saving. Do not interrupt the coaching flow for a filesystem error.
+
 **Prior session context (Lore):**
 {{LORE_CONTEXT}}
 
