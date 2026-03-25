@@ -1,41 +1,9 @@
 // Types
-export type {
-  DomainState,
-  ConceptNode,
-  ConceptProgress,
-  SessionEntry,
-  Resource,
-  Source,
-  Assignment,
-  LearningContext,
-  MasteryLevel,
-  FSRSRating,
-  ResourceType,
-  ResourceQuality,
-  SourceType,
-  CurriculumOrigin,
-  AssignmentOutcome,
-} from "./lib/types";
+
+export type { DojoConfig } from "./lib/config";
 
 // Config
 export { getConfig } from "./lib/config";
-export type { DojoConfig } from "./lib/config";
-
-// State
-export {
-  domainExists,
-  readDomain,
-  writeDomain,
-  listDomains,
-  initDomain,
-  updateDomain,
-  validateDomainState,
-} from "./lib/state";
-
-// Session
-export { recordSession, getSessionStatus } from "./lib/session";
-export type { SessionStatus } from "./lib/session";
-
 // Curriculum
 export {
   addConcept,
@@ -43,15 +11,42 @@ export {
   validateCurriculum,
   verifyUrls,
 } from "./lib/curriculum";
-
 // FSRS / Progress
 export {
-  updateProgress,
-  getDueConcepts,
-  getReadyConcepts,
   addConfusionPair,
+  getDueConcepts,
   getNudgeStatus,
+  getReadyConcepts,
+  updateProgress,
 } from "./lib/fsrs";
-
-// DueConcept type
-export type { DueConcept } from "./lib/types";
+export type { SessionStatus } from "./lib/session";
+// Session
+export { getSessionStatus, recordSession } from "./lib/session";
+// State
+export {
+  domainExists,
+  initDomain,
+  listDomains,
+  readDomain,
+  updateDomain,
+  validateDomainState,
+  writeDomain,
+} from "./lib/state";
+export type {
+  Assignment,
+  AssignmentOutcome,
+  ConceptNode,
+  ConceptProgress,
+  CurriculumOrigin,
+  DomainState,
+  DueConcept,
+  FSRSRating,
+  LearningContext,
+  MasteryLevel,
+  Resource,
+  ResourceQuality,
+  ResourceType,
+  SessionEntry,
+  Source,
+  SourceType,
+} from "./lib/types";

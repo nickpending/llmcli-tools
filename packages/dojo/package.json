@@ -8,7 +8,11 @@
     "dojo": "./cli.ts"
   },
   "scripts": {
-    "typecheck": "bun tsc --noEmit"
+    "typecheck": "bun tsc --noEmit",
+    "lint": "biome check ./cli.ts ./index.ts ./lib/",
+    "lint:fix": "biome check --write ./cli.ts ./index.ts ./lib/",
+    "format:check": "biome format ./cli.ts ./index.ts ./lib/",
+    "format": "biome format --write ./cli.ts ./index.ts ./lib/"
   },
   "dependencies": {
     "ts-fsrs": "5.2.3",

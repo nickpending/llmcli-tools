@@ -1,19 +1,8 @@
-import {
-  fsrs as makeFSRSInstance,
-  createEmptyCard,
-  Rating,
-  type Grade,
-} from "ts-fsrs";
 import type { StepUnit } from "ts-fsrs";
+import { createEmptyCard, type Grade, fsrs as makeFSRSInstance, Rating } from "ts-fsrs";
 import { getConfig } from "./config";
-import type {
-  FSRSRating,
-  MasteryLevel,
-  DueConcept,
-  ConceptNode,
-  ConceptProgress,
-} from "./types";
-import { readDomain, writeDomain, listDomains } from "./state";
+import { listDomains, readDomain, writeDomain } from "./state";
+import type { ConceptNode, ConceptProgress, DueConcept, FSRSRating, MasteryLevel } from "./types";
 
 function makeFSRS() {
   const config = getConfig();
@@ -83,9 +72,7 @@ export function getDueConcepts(domain: string): DueConcept[] {
       result.set(conceptId, {
         concept_id: conceptId,
         title: concept?.title ?? conceptId,
-        due: new Date(
-          progress.fsrs_card.due as unknown as string,
-        ).toISOString(),
+        due: new Date(progress.fsrs_card.due as unknown as string).toISOString(),
         state: progress.fsrs_card.state as number,
         mastery: progress.mastery,
         confusion_pair: false,
@@ -123,17 +110,13 @@ export function getDueConcepts(domain: string): DueConcept[] {
 
       // Add confusion pair even if not independently due
       const pairProgress = state.progress[pairId];
-      const pairConcept = state.curriculum.concepts.find(
-        (c) => c.id === pairId,
-      );
+      const pairConcept = state.curriculum.concepts.find((c) => c.id === pairId);
 
       if (pairProgress) {
         result.set(pairId, {
           concept_id: pairId,
           title: pairConcept?.title ?? pairId,
-          due: new Date(
-            pairProgress.fsrs_card.due as unknown as string,
-          ).toISOString(),
+          due: new Date(pairProgress.fsrs_card.due as unknown as string).toISOString(),
           state: pairProgress.fsrs_card.state as number,
           mastery: pairProgress.mastery,
           confusion_pair: true,
@@ -172,18 +155,12 @@ export function getReadyConcepts(domain: string): ConceptNode[] {
   return state.curriculum.concepts.filter((concept) => {
     const progress = state.progress[concept.id];
     const isNew = !progress || progress.fsrs_card.state === 0;
-    const prereqsMet = concept.prerequisites.every((prereq) =>
-      masteredIds.has(prereq),
-    );
+    const prereqsMet = concept.prerequisites.every((prereq) => masteredIds.has(prereq));
     return isNew && prereqsMet;
   });
 }
 
-export function addConfusionPair(
-  domain: string,
-  conceptA: string,
-  conceptB: string,
-) {
+export function addConfusionPair(domain: string, conceptA: string, conceptB: string) {
   const state = readDomain(domain);
 
   // Initialize progress entries if missing
@@ -220,9 +197,7 @@ export function getNudgeStatus() {
     if (state.last_session) {
       const last = new Date(state.last_session);
       const now = new Date();
-      const daysSince = Math.floor(
-        (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const daysSince = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
       if (daysSince > config.session.staleness_threshold_days) {
         stale_domains.push(name);
       }

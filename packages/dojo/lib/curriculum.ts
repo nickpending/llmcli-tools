@@ -1,5 +1,5 @@
-import type { ConceptNode, Resource } from "./types";
 import { readDomain, writeDomain } from "./state";
+import type { ConceptNode, Resource } from "./types";
 
 export function addConcept(
   domain: string,
@@ -14,17 +14,13 @@ export function addConcept(
   const state = readDomain(domain);
 
   if (state.curriculum.concepts.find((c) => c.id === concept.id)) {
-    throw new Error(
-      `Concept '${concept.id}' already exists in domain '${domain}'`,
-    );
+    throw new Error(`Concept '${concept.id}' already exists in domain '${domain}'`);
   }
 
   const existingIds = new Set(state.curriculum.concepts.map((c) => c.id));
   for (const prereq of concept.prereqs) {
     if (!existingIds.has(prereq)) {
-      throw new Error(
-        `Prerequisite '${prereq}' not found in domain '${domain}'. Add it first.`,
-      );
+      throw new Error(`Prerequisite '${prereq}' not found in domain '${domain}'. Add it first.`);
     }
   }
 
@@ -43,11 +39,7 @@ export function addConcept(
   return state;
 }
 
-export function setConceptResources(
-  domain: string,
-  conceptId: string,
-  resources: Resource[],
-) {
+export function setConceptResources(domain: string, conceptId: string, resources: Resource[]) {
   const state = readDomain(domain);
   const concept = state.curriculum.concepts.find((c) => c.id === conceptId);
   if (!concept) {
@@ -96,9 +88,7 @@ function topologicalSort(concepts: ConceptNode[]): {
 
   if (order.length < concepts.length) {
     const inOrder = new Set(order);
-    const cycleNodes = concepts
-      .map((c) => c.id)
-      .filter((id) => !inOrder.has(id));
+    const cycleNodes = concepts.map((c) => c.id).filter((id) => !inOrder.has(id));
     return { acyclic: false, cycle: cycleNodes };
   }
   return { acyclic: true, order };

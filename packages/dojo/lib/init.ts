@@ -1,13 +1,6 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from "fs";
-import { homedir } from "os";
-import { join } from "path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const DEFAULT_CONFIG = `[paths]
 data = "~/.local/share/dojo"
@@ -69,6 +62,7 @@ export function handleInit(
     `${home}/.config/dojo`,
     `${home}/.local/share/dojo/domains`,
     `${home}/.local/share/dojo/sources`,
+    `${home}/.local/share/dojo/lessons`,
     `${home}/.cache/dojo`,
   ];
 
@@ -93,7 +87,7 @@ export function handleInit(
   const skillDst = `${home}/.claude/skills/learn`;
 
   if (!existsSync(skillSrc)) {
-    return fail("Skill source not found — package may be incomplete");
+    fail("Skill source not found — package may be incomplete");
   }
 
   mkdirSync(skillDst, { recursive: true });
@@ -103,6 +97,7 @@ export function handleInit(
   const checks = {
     config: existsSync(configPath),
     data_dir: existsSync(`${home}/.local/share/dojo/domains`),
+    lessons_dir: existsSync(`${home}/.local/share/dojo/lessons`),
     cache_dir: existsSync(`${home}/.cache/dojo`),
     skill_files: existsSync(`${skillDst}/SKILL.md`),
   };

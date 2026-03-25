@@ -1,6 +1,6 @@
-import { readDomain, writeDomain, listDomains } from "./state";
 import { getConfig } from "./config";
-import type { Resource, MasteryLevel } from "./types";
+import { listDomains, readDomain, writeDomain } from "./state";
+import type { MasteryLevel, Resource } from "./types";
 
 export interface SessionStatus {
   domains: Array<{
@@ -32,8 +32,7 @@ export function recordSession(
   const state = readDomain(domain);
   const now = new Date();
   const hour = now.getHours();
-  const time_of_day =
-    hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+  const time_of_day = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
   state.session_history.push({
     date: now.toISOString().slice(0, 10),
@@ -69,9 +68,7 @@ export function getSessionStatus(domain?: string): SessionStatus {
     if (state.last_session) {
       const last = new Date(state.last_session);
       const now = new Date();
-      days_since_session = Math.floor(
-        (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      days_since_session = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
       is_stale = days_since_session > config.session.staleness_threshold_days;
     }
 

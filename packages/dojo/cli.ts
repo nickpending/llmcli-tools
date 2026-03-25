@@ -1,28 +1,31 @@
 #!/usr/bin/env bun
 
-import { handleInit } from "./lib/init";
-import { spawnSession } from "./lib/spawn";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { resolve, sep } from "node:path";
 import {
-  initDomain,
-  readDomain,
-  listDomains,
-  updateDomain,
-  recordSession,
-  getSessionStatus,
   addConcept,
-  setConceptResources,
-  validateCurriculum,
-  verifyUrls,
-  updateProgress,
-  getDueConcepts,
-  getReadyConcepts,
   addConfusionPair,
-  getNudgeStatus,
-  type LearningContext,
   type FSRSRating,
+  getDueConcepts,
+  getNudgeStatus,
+  getReadyConcepts,
+  getSessionStatus,
+  initDomain,
+  type LearningContext,
+  listDomains,
   type MasteryLevel,
   type Resource,
+  readDomain,
+  recordSession,
+  setConceptResources,
+  updateDomain,
+  updateProgress,
+  validateCurriculum,
+  verifyUrls,
 } from "./index";
+import { handleInit } from "./lib/init";
+import { spawnSession } from "./lib/spawn";
 
 // ============================================================================
 // Argument Parsing (from Lore pattern)
@@ -83,7 +86,7 @@ function hasFlag(args: string[], flag: string): boolean {
   return args.includes(`--${flag}`) || args.includes(`-${flag.charAt(0)}`);
 }
 
-function parseList(value: string | undefined): string[] | undefined {
+function _parseList(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
   const items = value
     .split(",")
@@ -419,7 +422,7 @@ async function handleCurriculum(args: string[]): Promise<void> {
       const difficultyStr = flags.get("difficulty");
       if (!difficultyStr) fail("Missing required flag: --difficulty");
       const difficulty = Number(difficultyStr);
-      if (isNaN(difficulty) || difficulty < 1 || difficulty > 5)
+      if (Number.isNaN(difficulty) || difficulty < 1 || difficulty > 5)
         fail("--difficulty must be a number between 1 and 5");
 
       const description = flags.get("description");
@@ -635,6 +638,75 @@ function handleNudge(_args: string[]): void {
 }
 
 // ============================================================================
+// Lesson Command
+// ============================================================================
+
+function showLessonHelp(): void {
+  console.log(`
+dojo lesson - Lesson plan access
+
+Usage:
+  dojo lesson get <domain> <concept-id>   Read lesson plan for a concept
+
+`);
+  process.exit(0);
+}
+
+function handleLesson(args: string[]): void {
+  if (args.length === 0 || hasFlag(args, "help")) {
+    showLessonHelp();
+  }
+
+  const sub = args[0];
+  const subArgs = args.slice(1);
+
+  switch (sub) {
+    case "get": {
+      const positional = getPositionalArgs(subArgs);
+      const domain = positional[0];
+      const conceptId = positional[1];
+      if (!domain || !conceptId)
+        fail("Usage: dojo lesson get <domain> <concept-id>");
+
+      const home = homedir();
+      const lessonsBase = `${home}/.local/share/dojo/lessons`;
+      const planPath = `${lessonsBase}/${domain}/${conceptId}.md`;
+      const resolvedPath = resolve(planPath);
+
+      // Path containment check: prevent directory traversal via ../ in args
+      if (
+        !resolvedPath.startsWith(lessonsBase + sep) &&
+        resolvedPath !== lessonsBase
+      ) {
+        fail(
+          `Invalid path: domain and concept-id must not contain path traversal sequences`,
+        );
+      }
+
+      if (!existsSync(resolvedPath)) {
+        fail(
+          `No lesson plan found for '${conceptId}' in domain '${domain}'. Path: ${resolvedPath}`,
+        );
+      }
+
+      try {
+        const content = readFileSync(resolvedPath, "utf-8");
+        output({
+          success: true,
+          data: { domain, concept_id: conceptId, path: resolvedPath, content },
+        });
+      } catch (err) {
+        fail(err instanceof Error ? err.message : String(err));
+      }
+      break;
+    }
+
+    default:
+      fail(`Unknown lesson subcommand: ${sub}. Use: get`);
+  }
+}
+
+// ============================================================================
 // Global Help
 // ============================================================================
 
@@ -647,6 +719,7 @@ Usage:
   dojo curriculum <subcommand> Curriculum graph operations
   dojo progress <subcommand>   FSRS progress tracking
   dojo session <subcommand>    Session management
+  dojo lesson <subcommand>     Lesson plan access
   dojo nudge                   Check for stale domains
   dojo init                    First-time setup (dirs, config, skills)
 
@@ -683,6 +756,9 @@ async function main(): Promise<void> {
       case "session":
         handleSession(commandArgs);
         break;
+      case "lesson":
+        handleLesson(commandArgs);
+        break;
       case "nudge":
         handleNudge(commandArgs);
         break;
@@ -691,7 +767,7 @@ async function main(): Promise<void> {
         break;
       default:
         fail(
-          `Unknown command: ${command}. Use: domain, curriculum, progress, session, nudge, init`,
+          `Unknown command: ${command}. Use: domain, curriculum, progress, session, lesson, nudge, init`,
         );
     }
   } catch (err) {

@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
-import { homedir } from "os";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { parse as parseToml } from "@iarna/toml";
 
 export interface DojoConfig {
@@ -38,9 +38,7 @@ export function getConfig(): DojoConfig {
   try {
     raw = readFileSync(configPath, "utf-8");
   } catch {
-    throw new Error(
-      `Config not found: ${configPath}\nRun 'dojo init' to create it.`,
-    );
+    throw new Error(`Config not found: ${configPath}\nRun 'dojo init' to create it.`);
   }
 
   let parsed: Record<string, unknown>;
@@ -74,11 +72,9 @@ export function getConfig(): DojoConfig {
       relearning_steps: (fsrs.relearning_steps as string[]) ?? ["10m"],
     },
     session: {
-      target_duration_minutes:
-        (session.target_duration_minutes as number) ?? 15,
+      target_duration_minutes: (session.target_duration_minutes as number) ?? 15,
       concepts_per_session: (session.concepts_per_session as number) ?? 3,
-      staleness_threshold_days:
-        (session.staleness_threshold_days as number) ?? 7,
+      staleness_threshold_days: (session.staleness_threshold_days as number) ?? 7,
     },
     lore: {
       capture_on_exit: (lore?.capture_on_exit as boolean) ?? true,

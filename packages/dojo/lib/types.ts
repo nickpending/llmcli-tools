@@ -1,31 +1,16 @@
 import type { CardInput } from "ts-fsrs";
 
 // Domain learning context
-export type LearningContext =
-  | "sprint"
-  | "skill-build"
-  | "problem-solve"
-  | "deep-mastery";
+export type LearningContext = "sprint" | "skill-build" | "problem-solve" | "deep-mastery";
 
 // Mastery levels for concepts
-export type MasteryLevel =
-  | "none"
-  | "introduced"
-  | "practiced"
-  | "reinforced"
-  | "solid";
+export type MasteryLevel = "none" | "introduced" | "practiced" | "reinforced" | "solid";
 
 // FSRS rating vocabulary
 export type FSRSRating = "again" | "hard" | "good" | "easy";
 
 // Resource classification
-export type ResourceType =
-  | "docs"
-  | "video"
-  | "book"
-  | "course"
-  | "tool"
-  | "article";
+export type ResourceType = "docs" | "video" | "book" | "course" | "tool" | "article";
 export type ResourceQuality = "essential" | "recommended" | "supplementary";
 
 // Source material types
@@ -76,6 +61,7 @@ export interface ConceptProgress {
   struggle_points: string[];
   confusion_pairs: string[];
   assignments: Assignment[];
+  lesson_plan_path?: string | null; // Path to lesson plan markdown; null if no plan exists
 }
 
 export interface SessionEntry {

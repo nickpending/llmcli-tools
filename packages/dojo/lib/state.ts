@@ -1,11 +1,11 @@
 import {
-  readFileSync,
-  writeFileSync,
-  renameSync,
-  readdirSync,
   existsSync,
   mkdirSync,
-} from "fs";
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { getConfig } from "./config";
 import type { DomainState, LearningContext } from "./types";
 
@@ -38,28 +38,18 @@ export function validateDomainState(raw: unknown): DomainState {
   if (typeof obj.persona !== "string")
     throw new Error("Invalid domain state: missing or invalid 'persona' field");
   if (typeof obj.session_count !== "number")
-    throw new Error(
-      "Invalid domain state: missing or invalid 'session_count' field",
-    );
+    throw new Error("Invalid domain state: missing or invalid 'session_count' field");
   if (!Array.isArray(obj.session_history))
-    throw new Error(
-      "Invalid domain state: missing or invalid 'session_history' field",
-    );
+    throw new Error("Invalid domain state: missing or invalid 'session_history' field");
   if (typeof obj.progress !== "object" || obj.progress === null)
-    throw new Error(
-      "Invalid domain state: missing or invalid 'progress' field",
-    );
+    throw new Error("Invalid domain state: missing or invalid 'progress' field");
   if (typeof obj.curriculum !== "object" || obj.curriculum === null)
-    throw new Error(
-      "Invalid domain state: missing or invalid 'curriculum' field",
-    );
+    throw new Error("Invalid domain state: missing or invalid 'curriculum' field");
 
   // Validate nested structures
   const curriculum = obj.curriculum as Record<string, unknown>;
   if (!Array.isArray(curriculum.concepts))
-    throw new Error(
-      "Invalid domain state: curriculum.concepts must be an array",
-    );
+    throw new Error("Invalid domain state: curriculum.concepts must be an array");
 
   if (!Array.isArray(obj.sources))
     throw new Error("Invalid domain state: sources must be an array");
@@ -67,18 +57,12 @@ export function validateDomainState(raw: unknown): DomainState {
   const progress = obj.progress as Record<string, unknown>;
   for (const [conceptId, entry] of Object.entries(progress)) {
     if (typeof entry !== "object" || entry === null)
-      throw new Error(
-        `Invalid domain state: progress['${conceptId}'] must be an object`,
-      );
+      throw new Error(`Invalid domain state: progress['${conceptId}'] must be an object`);
     const p = entry as Record<string, unknown>;
     if (typeof p.fsrs_card !== "object" || p.fsrs_card === null)
-      throw new Error(
-        `Invalid domain state: progress['${conceptId}'].fsrs_card must be an object`,
-      );
+      throw new Error(`Invalid domain state: progress['${conceptId}'].fsrs_card must be an object`);
     if (typeof p.mastery !== "string")
-      throw new Error(
-        `Invalid domain state: progress['${conceptId}'].mastery must be a string`,
-      );
+      throw new Error(`Invalid domain state: progress['${conceptId}'].mastery must be a string`);
   }
 
   return raw as DomainState;
@@ -135,9 +119,7 @@ export function initDomain(
   persona: string,
 ): DomainState {
   if (domainExists(name)) {
-    throw new Error(
-      `Domain '${name}' already exists. Use 'dojo domain update' to modify.`,
-    );
+    throw new Error(`Domain '${name}' already exists. Use 'dojo domain update' to modify.`);
   }
 
   const state: DomainState = {
