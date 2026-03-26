@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cross-cutting component registry for the @voidwire ecosystem",
   "type": "module",
   "main": "./index.ts",

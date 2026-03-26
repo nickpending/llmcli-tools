@@ -9,6 +9,7 @@ export {
   search,
   sync,
   push,
+  check,
   status,
 } from "./lib/core";
 
@@ -31,6 +32,8 @@ export type {
   SyncResult,
   PushResult,
   StatusResult,
+  CheckEntry,
+  CheckResult,
 } from "./lib/types";
 
 // Config utilities

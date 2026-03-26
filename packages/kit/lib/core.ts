@@ -48,6 +48,8 @@ import type {
   SyncResult,
   PushResult,
   StatusResult,
+  CheckResult,
+  CheckEntry,
 } from "./types";
 
 const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "agent"];
@@ -78,6 +80,18 @@ function ensureInitialized(): void {
   if (!existsSync(files.catalogDir)) {
     throw new Error("Kit not initialized. Run 'kit init' first.");
   }
+}
+
+function cloneAndVerifyPath(
+  repo: string,
+  path: string,
+  label: string,
+): { tmpDir: string; exists: boolean } {
+  const tmpDir = join(xdg.cache, "tmp", `verify-${label}-${Date.now()}`);
+  ensureDir(dirname(tmpDir));
+  git(["clone", "--depth", "1", repo, tmpDir]);
+  const sourcePath = join(tmpDir, path);
+  return { tmpDir, exists: existsSync(sourcePath) };
 }
 
 // ─── init ────────────────────────────────────────────────────────────────────
@@ -145,6 +159,35 @@ export async function add(opts: {
     };
   }
 
+  if (!/^[a-zA-Z0-9_-]+$/.test(opts.name)) {
+    return {
+      success: false,
+      error: `Invalid name '${opts.name}'. Must match [a-zA-Z0-9_-]+`,
+    };
+  }
+
+  // Verify path exists in source repo before adding to catalog
+  let tmpDir: string | undefined;
+  try {
+    const result = cloneAndVerifyPath(opts.repo, opts.path, opts.name);
+    tmpDir = result.tmpDir;
+    if (!result.exists) {
+      return {
+        success: false,
+        error: `Path '${opts.path}' not found in repo '${opts.repo}'`,
+      };
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: `Failed to verify path in repo: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  } finally {
+    if (tmpDir) {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
   const catalog = loadCatalog();
 
   const entry: CatalogEntry = {
@@ -183,6 +226,13 @@ export async function add(opts: {
 
 export async function use(name: string, dir?: string): Promise<UseResult> {
   ensureInitialized();
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+    return {
+      success: false,
+      error: `Invalid name '${name}'. Must match [a-zA-Z0-9_-]+`,
+    };
+  }
 
   const catalog = loadCatalog();
   const entry = findEntry(catalog, name);
@@ -457,7 +507,7 @@ export async function sync(): Promise<SyncResult> {
           const sourcePath = join(tmpDir, inst.sourcePath);
           if (!existsSync(sourcePath)) {
             errors.push(
-              `${inst.name}: source path '${inst.sourcePath}' not found in repo`,
+              `${inst.name}: path '${inst.sourcePath}' not found in '${repo}'`,
             );
             failed++;
             continue;
@@ -583,6 +633,77 @@ export async function push(name: string): Promise<PushResult> {
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+// ─── check ───────────────────────────────────────────────────────────────────
+
+export async function check(): Promise<CheckResult> {
+  ensureInitialized();
+
+  const catalog = loadCatalog();
+  const healthy: CheckEntry[] = [];
+  const broken: CheckEntry[] = [];
+  const errors: string[] = [];
+
+  // Group catalog entries by repo to clone each unique repo once
+  const byRepo = new Map<string, CatalogEntry[]>();
+  for (const entry of catalog.entries) {
+    const group = byRepo.get(entry.repo) ?? [];
+    group.push(entry);
+    byRepo.set(entry.repo, group);
+  }
+
+  for (const [repo, entries] of byRepo) {
+    const tmpDir = join(xdg.cache, "tmp", `check-${Date.now()}`);
+
+    try {
+      ensureDir(dirname(tmpDir));
+      git(["clone", "--depth", "1", repo, tmpDir]);
+
+      for (const entry of entries) {
+        const sourcePath = join(tmpDir, entry.path);
+        const checkEntry: CheckEntry = {
+          name: entry.name,
+          type: entry.type,
+          repo: entry.repo,
+          path: entry.path,
+        };
+
+        if (existsSync(sourcePath)) {
+          healthy.push(checkEntry);
+        } else {
+          broken.push(checkEntry);
+          errors.push(
+            `${entry.name}: path '${entry.path}' not found in '${repo}'`,
+          );
+        }
+      }
+    } catch (err) {
+      // Clone failed — mark all entries from this repo as broken
+      for (const entry of entries) {
+        broken.push({
+          name: entry.name,
+          type: entry.type,
+          repo: entry.repo,
+          path: entry.path,
+        });
+        errors.push(
+          `${entry.name}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  return {
+    success: broken.length === 0,
+    healthy,
+    broken,
+    healthyCount: healthy.length,
+    brokenCount: broken.length,
+    errors,
+  };
 }
 
 // ─── status ──────────────────────────────────────────────────────────────────

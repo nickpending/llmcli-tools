@@ -46,7 +46,7 @@ vi.mock("../lib/paths", () => ({
 }));
 
 // Dynamic imports after mocking
-const { init, add, use, remove, list, get, search, sync, status } =
+const { init, add, use, remove, list, get, search, sync, check, status } =
   await import("../lib/core");
 const { resetConfig } = await import("../lib/config");
 
@@ -368,5 +368,112 @@ describe("status", () => {
     expect(result.installedCount).toBe(1);
     expect(result.entries[0].name).toBe("test-skill");
     expect(result.entries[0].exists).toBe(true);
+  });
+});
+
+describe("add path validation", () => {
+  it("rejects add when path does not exist in source repo", async () => {
+    await init(catalogRepo);
+    const result = await add({
+      name: "bad-path",
+      repo: sourceRepo,
+      path: "skills/nonexistent",
+      type: "skill",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found in repo");
+
+    // Verify catalog was NOT updated
+    const catalogPath = join(cacheDir, "catalog", "kit-catalog.yaml");
+    const raw = readFileSync(catalogPath, "utf-8");
+    expect(raw).not.toContain("bad-path");
+  });
+
+  it("accepts add when path exists in source repo", async () => {
+    await init(catalogRepo);
+    const result = await add({
+      name: "valid-skill",
+      repo: sourceRepo,
+      path: "skills/test-skill",
+      type: "skill",
+    });
+    expect(result.success).toBe(true);
+    expect(result.name).toBe("valid-skill");
+  });
+});
+
+describe("sync error messages", () => {
+  it("includes repo URL in broken pointer error", async () => {
+    await init(catalogRepo);
+    await use("test-skill");
+
+    // Break the source repo by removing the skill directory
+    rmSync(join(sourceRepo, "skills", "test-skill"), {
+      recursive: true,
+      force: true,
+    });
+    execSync("git add . && git commit -m 'Remove skill'", {
+      cwd: sourceRepo,
+      stdio: "pipe",
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "test",
+        GIT_AUTHOR_EMAIL: "test@test.com",
+        GIT_COMMITTER_NAME: "test",
+        GIT_COMMITTER_EMAIL: "test@test.com",
+      },
+    });
+
+    const result = await sync();
+    expect(result.failed).toBe(1);
+    expect(result.errors[0]).toContain("test-skill");
+    expect(result.errors[0]).toContain("skills/test-skill");
+    expect(result.errors[0]).toContain(sourceRepo);
+  });
+});
+
+describe("check", () => {
+  it("reports all healthy when catalog paths are valid", async () => {
+    await init(catalogRepo);
+    const result = await check();
+    expect(result.success).toBe(true);
+    expect(result.healthyCount).toBe(2);
+    expect(result.brokenCount).toBe(0);
+    expect(result.healthy.length).toBe(2);
+    expect(result.broken.length).toBe(0);
+  });
+
+  it("detects broken pointers in catalog", async () => {
+    await init(catalogRepo);
+
+    // Add an entry with a path that exists, then break it
+    await add({
+      name: "will-break",
+      repo: sourceRepo,
+      path: "commands/test-cmd.md",
+      type: "command",
+    });
+
+    // Remove the file from source repo
+    rmSync(join(sourceRepo, "commands", "test-cmd.md"));
+    execSync("git add . && git commit -m 'Remove command'", {
+      cwd: sourceRepo,
+      stdio: "pipe",
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "test",
+        GIT_AUTHOR_EMAIL: "test@test.com",
+        GIT_COMMITTER_NAME: "test",
+        GIT_COMMITTER_EMAIL: "test@test.com",
+      },
+    });
+
+    const result = await check();
+    expect(result.success).toBe(false);
+    expect(result.brokenCount).toBeGreaterThanOrEqual(1);
+    expect(result.broken.some((e) => e.name === "test-cmd")).toBe(true);
+    expect(result.broken.some((e) => e.name === "will-break")).toBe(true);
+    expect(result.errors.length).toBeGreaterThanOrEqual(1);
+    expect(result.errors.some((e) => e.includes(sourceRepo))).toBe(true);
   });
 });

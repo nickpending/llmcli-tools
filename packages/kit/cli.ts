@@ -10,6 +10,7 @@ import {
   search,
   sync,
   push,
+  check,
   status,
 } from "./index";
 import type { ResourceType } from "./lib/types";
@@ -52,6 +53,7 @@ COMMANDS:
   search <query>            Search components by keyword
   sync                      Pull latest catalog and update installed components
   push <name>               Push local changes back to source repo
+  check                     Validate all catalog pointers against source repos
   status                    Show Kit status and installed components
 
 OPTIONS:
@@ -212,6 +214,13 @@ async function main(): Promise<void> {
       if (!name || name.startsWith("-"))
         fail("Missing component name. Usage: kit push <name>");
       const result = await push(name);
+      respond(result);
+      if (!result.success) process.exit(1);
+      break;
+    }
+
+    case "check": {
+      const result = await check();
       respond(result);
       if (!result.success) process.exit(1);
       break;

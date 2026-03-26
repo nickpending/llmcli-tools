@@ -124,3 +124,19 @@ export interface StatusResult {
     exists: boolean;
   }[];
 }
+
+export interface CheckEntry {
+  name: string;
+  type: ResourceType;
+  repo: string;
+  path: string;
+}
+
+export interface CheckResult {
+  success: boolean;
+  healthy: CheckEntry[];
+  broken: CheckEntry[];
+  healthyCount: number;
+  brokenCount: number;
+  errors: string[];
+}
