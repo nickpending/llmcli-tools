@@ -27,7 +27,7 @@ export const files = {
 const defaultInstallDirs: Record<ResourceType, string> = {
   skill: join(home, ".claude", "skills"),
   command: join(home, ".claude", "commands"),
-  script: join(home, ".local", "bin"),
+  tool: join(home, ".local", "bin"),
   agent: join(home, ".config", "sable", "agents"),
 };
 
@@ -48,7 +48,7 @@ export function getInstallPath(
         return join(dir, ".claude", "skills", name);
       case "command":
         return join(dir, ".claude", "commands", `${name}.md`);
-      case "script":
+      case "tool":
         return join(dir, "bin", name);
       case "agent":
         return join(dir, ".config", "sable", "agents", `${name}.yaml`);
@@ -64,7 +64,7 @@ export function getInstallPath(
       return join(base, name);
     case "command":
       return join(base, `${name}.md`);
-    case "script":
+    case "tool":
       return join(base, name);
     case "agent":
       return join(base, `${name}.yaml`);

@@ -49,9 +49,7 @@ export function getConfig(): KitConfig {
           commands: str(paths.commands)
             ? resolvePath(str(paths.commands)!)
             : undefined,
-          scripts: str(paths.scripts)
-            ? resolvePath(str(paths.scripts)!)
-            : undefined,
+          tools: str(paths.tools) ? resolvePath(str(paths.tools)!) : undefined,
           agents: str(paths.agents)
             ? resolvePath(str(paths.agents)!)
             : undefined,

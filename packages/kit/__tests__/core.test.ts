@@ -35,7 +35,7 @@ vi.mock("../lib/paths", () => ({
         return join(base, "skills", name);
       case "command":
         return join(base, "commands", `${name}.md`);
-      case "script":
+      case "tool":
         return join(base, "bin", name);
       case "agent":
         return join(base, "agents", `${name}.yaml`);

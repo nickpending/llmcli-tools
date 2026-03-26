@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import { files } from "./paths";
 import type { Catalog, CatalogEntry, ResourceType } from "./types";
 
-const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "agent"];
+const VALID_TYPES: ResourceType[] = ["skill", "command", "tool", "agent"];
 
 function validateEntry(entry: unknown, index: number): CatalogEntry {
   if (!entry || typeof entry !== "object") {
@@ -70,7 +70,7 @@ export function loadCatalog(path?: string): Catalog {
       entries.push(validateEntry(item, index++));
     }
   } else {
-    // Sections by type: skills:, commands:, agents:, scripts:
+    // Sections by type: skills:, commands:, agents:, tools:
     for (const section of Object.keys(parsed)) {
       const items = parsed[section];
       if (!Array.isArray(items)) continue;

@@ -61,7 +61,7 @@ OPTIONS:
     --name <name>           Component name (required)
     --repo <url>            Source repo URL (required)
     --path <path>           Path within repo (required)
-    --type <type>           Resource type: skill|command|script|agent (required)
+    --type <type>           Resource type: skill|command|tool|agent (required)
     --domain <d1,d2>        Domain tags (comma-separated)
     --tags <t1,t2>          Tags (comma-separated)
     --description <text>    Description
@@ -82,7 +82,7 @@ OPTIONS:
 RESOURCE TYPES:
   skill    → ~/.claude/skills/<name>/
   command  → ~/.claude/commands/<name>.md
-  script   → ~/.local/bin/
+  tool     → ~/.local/bin/
   agent    → ~/.config/sable/agents/
 
 EXAMPLES:

@@ -2,7 +2,7 @@
  * lib/types.ts — Kit type definitions
  */
 
-export type ResourceType = "skill" | "command" | "script" | "agent";
+export type ResourceType = "skill" | "command" | "tool" | "agent";
 
 export interface CatalogEntry {
   name: string;
@@ -39,7 +39,7 @@ export interface KitConfig {
   paths?: {
     skills?: string;
     commands?: string;
-    scripts?: string;
+    tools?: string;
     agents?: string;
   };
 }

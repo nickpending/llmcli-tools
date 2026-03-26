@@ -18,8 +18,8 @@ describe("getInstallPath", () => {
     );
   });
 
-  it("script installs to ~/.local/bin/<name>", () => {
-    expect(getInstallPath("sigil-search", "script")).toBe(
+  it("tool installs to ~/.local/bin/<name>", () => {
+    expect(getInstallPath("sigil-search", "tool")).toBe(
       join(home, ".local", "bin", "sigil-search"),
     );
   });

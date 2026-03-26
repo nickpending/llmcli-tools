@@ -52,7 +52,7 @@ import type {
   CheckEntry,
 } from "./types";
 
-const VALID_TYPES: ResourceType[] = ["skill", "command", "script", "agent"];
+const VALID_TYPES: ResourceType[] = ["skill", "command", "tool", "agent"];
 
 function git(args: string[], cwd?: string): string {
   try {
@@ -273,7 +273,7 @@ export async function use(name: string, dir?: string): Promise<UseResult> {
     }
 
     // Make scripts executable
-    if (entry.type === "script") {
+    if (entry.type === "tool") {
       chmodSync(installPath, 0o755);
     }
 
@@ -526,7 +526,7 @@ export async function sync(): Promise<SyncResult> {
             cpSync(sourcePath, inst.installPath);
           }
 
-          if (inst.type === "script") {
+          if (inst.type === "tool") {
             chmodSync(inst.installPath, 0o755);
           }
 
