@@ -24,9 +24,9 @@ describe("getInstallPath", () => {
     );
   });
 
-  it("agent installs to ~/.config/sable/agents/<name>.yaml", () => {
+  it("agent installs to ~/.claude/agents/<name>.md", () => {
     expect(getInstallPath("ghost", "agent")).toBe(
-      join(home, ".config", "sable", "agents", "ghost.yaml"),
+      join(home, ".claude", "agents", "ghost.md"),
     );
   });
 

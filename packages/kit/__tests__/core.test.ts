@@ -38,7 +38,7 @@ vi.mock("../lib/paths", () => ({
       case "tool":
         return join(base, "bin", name);
       case "agent":
-        return join(base, "agents", `${name}.yaml`);
+        return join(base, "agents", `${name}.md`);
       default:
         return join(base, name);
     }

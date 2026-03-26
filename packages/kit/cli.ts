@@ -83,7 +83,7 @@ RESOURCE TYPES:
   skill    → ~/.claude/skills/<name>/
   command  → ~/.claude/commands/<name>.md
   tool     → ~/.local/bin/
-  agent    → ~/.config/sable/agents/
+  agent    → ~/.claude/agents/<name>.md
 
 EXAMPLES:
   kit init https://github.com/user/kit-catalog.git

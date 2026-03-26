@@ -28,7 +28,7 @@ const defaultInstallDirs: Record<ResourceType, string> = {
   skill: join(home, ".claude", "skills"),
   command: join(home, ".claude", "commands"),
   tool: join(home, ".local", "bin"),
-  agent: join(home, ".config", "sable", "agents"),
+  agent: join(home, ".claude", "agents"),
 };
 
 /**
@@ -51,7 +51,7 @@ export function getInstallPath(
       case "tool":
         return join(dir, "bin", name);
       case "agent":
-        return join(dir, ".config", "sable", "agents", `${name}.yaml`);
+        return join(dir, ".claude", "agents", `${name}.md`);
     }
   }
 
@@ -67,6 +67,6 @@ export function getInstallPath(
     case "tool":
       return join(base, name);
     case "agent":
-      return join(base, `${name}.yaml`);
+      return join(base, `${name}.md`);
   }
 }
