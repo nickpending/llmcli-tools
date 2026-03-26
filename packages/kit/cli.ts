@@ -59,7 +59,7 @@ COMMANDS:
 OPTIONS:
   add:
     --name <name>           Component name (required)
-    --repo <url>            Source repo URL (required)
+    --repo <url>            Source repo URL (defaults to config source.repo)
     --path <path>           Path within repo (required)
     --type <type>           Resource type: skill|command|tool|agent (required)
     --domain <d1,d2>        Domain tags (comma-separated)
@@ -123,13 +123,12 @@ async function main(): Promise<void> {
       const description = getArg("--description");
 
       if (!name) fail("Missing --name");
-      if (!repo) fail("Missing --repo");
       if (!path) fail("Missing --path");
       if (!type) fail("Missing --type");
 
       const result = await add({
         name,
-        repo,
+        repo: repo || undefined,
         path,
         type,
         domain: domainStr ? domainStr.split(",") : undefined,

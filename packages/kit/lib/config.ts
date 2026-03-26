@@ -35,12 +35,18 @@ export function getConfig(): KitConfig {
   const parsed = parse(raw);
 
   const catalog = parsed.catalog as Record<string, unknown> | undefined;
+  const source = parsed.source as Record<string, unknown> | undefined;
   const paths = parsed.paths as Record<string, unknown> | undefined;
 
   cachedConfig = {
     catalog: {
       repo: str(catalog?.repo) ?? "",
     },
+    source: source
+      ? {
+          repo: str(source.repo),
+        }
+      : undefined,
     paths: paths
       ? {
           skills: str(paths.skills)

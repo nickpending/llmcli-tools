@@ -143,7 +143,7 @@ export async function init(catalogRepo?: string): Promise<InitResult> {
 
 export async function add(opts: {
   name: string;
-  repo: string;
+  repo?: string;
   path: string;
   type: ResourceType;
   domain?: string[];
@@ -151,6 +151,17 @@ export async function add(opts: {
   description?: string;
 }): Promise<AddResult> {
   ensureInitialized();
+
+  // Resolve repo: explicit arg > config source.repo
+  const config = getConfig();
+  const repo = opts.repo || config.source?.repo;
+  if (!repo) {
+    return {
+      success: false,
+      error:
+        "No repo specified. Pass --repo or set [source] repo in ~/.config/kit/config.toml",
+    };
+  }
 
   if (!VALID_TYPES.includes(opts.type)) {
     return {
@@ -169,12 +180,12 @@ export async function add(opts: {
   // Verify path exists in source repo before adding to catalog
   let tmpDir: string | undefined;
   try {
-    const result = cloneAndVerifyPath(opts.repo, opts.path, opts.name);
+    const result = cloneAndVerifyPath(repo, opts.path, opts.name);
     tmpDir = result.tmpDir;
     if (!result.exists) {
       return {
         success: false,
-        error: `Path '${opts.path}' not found in repo '${opts.repo}'`,
+        error: `Path '${opts.path}' not found in repo '${repo}'`,
       };
     }
   } catch (err) {
@@ -192,7 +203,7 @@ export async function add(opts: {
 
   const entry: CatalogEntry = {
     name: opts.name,
-    repo: opts.repo,
+    repo,
     path: opts.path,
     type: opts.type,
     domain: opts.domain ?? [],

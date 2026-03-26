@@ -36,6 +36,9 @@ export interface KitConfig {
   catalog: {
     repo: string;
   };
+  source?: {
+    repo?: string;
+  };
   paths?: {
     skills?: string;
     commands?: string;
