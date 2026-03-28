@@ -2,6 +2,7 @@
 export {
   init,
   add,
+  update,
   use,
   remove,
   list,
@@ -28,6 +29,8 @@ export type {
   UseResult,
   RemoveResult,
   AddResult,
+  UpdateOptions,
+  UpdateResult,
   InitResult,
   SyncResult,
   PushResult,

@@ -95,6 +95,18 @@ export interface AddResult {
   error?: string;
 }
 
+export interface UpdateOptions {
+  domain?: string[];
+  tags?: string[];
+  description?: string;
+}
+
+export interface UpdateResult {
+  success: boolean;
+  name?: string;
+  error?: string;
+}
+
 export interface InitResult {
   success: boolean;
   catalogPath?: string;

@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import yaml from "js-yaml";
 import { files } from "./paths";
-import type { Catalog, CatalogEntry, ResourceType } from "./types";
+import type { Catalog, CatalogEntry, ResourceType, UpdateOptions } from "./types";
 
 const VALID_TYPES: ResourceType[] = ["skill", "command", "tool", "agent"];
 
@@ -127,4 +127,30 @@ export function removeEntry(catalog: Catalog, name: string): Catalog {
     throw new Error(`Entry '${name}' not found in catalog`);
   }
   return { entries: filtered };
+}
+
+/** Update metadata fields on an existing entry (does not save) */
+export function updateEntry(
+  catalog: Catalog,
+  name: string,
+  updates: UpdateOptions,
+): Catalog {
+  const index = catalog.entries.findIndex((e) => e.name === name);
+  if (index === -1) {
+    throw new Error(`Entry '${name}' not found in catalog`);
+  }
+
+  const existing = catalog.entries[index];
+  const updated: CatalogEntry = {
+    ...existing,
+    ...(updates.domain !== undefined && { domain: updates.domain }),
+    ...(updates.tags !== undefined && { tags: updates.tags }),
+    ...(updates.description !== undefined && {
+      description: updates.description,
+    }),
+  };
+
+  const entries = [...catalog.entries];
+  entries[index] = updated;
+  return { entries };
 }

@@ -3,6 +3,7 @@
 import {
   init,
   add,
+  update,
   use,
   remove,
   list,
@@ -46,13 +47,14 @@ USAGE:
 COMMANDS:
   init [repo-url]           Initialize Kit — clone catalog repo, create directories
   add                       Register a new component in the catalog
+  update <name>             Update metadata on an existing catalog entry
   use <name>                Install a component on this device
   remove <name>             Uninstall a component from this device
   list                      List catalog entries
   get <name>                Get full details for a component
   search <query>            Search components by keyword
   sync                      Pull latest catalog and update installed components
-  push <name>               Push local changes back to source repo
+  push <name> [-m msg]      Push local changes back to source repo
   check                     Validate all catalog pointers against source repos
   status                    Show Kit status and installed components
 
@@ -62,6 +64,11 @@ OPTIONS:
     --repo <url>            Source repo URL (defaults to config source.repo)
     --path <path>           Path within repo (required)
     --type <type>           Resource type: skill|command|tool|agent (required)
+    --domain <d1,d2>        Domain tags (comma-separated)
+    --tags <t1,t2>          Tags (comma-separated)
+    --description <text>    Description
+
+  update:
     --domain <d1,d2>        Domain tags (comma-separated)
     --tags <t1,t2>          Tags (comma-separated)
     --description <text>    Description
@@ -131,6 +138,32 @@ async function main(): Promise<void> {
         repo: repo || undefined,
         path,
         type,
+        domain: domainStr ? domainStr.split(",") : undefined,
+        tags: tagsStr ? tagsStr.split(",") : undefined,
+        description,
+      });
+      respond(result);
+      if (!result.success) process.exit(1);
+      break;
+    }
+
+    case "update": {
+      const name = args[1];
+      if (!name || name.startsWith("-"))
+        fail(
+          "Missing component name. Usage: kit update <name> [--domain d1,d2] [--tags t1,t2] [--description text]",
+        );
+      const domainStr = getArg("--domain");
+      const tagsStr = getArg("--tags");
+      const description = getArg("--description");
+
+      if (!domainStr && !tagsStr && description === undefined) {
+        fail(
+          "No fields to update. Provide at least one of --domain, --tags, --description",
+        );
+      }
+
+      const result = await update(name, {
         domain: domainStr ? domainStr.split(",") : undefined,
         tags: tagsStr ? tagsStr.split(",") : undefined,
         description,
@@ -211,8 +244,9 @@ async function main(): Promise<void> {
     case "push": {
       const name = args[1];
       if (!name || name.startsWith("-"))
-        fail("Missing component name. Usage: kit push <name>");
-      const result = await push(name);
+        fail("Missing component name. Usage: kit push <name> [-m message]");
+      const message = getArg("-m");
+      const result = await push(name, message);
       respond(result);
       if (!result.success) process.exit(1);
       break;

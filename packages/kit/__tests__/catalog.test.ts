@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "fs";
 import { join } from "path";
-import { loadCatalog, saveCatalog, findEntry, addEntry, removeEntry } from "../lib/catalog";
+import { loadCatalog, saveCatalog, findEntry, addEntry, removeEntry, updateEntry } from "../lib/catalog";
 import type { CatalogEntry, Catalog } from "../lib/types";
 
 const tmpDir = join("/tmp", "kit-test-catalog");
@@ -124,5 +124,47 @@ describe("removeEntry", () => {
   it("throws for missing entry", () => {
     const catalog: Catalog = { entries: [] };
     expect(() => removeEntry(catalog, "nonexistent")).toThrow("not found");
+  });
+});
+
+describe("updateEntry", () => {
+  it("updates description only", () => {
+    const catalog: Catalog = { entries: [sampleEntry] };
+    const updated = updateEntry(catalog, "recon-methodology", {
+      description: "Updated description",
+    });
+    expect(updated.entries).toHaveLength(1);
+    expect(updated.entries[0].description).toBe("Updated description");
+    expect(updated.entries[0].domain).toEqual(["security", "reconnaissance"]);
+    expect(updated.entries[0].tags).toEqual(["recon", "methodology"]);
+  });
+
+  it("updates domain only", () => {
+    const catalog: Catalog = { entries: [sampleEntry] };
+    const updated = updateEntry(catalog, "recon-methodology", {
+      domain: ["infrastructure"],
+    });
+    expect(updated.entries[0].domain).toEqual(["infrastructure"]);
+    expect(updated.entries[0].description).toBe("Recon methodology skill");
+    expect(updated.entries[0].tags).toEqual(["recon", "methodology"]);
+  });
+
+  it("updates multiple fields at once", () => {
+    const catalog: Catalog = { entries: [sampleEntry] };
+    const updated = updateEntry(catalog, "recon-methodology", {
+      domain: ["ops"],
+      tags: ["new-tag"],
+      description: "New desc",
+    });
+    expect(updated.entries[0].domain).toEqual(["ops"]);
+    expect(updated.entries[0].tags).toEqual(["new-tag"]);
+    expect(updated.entries[0].description).toBe("New desc");
+  });
+
+  it("throws for missing entry", () => {
+    const catalog: Catalog = { entries: [] };
+    expect(() =>
+      updateEntry(catalog, "nonexistent", { description: "test" }),
+    ).toThrow("not found");
   });
 });

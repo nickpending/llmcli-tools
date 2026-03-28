@@ -24,6 +24,7 @@ import {
   findEntry,
   addEntry,
   removeEntry,
+  updateEntry,
 } from "./catalog";
 import {
   loadState,
@@ -39,6 +40,8 @@ import type {
   CatalogEntry,
   InitResult,
   AddResult,
+  UpdateOptions,
+  UpdateResult,
   UseResult,
   RemoveResult,
   ListResult,
@@ -231,6 +234,51 @@ export async function add(opts: {
   }
 
   return { success: true, name: opts.name };
+}
+
+// ─── update ──────────────────────────────────────────────────────────────────
+
+export async function update(
+  name: string,
+  opts: UpdateOptions,
+): Promise<UpdateResult> {
+  ensureInitialized();
+
+  // Require at least one field to update
+  if (
+    opts.domain === undefined &&
+    opts.tags === undefined &&
+    opts.description === undefined
+  ) {
+    return {
+      success: false,
+      error:
+        "No fields to update. Provide at least one of --domain, --tags, --description",
+    };
+  }
+
+  const catalog = loadCatalog();
+
+  try {
+    const updated = updateEntry(catalog, name, opts);
+    saveCatalog(updated);
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  // Commit and push catalog changes
+  try {
+    git(["add", "kit-catalog.yaml"], files.catalogDir);
+    git(["commit", "-m", `Update ${name} metadata`], files.catalogDir);
+    git(["push"], files.catalogDir);
+  } catch {
+    // Commit/push failure is non-fatal — catalog is updated locally
+  }
+
+  return { success: true, name };
 }
 
 // ─── use ─────────────────────────────────────────────────────────────────────
@@ -580,7 +628,10 @@ export async function sync(): Promise<SyncResult> {
 
 // ─── push ────────────────────────────────────────────────────────────────────
 
-export async function push(name: string): Promise<PushResult> {
+export async function push(
+  name: string,
+  message?: string,
+): Promise<PushResult> {
   ensureInitialized();
 
   const state = loadState();
@@ -632,7 +683,8 @@ export async function push(name: string): Promise<PushResult> {
       // There are changes — good
     }
 
-    git(["commit", "-m", `Update ${name} via kit push`], tmpDir);
+    const commitMsg = message ?? `update(${name}): push local changes`;
+    git(["commit", "-m", commitMsg], tmpDir);
     git(["push"], tmpDir);
 
     return { success: true, name };
