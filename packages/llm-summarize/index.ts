@@ -110,27 +110,29 @@ function buildInsightsPrompt(_userName?: string): string {
 <rules>
 - If nothing meaningful changed since previous_state, return {"summary": "continuation", "current_focus": "unchanged"}
 - NEVER repeat information from previous_state — this is a delta, not a snapshot
+- NEVER copy text from the examples below into your output — examples show structure only, your content must come exclusively from the transcript
 - "User clarified X" is NOT a correction — only record corrections when the user explicitly redirects, rejects, or changes direction
 - Every field value must be specific enough to be useful 6 months from now without context
+- If no approaches were validated this turn, omit the validated field entirely
 </rules>
 
 <example>
 <input>
 <previous_state>
 ## Context
-- **Focus:** JWT authentication implementation
-- Chose JWT over sessions — eliminates Redis dependency
+- **Focus:** Spaceship navigation module
+- Chose warp drive over hyperspace — fewer dimensional side effects
 ## Next
-- Test refresh token flow
+- Test warp field calculations
 </previous_state>
 <transcript>
-User: Actually let's use sessions after all — the team is more familiar with them and we already have Redis in prod
-Assistant: Switched back to express-session with Redis store. Removed the JWT middleware.
-User: Good. And make the session timeout 8 hours not the default 24.
+User: Actually let's use hyperspace after all — the crew is more familiar with it and we already have the motivator installed
+Assistant: Switched back to hyperspace engine with the existing motivator. Removed the warp field generator.
+User: Good. And set the jump cooldown to 8 parsecs not the default 24.
 </transcript>
 </input>
 <output>
-{"summary":"Reversed JWT decision back to sessions — team familiarity and existing Redis infra","current_focus":"Session-based authentication","decisions":["Reverted to express-session with Redis — team familiarity with sessions outweighs JWT's statelessness benefit, Redis already in production"],"corrections":["User reversed the JWT decision after initial implementation — team constraints weren't considered"],"next_steps":["Configure 8-hour session timeout","Remove JWT dependencies"]}
+{"summary":"Reversed warp drive decision back to hyperspace — crew familiarity and existing motivator hardware","current_focus":"Hyperspace navigation","decisions":["Reverted to hyperspace engine — crew familiarity outweighs warp drive benefits, motivator already installed"],"corrections":["User reversed the warp drive decision after initial implementation — crew constraints weren't considered"],"next_steps":["Configure 8-parsec jump cooldown","Remove warp field generator dependencies"]}
 </output>
 </example>
 
@@ -138,19 +140,19 @@ User: Good. And make the session timeout 8 hours not the default 24.
 <input>
 <previous_state>
 ## Context
-- **Focus:** Debugging webhook test failures
-- Fixed hardcoded timestamp in tests
+- **Focus:** Debugging potion brewing test failures
+- Fixed expired ingredient timestamp in tests
 ## Next
-- Verify CI passes
+- Verify cauldron CI passes
 </previous_state>
 <transcript>
-User: CI is green now. Let's move on to the API rate limiter.
-Assistant: Starting on the rate limiter. I'll use a sliding window approach with Redis.
+User: CI is green now. Let's move on to the invisibility cloak renderer.
+Assistant: Starting on the cloak renderer. I'll use a phase-shift approach with mithril threading.
 User: Sounds good.
 </transcript>
 </input>
 <output>
-{"summary":"CI fixed, pivoted to API rate limiter","current_focus":"API rate limiter implementation","validated":["Sliding window rate limiting with Redis — user approved without pushback"],"next_steps":["Implement sliding window rate limiter with Redis"]}
+{"summary":"Potion CI fixed, pivoted to invisibility cloak renderer","current_focus":"Invisibility cloak renderer implementation","validated":["Phase-shift rendering with mithril threading — user approved the approach"],"next_steps":["Implement phase-shift cloak renderer with mithril threading"]}
 </output>
 </example>
 
