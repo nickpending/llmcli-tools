@@ -28,13 +28,16 @@ export interface SessionInsights {
   // Optional fields populated by custom prompts (e.g., Lore injection)
   extractions?: Extraction[];
   keywords?: string[];
-  // Insights mode fields
+  // Insights mode fields (delta extraction)
   current_focus?: string;
   next_steps?: string[];
   decisions?: string[];
+  corrections?: string[];
+  validated?: string[];
+  problems_solved?: string[];
+  // Legacy fields — kept for backward compatibility with existing session JSONL data
   patterns_used?: string[];
   preferences_expressed?: string[];
-  problems_solved?: string[];
 }
 
 export interface SummarizeResult {
@@ -83,53 +86,71 @@ Output JSON only: {"summary": "One sentence summary"}`;
  * Note: userName param kept for API compatibility but not used in insights mode
  */
 function buildInsightsPrompt(_userName?: string): string {
-  return `You are a session state extractor. Given a development conversation, produce a JSON snapshot of the session's current state.
+  return `You are a session delta extractor. Given a development conversation and the previous state snapshot, extract ONLY what is NEW since the last snapshot.
 
 <instructions>
-1. Read the conversation in the <transcript> section
-2. Ignore the <previous_state> section — it is background context only, not part of this session
-3. Extract ONLY what happened in the transcript
-4. Produce a JSON object with the fields described below
+1. Read the <previous_state> section — this is what was already known
+2. Read the <transcript> section — this is what happened since
+3. Extract ONLY new information not already captured in previous_state
+4. Skip any lines containing markers (📁 CAPTURE, 📚 TEACH, 👤 OBSERVE, 🗣️, ─── REFLECT) — these are handled by a separate system
+5. Focus on: what decisions were made, what changed direction, what the user corrected, what approach was validated
+6. Produce a JSON delta object
 </instructions>
 
 <fields>
-- summary: One sentence describing what was accomplished this session
-- current_focus: The specific task or feature being worked on (omit if exploratory)
-- next_steps: Array of concrete next actions. Name the specific task.
-- decisions: Array of decisions made this session, each with rationale
-- patterns_used: Array of techniques or approaches applied, each with context
-- preferences_expressed: Array of user preferences revealed through direction or correction
-- problems_solved: Array of problems encountered with root cause and fix
+- summary: One sentence — what CHANGED since last snapshot, not a re-summary of the whole session
+- current_focus: The specific task or topic right now (omit if unchanged from previous_state)
+- decisions: New decisions only — include the rationale ("X because Y"). Skip if already in previous_state.
+- corrections: Things the user pushed back on or redirected. Quote their words when possible.
+- validated: Approaches the user approved or confirmed worked. Only when non-obvious.
+- next_steps: Concrete next actions that emerged THIS turn. Name specifics.
+- problems_solved: New problems with root cause and fix. Skip re-statements.
 </fields>
 
-Include a field only when the transcript contains clear evidence. Omit empty arrays. Every value must be a complete sentence.
+<rules>
+- If nothing meaningful changed since previous_state, return {"summary": "continuation", "current_focus": "unchanged"}
+- NEVER repeat information from previous_state — this is a delta, not a snapshot
+- "User clarified X" is NOT a correction — only record corrections when the user explicitly redirects, rejects, or changes direction
+- Every field value must be specific enough to be useful 6 months from now without context
+</rules>
 
 <example>
 <input>
-<previous_state>Focus: Building authentication system</previous_state>
+<previous_state>
+## Context
+- **Focus:** JWT authentication implementation
+- Chose JWT over sessions — eliminates Redis dependency
+## Next
+- Test refresh token flow
+</previous_state>
 <transcript>
-User Asked: Let's use JWT instead of sessions for auth
-Assistant Response: Switched from express-session to jsonwebtoken. JWTs are stateless so we don't need Redis for session storage anymore. Updated the middleware to verify tokens on each request.
-User Asked: Make sure the tokens expire after 24 hours
-Assistant Response: Set expiresIn to 24h in the sign options. Also added a refresh token flow so users don't get logged out mid-work.
+User: Actually let's use sessions after all — the team is more familiar with them and we already have Redis in prod
+Assistant: Switched back to express-session with Redis store. Removed the JWT middleware.
+User: Good. And make the session timeout 8 hours not the default 24.
 </transcript>
 </input>
 <output>
-{"summary":"Implemented JWT-based authentication replacing session-based auth, with 24-hour token expiry and refresh token flow","current_focus":"Authentication system implementation","next_steps":["Test the refresh token flow with expired tokens","Add token revocation for logout"],"decisions":["Chose JWT over sessions — eliminates Redis dependency since tokens are stateless","Set 24-hour token expiry with refresh flow — balances security with user convenience"],"preferences_expressed":["User directed specific token expiry of 24 hours"]}
+{"summary":"Reversed JWT decision back to sessions — team familiarity and existing Redis infra","current_focus":"Session-based authentication","decisions":["Reverted to express-session with Redis — team familiarity with sessions outweighs JWT's statelessness benefit, Redis already in production"],"corrections":["User reversed the JWT decision after initial implementation — team constraints weren't considered"],"next_steps":["Configure 8-hour session timeout","Remove JWT dependencies"]}
 </output>
 </example>
 
 <example>
 <input>
-<previous_state>Focus: Investigating test failures</previous_state>
+<previous_state>
+## Context
+- **Focus:** Debugging webhook test failures
+- Fixed hardcoded timestamp in tests
+## Next
+- Verify CI passes
+</previous_state>
 <transcript>
-User Asked: The CI is failing on the webhook tests
-Assistant Response: Found the issue — the test was using a hardcoded timestamp that expired. Changed it to use a relative timestamp. Also found that the webhook handler had a race condition where two events could arrive simultaneously and both pass the idempotency check. Added a mutex lock.
-User Asked: Good catch on the race condition
+User: CI is green now. Let's move on to the API rate limiter.
+Assistant: Starting on the rate limiter. I'll use a sliding window approach with Redis.
+User: Sounds good.
 </transcript>
 </input>
 <output>
-{"summary":"Fixed CI test failure caused by hardcoded timestamp and discovered a race condition in the webhook handler","current_focus":"Webhook test failures and handler reliability","problems_solved":["Fixed expired hardcoded timestamp in webhook tests — replaced with relative timestamp calculation","Fixed race condition in webhook handler where simultaneous events bypassed idempotency check — added mutex lock"],"next_steps":["Verify CI passes with the timestamp and mutex fixes"]}
+{"summary":"CI fixed, pivoted to API rate limiter","current_focus":"API rate limiter implementation","validated":["Sliding window rate limiting with Redis — user approved without pushback"],"next_steps":["Implement sliding window rate limiter with Redis"]}
 </output>
 </example>
 
