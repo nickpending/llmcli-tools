@@ -631,6 +631,7 @@ export async function sync(): Promise<SyncResult> {
 export async function push(
   name: string,
   message?: string,
+  force?: boolean,
 ): Promise<PushResult> {
   ensureInitialized();
 
@@ -659,6 +660,29 @@ export async function push(
     git(["clone", inst.sourceRepo, tmpDir]);
 
     const destPath = join(tmpDir, inst.sourcePath);
+
+    // Safety: detect if source repo has been edited directly.
+    // If source != installed, pushing would overwrite source edits.
+    if (!force && existsSync(destPath)) {
+      try {
+        const isDir = statSync(destPath).isDirectory();
+        execFileSync(
+          "diff",
+          isDir
+            ? ["-rq", inst.installPath, destPath]
+            : ["-q", inst.installPath, destPath],
+          {
+            stdio: ["pipe", "pipe", "pipe"],
+          },
+        );
+      } catch {
+        rmSync(tmpDir, { recursive: true, force: true });
+        return {
+          success: false,
+          error: `Source repo version of '${name}' differs from installed copy. The source repo may have been edited directly. Run 'kit sync' to update your installed copy, or use 'kit push --force' to overwrite.`,
+        };
+      }
+    }
 
     // Replace source with local version
     if (existsSync(destPath)) {

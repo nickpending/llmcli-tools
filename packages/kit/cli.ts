@@ -244,9 +244,12 @@ async function main(): Promise<void> {
     case "push": {
       const name = args[1];
       if (!name || name.startsWith("-"))
-        fail("Missing component name. Usage: kit push <name> [-m message]");
+        fail(
+          "Missing component name. Usage: kit push <name> [-m message] [--force]",
+        );
       const message = getArg("-m");
-      const result = await push(name, message);
+      const force = hasFlag("--force");
+      const result = await push(name, message, force);
       respond(result);
       if (!result.success) process.exit(1);
       break;
