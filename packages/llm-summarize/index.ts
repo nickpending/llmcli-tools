@@ -23,6 +23,12 @@ export interface Extraction {
   confidence: "high" | "medium";
 }
 
+export interface Signal {
+  type: string; // canonical: gotcha, decision, discovery, pattern, preference, style, term, teaching
+  topic: string;
+  content: string;
+}
+
 export interface SessionInsights {
   summary: string;
   // Optional fields populated by custom prompts (e.g., Lore injection)
@@ -31,11 +37,13 @@ export interface SessionInsights {
   // Insights mode fields (delta extraction)
   current_focus?: string;
   next_steps?: string[];
+  signals?: Signal[];
+  satisfaction?: number; // 1-10 per-turn satisfaction score
+  // Legacy — kept for backward compat with existing session JSONL
   decisions?: string[];
   corrections?: string[];
   validated?: string[];
   problems_solved?: string[];
-  // Legacy fields — kept for backward compatibility with existing session JSONL data
   patterns_used?: string[];
   preferences_expressed?: string[];
 }
@@ -93,27 +101,45 @@ function buildInsightsPrompt(_userName?: string): string {
 2. Read the <transcript> section — this is what happened since
 3. Extract ONLY new information not already captured in previous_state
 4. Skip any lines containing markers (📁 CAPTURE, 📚 TEACH, 👤 OBSERVE, 🗣️, ─── REFLECT) — these are handled by a separate system
-5. Focus on: what decisions were made, what changed direction, what the user corrected, what approach was validated
+5. Focus on: what decisions were made, what changed direction, what was learned, what the user corrected or validated
 6. Produce a JSON delta object
 </instructions>
 
 <fields>
 - summary: One sentence — what CHANGED since last snapshot, not a re-summary of the whole session
 - current_focus: The specific task or topic right now (omit if unchanged from previous_state)
-- decisions: New decisions only — include the rationale ("X because Y"). Skip if already in previous_state.
-- corrections: Things the user pushed back on or redirected. Quote their words when possible.
-- validated: Approaches the user approved or confirmed worked. Only when non-obvious.
 - next_steps: Concrete next actions that emerged THIS turn. Name specifics.
-- problems_solved: New problems with root cause and fix. Skip re-statements.
+- signals: Array of observations from this turn. Each signal has:
+  - type: One of the canonical types — gotcha, decision, discovery, pattern, preference, style, term, teaching
+  - topic: The project, tool, or domain this relates to (e.g., "sable", "typescript", "auth module")
+  - content: Specific, self-contained description useful 6 months from now without context
+- satisfaction: Integer 1-10. Calibration:
+  - 1-2: User corrected the same thing twice, expressed frustration
+  - 3-4: User redirected or pointed out an omission
+  - 5-6: Neutral continuation, question asked, no strong signal either way
+  - 7-8: User approved approach, gave trust signals ("go ahead", "do it")
+  - 9-10: Explicit praise, user genuinely impressed
 </fields>
 
+<signal_types>
+- gotcha: Something that broke or surprised — a trap for future developers
+- decision: A deliberate choice with rationale ("X because Y")
+- discovery: New finding about codebase, tool, or behavior
+- pattern: A reusable approach or technique worth remembering
+- preference: Something the user explicitly prefers or dislikes
+- style: Code style, naming, or formatting preference
+- term: Domain-specific terminology or naming convention
+- teaching: The user explained something — capture the lesson
+</signal_types>
+
 <rules>
-- If nothing meaningful changed since previous_state, return {"summary": "continuation", "current_focus": "unchanged"}
+- If nothing meaningful changed since previous_state, return {"summary": "continuation", "current_focus": "unchanged", "signals": [], "satisfaction": 5}
 - NEVER repeat information from previous_state — this is a delta, not a snapshot
 - NEVER copy text from the examples below into your output — examples show structure only, your content must come exclusively from the transcript
-- "User clarified X" is NOT a correction — only record corrections when the user explicitly redirects, rejects, or changes direction
-- Every field value must be specific enough to be useful 6 months from now without context
-- If no approaches were validated this turn, omit the validated field entirely
+- "User clarified X" is NOT a preference — only record preferences when the user explicitly states a preference or rejects an approach
+- Every signal content must be specific enough to be useful 6 months from now without context
+- Omit signal types that have no observations this turn — only include signals that actually occurred
+- satisfaction is required on every response — estimate from the tone and corrections/validations ratio
 </rules>
 
 <example>
@@ -132,7 +158,7 @@ User: Good. And set the jump cooldown to 8 parsecs not the default 24.
 </transcript>
 </input>
 <output>
-{"summary":"Reversed warp drive decision back to hyperspace — crew familiarity and existing motivator hardware","current_focus":"Hyperspace navigation","decisions":["Reverted to hyperspace engine — crew familiarity outweighs warp drive benefits, motivator already installed"],"corrections":["User reversed the warp drive decision after initial implementation — crew constraints weren't considered"],"next_steps":["Configure 8-parsec jump cooldown","Remove warp field generator dependencies"]}
+{"summary":"Reversed warp drive decision back to hyperspace — crew familiarity and existing motivator hardware","current_focus":"Hyperspace navigation","signals":[{"type":"decision","topic":"navigation","content":"Reverted to hyperspace engine — crew familiarity outweighs warp drive benefits, motivator already installed"},{"type":"preference","topic":"navigation","content":"User reversed warp drive decision — crew constraints and existing hardware should take priority over theoretical benefits"},{"type":"preference","topic":"navigation","content":"Jump cooldown set to 8 parsecs instead of default 24"}],"satisfaction":6,"next_steps":["Configure 8-parsec jump cooldown","Remove warp field generator dependencies"]}
 </output>
 </example>
 
@@ -152,7 +178,7 @@ User: Sounds good.
 </transcript>
 </input>
 <output>
-{"summary":"Potion CI fixed, pivoted to invisibility cloak renderer","current_focus":"Invisibility cloak renderer implementation","validated":["Phase-shift rendering with mithril threading — user approved the approach"],"next_steps":["Implement phase-shift cloak renderer with mithril threading"]}
+{"summary":"Potion CI fixed, pivoted to invisibility cloak renderer","current_focus":"Invisibility cloak renderer implementation","signals":[{"type":"pattern","topic":"cloak renderer","content":"Phase-shift rendering with mithril threading — user approved the approach"}],"satisfaction":8,"next_steps":["Implement phase-shift cloak renderer with mithril threading"]}
 </output>
 </example>
 
