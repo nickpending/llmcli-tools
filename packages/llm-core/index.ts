@@ -8,6 +8,10 @@
  *   import { complete, loadServices, listServices } from "@voidwire/llm-core";
  */
 
+export { complete, healthCheck } from "./lib/core";
+export { embed } from "./lib/embed";
+export { extractJson, isTruncated } from "./lib/helpers";
+export { listServices, loadServices, resolveService } from "./lib/services";
 export type {
   CompleteOptions,
   CompleteResult,
@@ -16,8 +20,3 @@ export type {
   ServiceConfig,
   ServiceMap,
 } from "./lib/types";
-
-export { complete } from "./lib/core";
-export { embed } from "./lib/embed";
-export { loadServices, resolveService, listServices } from "./lib/services";
-export { extractJson, isTruncated } from "./lib/helpers";

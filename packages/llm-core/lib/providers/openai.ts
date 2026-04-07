@@ -13,9 +13,7 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
   const body = {
     model: req.model,
     messages: [
-      ...(req.systemPrompt
-        ? [{ role: "system", content: req.systemPrompt }]
-        : []),
+      ...(req.systemPrompt ? [{ role: "system", content: req.systemPrompt }] : []),
       { role: "user", content: req.prompt },
     ],
     ...(req.maxTokens && { max_tokens: req.maxTokens }),
@@ -45,9 +43,7 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
 
   // Validate response shape
   if (!data.choices?.length || !data.choices[0].message) {
-    throw new Error(
-      `OpenAI API returned unexpected response shape: missing choices[0].message`,
-    );
+    throw new Error(`OpenAI API returned unexpected response shape: missing choices[0].message`);
   }
 
   const choice = data.choices[0];
@@ -67,4 +63,14 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
     tokensOutput: data.usage?.completion_tokens ?? 0,
     finishReason,
   };
+}
+
+export async function healthCheck(baseUrl: string, apiKey: string | null): Promise<void> {
+  const response = await fetch(`${baseUrl}/models`, {
+    headers: { Authorization: `Bearer ${apiKey ?? ""}` },
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI health check failed (${response.status}): ${error}`);
+  }
 }

@@ -9,16 +9,17 @@
  *   const result = await complete({ prompt: "hello", service: "ollama", model: "llama3" });
  */
 
-import type { CompleteOptions, CompleteResult } from "./types";
-import { resolveService } from "./services";
 import { loadApiKey } from "./config";
-import { getAdapter } from "./providers/index";
-import { withRetry } from "./retry";
 import { estimateCost } from "./pricing";
+import * as anthropic from "./providers/anthropic";
+import { getAdapter } from "./providers/index";
+import * as ollama from "./providers/ollama";
+import * as openai from "./providers/openai";
+import { withRetry } from "./retry";
+import { resolveService } from "./services";
+import type { CompleteOptions, CompleteResult } from "./types";
 
-export async function complete(
-  options: CompleteOptions,
-): Promise<CompleteResult> {
+export async function complete(options: CompleteOptions): Promise<CompleteResult> {
   const startTime = Date.now();
 
   // 1. Resolve service configuration
@@ -53,11 +54,7 @@ export async function complete(
   const response = await withRetry(() => adapter.complete(adapterRequest));
 
   // 6. Estimate cost
-  const cost = estimateCost(
-    response.model,
-    response.tokensInput,
-    response.tokensOutput,
-  );
+  const cost = estimateCost(response.model, response.tokensInput, response.tokensOutput);
 
   // 7. Return normalized envelope
   const durationMs = Date.now() - startTime;
@@ -74,4 +71,19 @@ export async function complete(
     durationMs,
     cost,
   };
+}
+
+export async function healthCheck(service?: string): Promise<void> {
+  const svc = resolveService(service);
+  const apiKey = await loadApiKey(svc);
+
+  if (svc.adapter === "anthropic") {
+    await anthropic.healthCheck(svc.base_url, apiKey);
+  } else if (svc.adapter === "openai") {
+    await openai.healthCheck(svc.base_url, apiKey);
+  } else if (svc.adapter === "ollama") {
+    await ollama.healthCheck(svc.base_url, apiKey);
+  } else {
+    throw new Error(`Unknown adapter: "${svc.adapter}"`);
+  }
 }

@@ -47,9 +47,7 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
 
   // Validate response shape
   if (!data.content?.length || typeof data.content[0].text !== "string") {
-    throw new Error(
-      `Anthropic API returned unexpected response shape: missing content[0].text`,
-    );
+    throw new Error(`Anthropic API returned unexpected response shape: missing content[0].text`);
   }
 
   // Map stop_reason to normalized finishReason
@@ -65,4 +63,17 @@ export async function complete(req: AdapterRequest): Promise<AdapterResponse> {
     tokensOutput: data.usage?.output_tokens ?? 0,
     finishReason,
   };
+}
+
+export async function healthCheck(baseUrl: string, apiKey: string | null): Promise<void> {
+  const response = await fetch(`${baseUrl}/models`, {
+    headers: {
+      "x-api-key": apiKey ?? "",
+      "anthropic-version": ANTHROPIC_API_VERSION,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Anthropic health check failed (${response.status}): ${error}`);
+  }
 }
