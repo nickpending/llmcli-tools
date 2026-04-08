@@ -1,6 +1,6 @@
 {
   "name": "@voidwire/llm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "LLM tooling CLI - embed server lifecycle and utility subcommands",
   "type": "module",
   "main": "./index.ts",
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
-    "@voidwire/llm-core": "workspace:*"
+    "@voidwire/llm-core": "^0.4.2"
   },
   "devDependencies": {
     "bun-types": "1.3.5"

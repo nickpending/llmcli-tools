@@ -72,27 +72,52 @@ flux recurring --dry-run                 # Preview what would surface
 flux recurring                           # Surface due recurring tasks
 ```
 
-Recurring items support two modes:
+#### Recurring Lifecycle
 
-**Cadence-based** (time since last done):
+Recurring items live in `recurring.md` and must be surfaced before they can be completed:
+
+1. `flux recurring` — evaluates all items, copies due ones into `active.md`
+2. Work from `active.md`
+3. `flux done <id>` — completes the item, updates recurring metadata
+
+Run `flux recurring` daily (manually or automated) to keep `active.md` current.
+
+> **Note:** `flux cancel` does not update recurring metadata. Cancelled recurring items will resurface on their next schedule as if nothing happened. Use `flux done` for proper recurring lifecycle tracking.
+
+#### Recurring Modes
+
+Three modes, determined by which fields are present (evaluated in priority order):
+
+**Day-of-week anchored** (highest priority — surfaces on a specific weekday):
 ```markdown
-- [ ] Weigh-in id::rec001 last::2026-01-01
+- [ ] Weekly review id::rec003 day::sunday
 ```
+Valid days: `sunday`, `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`
 
-**Date-anchored** (approaching due date):
+**Date-anchored** (surfaces when approaching due date):
 ```markdown
 - [ ] Tax prep id::rec002 due::2026-04-15 lead::45
 ```
 
+**Cadence-based** (surfaces after enough time since last completion):
+```markdown
+- [ ] Weigh-in id::rec001 last::2026-01-01
+```
+Items with no `last::` are always surfaced (never done before).
+
 | Field | Description | Default |
 |-------|-------------|---------|
-| `last::` | Last completion date (cadence-based) | — |
+| `day::` | Day of week to surface (weekly cycle) | — |
 | `due::` | Next due date (date-anchored) | — |
 | `lead::` | Days before due to surface | 7 |
+| `last::` | Last completion date (cadence-based) | — |
+
+Items are organized under cadence sections in `recurring.md`: `## Daily`, `## Weekly`, `## Monthly`, `## Quarterly`, `## Yearly`.
 
 On completion:
+- Day-of-week: no metadata change, resurfaces next matching weekday
+- Date-anchored: `due::` advances by cadence (monthly → +1 month, yearly → +1 year)
 - Cadence-based: `last::` updates to today
-- Date-anchored: `due::` advances by cadence (yearly → +1 year)
 
 ### Maintenance
 

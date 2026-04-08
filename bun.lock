@@ -67,7 +67,7 @@
     },
     "packages/kit": {
       "name": "@voidwire/kit",
-      "version": "0.1.0",
+      "version": "0.6.0",
       "bin": {
         "kit": "./cli.ts",
       },
@@ -97,21 +97,10 @@
       },
       "dependencies": {
         "@huggingface/transformers": "^3.8.1",
-        "@voidwire/llm-core": "workspace:*",
+        "@voidwire/llm-core": "^0.4.2",
       },
       "devDependencies": {
         "bun-types": "1.3.5",
-      },
-    },
-    "packages/llm-core": {
-      "name": "@voidwire/llm-core",
-      "version": "0.4.0",
-      "bin": {
-        "llm-core": "./cli.ts",
-      },
-      "dependencies": {
-        "@voidwire/apiconf": "^0.1.0",
-        "smol-toml": "1.6.0",
       },
     },
     "packages/llm-notify": {
@@ -123,12 +112,12 @@
     },
     "packages/llm-summarize": {
       "name": "@voidwire/llm-summarize",
-      "version": "3.9.4",
+      "version": "3.11.1",
       "bin": {
         "llm-summarize": "./cli.ts",
       },
       "dependencies": {
-        "@voidwire/llm-core": "workspace:*",
+        "@voidwire/llm-core": "^0.4.2",
       },
     },
     "packages/lore": {
@@ -139,7 +128,7 @@
       },
       "dependencies": {
         "@iarna/toml": "^2.2.5",
-        "@voidwire/llm-core": "workspace:*",
+        "@voidwire/llm-core": "^0.4.2",
       },
       "devDependencies": {
         "bun-types": "1.3.5",
@@ -152,7 +141,7 @@
         "sable-eval": "./cli.ts",
       },
       "dependencies": {
-        "@voidwire/llm-core": "workspace:*",
+        "@voidwire/llm-core": "^0.4.2",
         "js-yaml": "^4.1.0",
       },
       "devDependencies": {
@@ -569,7 +558,7 @@
 
     "@voidwire/llm": ["@voidwire/llm@workspace:packages/llm"],
 
-    "@voidwire/llm-core": ["@voidwire/llm-core@workspace:packages/llm-core"],
+    "@voidwire/llm-core": ["@voidwire/llm-core@0.4.2", "", { "dependencies": { "@voidwire/apiconf": "^0.1.0" }, "bin": { "llm-core": "cli.ts" } }, "sha512-Tidsn5ZDuG8/BkLWIHirqYRKjf5oQqbIN2zDwPloHzdXASkUDLJ9MvDLkOOQKScV9ZcPDdEaNawqZVsd6r1JGw=="],
 
     "@voidwire/llm-notify": ["@voidwire/llm-notify@workspace:packages/llm-notify"],
 
@@ -1338,8 +1327,6 @@
     "@voidwire/apiconf/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
 
     "@voidwire/kit/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
-
-    "@voidwire/llm-core/smol-toml": ["smol-toml@1.6.0", "", {}, "sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw=="],
 
     "@zenuml/core/marked": ["marked@4.3.0", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-PRsaiG84bK+AMvxziE/lCFss8juXjNaWzVbN5tXAm4XjeaS9NAHhop+PjQxz2A9h8Q4M/xGmzP8vqNwy6JeK0A=="],
 
