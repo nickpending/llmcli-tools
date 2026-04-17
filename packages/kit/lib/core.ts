@@ -15,9 +15,8 @@ import {
 } from "fs";
 import { dirname, join } from "path";
 import { execFileSync } from "child_process";
-import { stringify } from "smol-toml";
 import { xdg, files, getInstallPath } from "./paths";
-import { getConfig } from "./config";
+import { getConfig, tomlString } from "./config";
 import {
   loadCatalog,
   saveCatalog,
@@ -132,8 +131,8 @@ export async function init(catalogRepo?: string): Promise<InitResult> {
   // Write config if repo was provided and differs
   if (catalogRepo && catalogRepo !== config.catalog.repo) {
     ensureDir(xdg.config);
-    const configContent = stringify({ catalog: { repo: catalogRepo } });
-    writeFileSync(files.config, configContent + "\n", "utf-8");
+    const configContent = `[catalog]\nrepo = ${tomlString(catalogRepo)}\n`;
+    writeFileSync(files.config, configContent, "utf-8");
   }
 
   return {

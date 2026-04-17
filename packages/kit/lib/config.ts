@@ -6,9 +6,13 @@
 
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
-import { parse } from "smol-toml";
 import { files } from "./paths";
 import type { KitConfig } from "./types";
+
+/** Escape a string for a TOML basic string literal. */
+export function tomlString(s: string): string {
+  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
 
 let cachedConfig: KitConfig | null = null;
 
@@ -32,7 +36,7 @@ export function getConfig(): KitConfig {
   }
 
   const raw = readFileSync(files.config, "utf-8");
-  const parsed = parse(raw);
+  const parsed = Bun.TOML.parse(raw) as Record<string, unknown>;
 
   const catalog = parsed.catalog as Record<string, unknown> | undefined;
   const source = parsed.source as Record<string, unknown> | undefined;
