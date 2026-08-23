@@ -122,14 +122,25 @@ function buildInsightsPrompt(_userName?: string): string {
 </fields>
 
 <signal_types>
-- gotcha: Something that broke or surprised — a trap for future developers
-- decision: A deliberate choice with rationale ("X because Y")
-- discovery: New finding about codebase, tool, or behavior
-- pattern: A reusable approach or technique worth remembering
-- preference: Something the user explicitly prefers or dislikes
-- style: Code style, naming, or formatting preference
-- term: Domain-specific terminology or naming convention
-- teaching: The user explained something — capture the lesson
+- gotcha: Something that broke or surprised in a way another developer could repeat. NOT a one-time accident.
+  IS: "FTS5 BM25 collapses to ~0 in single-doc corpora — assertions on textScore need decoy seeds."
+  IS NOT: "User got an error and we fixed it."
+- decision: A deliberate choice with rationale that affects future work. Format: "X because Y."
+  IS: "Replaced CORPUS_PATH const with getCorpusPath() function — breaks ESM module-evaluation bootstrap trap."
+  IS NOT: "Decided to fix the bug" (no rationale, no future bearing).
+- discovery: A new finding about how the codebase, tool, or behavior actually works — verified, not guessed.
+  IS: "tank.ts evaluates createTankApi(getTankPath()) at module scope — any value-import pulls config load."
+  IS NOT: "Looked at the tank file."
+- pattern: A reusable approach that names a recurring class of situation AND prescribes what to do. Highest bar of all signal types. If you cannot name the recurring class of situation in one phrase, it is NOT a pattern.
+  IS: "When a leaf module is needed for ESM bootstrap, hoist the constant to its own file rather than re-exporting through a wrapper."
+  IS NOT: "Used reflective questioning to guide the user" (one-off act, no class of situation named).
+  IS NOT: a description of what someone did once, even if it could theoretically be repeated.
+- preference: An explicit user statement of preference or rejection. Requires explicit user signal — clarification is not preference.
+  IS: "User prefers \`bunx tsc --noEmit --project tsconfig.json\` over the short form."
+  IS NOT: "User clarified X."
+- style: Code style, naming, or formatting preference the user stated explicitly.
+- term: Domain-specific vocabulary the user named, with definition.
+- teaching: The user explained something the assistant didn't know. Capture the lesson, not the conversation around it.
 </signal_types>
 
 <rules>

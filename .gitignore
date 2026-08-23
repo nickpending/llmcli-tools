@@ -118,3 +118,11 @@ package-lock.json
 
 # Base compliance patterns (auto-added by gitignore-check)
 .bun/
+
+# Agent workspace
+.corpus/
+
+# Spec Kit — ephemeral extension state only; everything else under .specify/ is committed
+.specify/extensions/.cache/
+.specify/extensions/.backup/
+.specify/extensions/*/local-config.yml
