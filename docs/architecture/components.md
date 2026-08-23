@@ -4,7 +4,7 @@ subtype: components
 project: "llmcli-tools"
 status: active
 created: "2026-06-08"
-updated: "2026-06-12"
+updated: "2026-08-23"
 tags: [architecture, components]
 ---
 
@@ -45,8 +45,8 @@ Registry of all system components. Each entry links to a detail doc when the com
 ## kit
 
 **Purpose:** Cross-cutting component registry — manages skills, commands, agents, tools across the `@voidwire` ecosystem and devices.
-**Key files:** `packages/kit/{index.ts,cli.ts,lib/}` (`lib/config.ts`, `lib/core.ts`), `packages/kit/__tests__/`
-**Connections:** Reads/writes component catalog. Parses TOML config via `Bun.TOML.parse` (no external TOML dep).
+**Key files:** `packages/kit/{index.ts,cli.ts,lib/}` (`lib/config.ts`, `lib/catalog.ts`, `lib/core.ts`, `lib/state.ts`, `lib/paths.ts`), `packages/kit/__tests__/`
+**Connections:** Local config (`~/.config/kit/config.toml`) parsed via `Bun.TOML.parse` (no dep). The catalog itself is a YAML file in a separate git repo, cloned locally and parsed via `js-yaml` (external dep, `package.json`). Installed-component state tracked separately in `~/.local/share/kit/state.yaml`. See [decisions.md](decisions.md) and [boundaries.md](boundaries.md).
 
 ## language-detect
 

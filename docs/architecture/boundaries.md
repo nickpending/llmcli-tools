@@ -4,7 +4,7 @@ subtype: boundaries
 project: "llmcli-tools"
 status: active
 created: "2026-06-08"
-updated: "2026-06-12"
+updated: "2026-08-23"
 tags: [architecture, boundaries]
 ---
 
@@ -29,6 +29,12 @@ Interface contracts between components and external systems.
 **Between:** gitignore-check → language-detect; expertise-update → lore (both `workspace:*`)
 **Contract:** Consumers import the producer's library export directly (e.g. gitignore-check imports `detectLanguages` from `@voidwire/language-detect` — no subprocess). The producer's `index.ts` export surface is the contract.
 **Constraints:** These are the only two internal package-to-package deps; every other package is standalone. Changing a producer's exported function signatures breaks its in-repo consumer — keep `index.ts` exports stable or update both sides together.
+
+## kit → catalog repo (external git)
+
+**Between:** kit ↔ External (`kit-catalog.yaml` in a separate git repo, referenced by `~/.config/kit/config.toml`)
+**Contract:** The catalog stores pointer entries (`name`, `repo`, `path`, `type`, `domain`, `tags`) to component source repos — never the component content itself. `kit sync` pulls the latest catalog and clones/updates each referenced source repo to install locally. Resource `type` (`skill`/`command`/`tool`/`agent`) determines the on-device install path.
+**Constraints:** Catalog schema (entry fields, YAML shape) is the contract between the catalog repo and every device's Kit install — an incompatible field change breaks parsing everywhere the catalog is synced. Installed-component state (`~/.local/share/kit/state.yaml`) is per-device and not part of this contract.
 
 ## argus-send → Argus platform
 
