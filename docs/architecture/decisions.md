@@ -4,13 +4,19 @@ subtype: decisions
 project: "llmcli-tools"
 status: active
 created: "2026-06-08"
-updated: "2026-08-23"
+updated: "2026-08-25"
 tags: [architecture, decisions]
 ---
 
 # Decisions
 
 Architectural decisions and their rationale. Most recent first.
+
+## Build: declare `typescript` devDependency wherever `tsc` runs
+
+**Context:** Typecheck scripts resolved `tsc` from PATH — works only where TypeScript happens to be installed globally, exits 127 elsewhere. Under `verify.sh` running with `set -e` and no failure accumulator, that 127 aborts the whole run silently, so every check after it never happens.
+**Choice:** Every package whose typecheck script runs `tsc` declares `typescript` as an explicit devDependency (`dojo`, `llm`, `lore`, `sable-eval`; commit `9f805a4`), per Bootstrap's conformance contract, property 9.
+**Why:** Makes the toolchain dependency explicit and workspace-installable instead of relying on a global install — `verify.sh` runs deterministically regardless of the host's global toolchain.
 
 ## kit: catalog as a pointer YAML in its own git repo, not vendored components
 
