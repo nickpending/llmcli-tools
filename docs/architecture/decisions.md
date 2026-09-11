@@ -4,13 +4,19 @@ subtype: decisions
 project: "llmcli-tools"
 status: active
 created: "2026-06-08"
-updated: "2026-08-25"
+updated: "2026-09-11"
 tags: [architecture, decisions]
 ---
 
 # Decisions
 
 Architectural decisions and their rationale. Most recent first.
+
+## llm-summarize: tighten signal-type definitions with IS/IS-NOT examples
+
+**Context:** The insights-extraction prompt's `signal_types` block (`buildInsightsPrompt` in `packages/llm-summarize/index.ts`) defined each capture type (gotcha, decision, discovery, pattern, preference, style, term, teaching) in a single loose line, too weak to reliably separate a real signal from a restatement or one-off event.
+**Choice:** Rewrote each signal type's definition with paired IS/IS-NOT examples (and for `pattern`, an explicit requirement to name the recurring class of situation), without changing the eight signal types themselves or the extraction contract's output shape.
+**Why:** Raises the bar for what's capture-worthy before it reaches Lore — fewer ambiguous or restated captures entering the knowledge base.
 
 ## Build: declare `typescript` devDependency wherever `tsc` runs
 
