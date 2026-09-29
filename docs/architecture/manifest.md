@@ -3,7 +3,7 @@ type: manifest
 project: llmcli-tools
 generated: 2026-09-28
 source: /Users/rudy/development/projects/llmcli-tools/docs/architecture
-reconciled_at: ae1edba41e0c6a7f16f63621e5f9f8aa795a112c
+reconciled_at: 99a87dc260f5f73ea23d88fc00b742c280fcad94
 ---
 
 # llmcli-tools Manifest
