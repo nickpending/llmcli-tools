@@ -1,9 +1,9 @@
 ---
 type: manifest
 project: llmcli-tools
-generated: 2026-10-01
+generated: 2026-10-03
 source: /Users/rudy/development/projects/llmcli-tools/docs/architecture
-reconciled_at: db2e24cf2b61bd73aaef199315913760eaf6d953
+reconciled_at: 3f57e952fcdf04ea2a9712eb572528cad1effbec
 ---
 
 # llmcli-tools Manifest
